@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>LSHOE - Cửa hàng giày</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<section class="hero">
+    <div><p class="badge">Bộ sưu tập mới</p>
+        <h1>LSHOE - Giày đẹp cho mọi phong cách</h1>
+        <p>Khám phá sneaker Nike, Adidas, New Balance, Puma, MLB và Converse với giao diện lấy cảm hứng từ các shop giày
+            hiện đại.</p><a class="btn" th:href="@{/products}">Mua ngay</a></div>
+</section>
+<section class="section"><h2>Danh mục nổi bật</h2>
+    <div class="chips"><a th:each="c:${categories}" th:href="@{/products(category=${c.id})}" th:text="${c.name}">Danh
+        mục</a></div>
+</section>
+<section class="section">
+    <div class="title-row"><h2>Sản phẩm mới tại LSHOE</h2><a th:href="@{/products}">Xem tất cả</a></div>
+    <div class="grid">
+        <div class="card" th:each="p:${products}"><img th:src="${p.imageUrl}" alt="Giày">
+            <div class="card-body"><p class="brand" th:text="${p.brand}">Nike</p>
+                <h3 th:text="${p.name}">Tên giày</h3>
+                <p class="desc" th:text="${p.description}">Mô tả</p>
+                <div><span class="price"
+                           th:text="${#numbers.formatDecimal(p.price,0,'COMMA',0,'POINT')} + 'đ'">0đ</span><span
+                        class="old" th:text="${#numbers.formatDecimal(p.oldPrice,0,'COMMA',0,'POINT')} + 'đ'">0đ</span>
+                </div>
+                <a class="btn small" th:href="@{/products/{id}(id=${p.id})}">Xem chi tiết</a></div>
+        </div>
+    </div>
+</section>
+<div th:replace="~{fragments :: footer}"></div>
+</body>
+</html>

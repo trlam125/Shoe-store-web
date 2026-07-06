@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản trị - LSHOE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<section class="section"><h1>Bảng điều khiển quản trị</h1>
+    <div class="stats">
+        <div><b th:text="${productCount}">0</b><span>Sản phẩm</span></div>
+        <div><b th:text="${orderCount}">0</b><span>Đơn hàng</span></div>
+    </div>
+    <p><a class="btn" th:href="@{/admin/products}">Quản lý sản phẩm</a> <a class="btn" th:href="@{/admin/orders}">Quản
+        lý đơn hàng</a></p></section>
+<div th:replace="~{fragments :: footer}"></div>
+</body>
+</html>

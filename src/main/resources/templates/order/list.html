@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Đơn hàng - LSHOE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<section class="section"><h1>Lịch sử đơn hàng</h1>
+    <table>
+        <tr>
+            <th>Mã đơn</th>
+            <th>Ngày đặt</th>
+            <th>Tổng tiền</th>
+            <th>Trạng thái</th>
+        </tr>
+        <tr th:each="o:${orders}">
+            <td th:text="${o.id}"></td>
+            <td th:text="${#temporals.format(o.createdAt,'dd/MM/yyyy HH:mm')}"></td>
+            <td th:text="${#numbers.formatDecimal(o.total,0,'COMMA',0,'POINT')} + 'đ'"></td>
+            <td th:text="${o.status}"></td>
+        </tr>
+    </table>
+</section>
+<div th:replace="~{fragments :: footer}"></div>
+</body>
+</html>

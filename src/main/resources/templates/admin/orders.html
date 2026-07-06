@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản lý đơn hàng - LSHOE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<section class="section"><h1>Quản lý đơn hàng</h1>
+    <table>
+        <tr>
+            <th>Mã</th>
+            <th>Khách hàng</th>
+            <th>SĐT</th>
+            <th>Địa chỉ</th>
+            <th>Tổng tiền</th>
+            <th>Trạng thái</th>
+        </tr>
+        <tr th:each="o:${orders}">
+            <td th:text="${o.id}"></td>
+            <td th:text="${o.receiverName}"></td>
+            <td th:text="${o.phone}"></td>
+            <td th:text="${o.address}"></td>
+            <td th:text="${#numbers.formatDecimal(o.total,0,'COMMA',0,'POINT')} + 'đ'"></td>
+            <td>
+                <form th:action="@{/admin/orders/{id}/status(id=${o.id})}" method="post"><select name="status">
+                    <option th:each="s:${statuses}" th:value="${s}" th:selected="${s==o.status}"
+                            th:text="${s}"></option>
+                </select>
+                    <button>Cập nhật</button>
+                </form>
+            </td>
+        </tr>
+    </table>
+</section>
+<div th:replace="~{fragments :: footer}"></div>
+</body>
+</html>
