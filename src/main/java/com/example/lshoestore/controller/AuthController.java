@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 @Controller
@@ -30,7 +31,10 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public String doRegister(@ModelAttribute User user, Model model) {
+    public String doRegister(@Valid @ModelAttribute User user, BindingResult bindingResult, Model model) {
+        if (bindingResult.hasErrors()) {
+            return "auth/register";
+        }
         if (users.existsByEmail(user.getEmail())) {
             model.addAttribute("error", "Email đã được sử dụng");
             return "auth/register";

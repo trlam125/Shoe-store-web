@@ -7,51 +7,79 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
-import java.math.BigDecimal;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class OrderController {
+
     private final CartService cart;
     private final UserRepository users;
     private final OrderRepository orders;
+    private final ProductRepository products;
 
-    public OrderController(CartService cart, UserRepository users, OrderRepository orders) {
+    public OrderController(CartService cart, UserRepository users,
+                           OrderRepository orders, ProductRepository products) {
         this.cart = cart;
         this.users = users;
         this.orders = orders;
+        this.products = products;
     }
 
     @GetMapping("/checkout")
     public String checkout(Model model, Authentication auth) {
-        if (cart.isEmpty()) return "redirect:/cart";
+        if (cart.isEmpty(auth)) return "redirect:/cart";
         User u = users.findByEmail(auth.getName()).orElseThrow();
         model.addAttribute("user", u);
-        model.addAttribute("items", cart.getItems());
-        model.addAttribute("total", cart.total());
-        model.addAttribute("cartCount", cart.count());
+        model.addAttribute("items", cart.getItems(auth));
+        model.addAttribute("total", cart.total(auth));
+        model.addAttribute("cartCount", cart.count(auth));
         return "order/checkout";
     }
 
     @PostMapping("/checkout")
-    public String place(Authentication auth, @RequestParam String receiverName, @RequestParam String phone, @RequestParam String address) {
+    public String place(Authentication auth,
+                        @RequestParam String receiverName,
+                        @RequestParam String phone,
+                        @RequestParam String address,
+                        RedirectAttributes redirectAttrs) {
+        // Kiểm tra tồn kho trước khi đặt
+        for (CartItem ci : cart.getItems(auth)) {
+            Product p = products.findById(ci.getProduct().getId()).orElseThrow();
+            if (!p.isActive()) {
+                redirectAttrs.addFlashAttribute("error",
+                        "Sản phẩm \"" + p.getName() + "\" hiện không còn bán.");
+                return "redirect:/cart";
+            }
+            if (p.getStock() < ci.getQuantity()) {
+                redirectAttrs.addFlashAttribute("error",
+                        "Sản phẩm \"" + p.getName() + "\" chỉ còn " + p.getStock() + " đôi trong kho.");
+                return "redirect:/cart";
+            }
+        }
+
         User u = users.findByEmail(auth.getName()).orElseThrow();
         Order o = new Order();
         o.setUser(u);
         o.setReceiverName(receiverName);
         o.setPhone(phone);
         o.setAddress(address);
-        o.setTotal(cart.total());
-        for (CartItem ci : cart.getItems()) {
+        o.setTotal(cart.total(auth));
+
+        for (CartItem ci : cart.getItems(auth)) {
+            Product p = products.findById(ci.getProduct().getId()).orElseThrow();
+            p.setStock(p.getStock() - ci.getQuantity());
+            products.save(p);
+
             OrderItem it = new OrderItem();
             it.setOrder(o);
-            it.setProduct(ci.getProduct());
+            it.setProduct(p);
             it.setQuantity(ci.getQuantity());
-            it.setPrice(ci.getProduct().getPrice());
+            it.setPrice(p.getPrice());
             o.getItems().add(it);
         }
+
         orders.save(o);
-        cart.clear();
+        cart.clear(auth);
         return "redirect:/orders";
     }
 

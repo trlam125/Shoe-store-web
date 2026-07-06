@@ -57,7 +57,10 @@ public class AdminController {
 
     @PostMapping("/products/delete/{id}")
     public String delete(@PathVariable Long id) {
-        products.deleteById(id);
+        // Soft delete: ẩn sản phẩm thay vì xóa để tránh lỗi FK với OrderItem
+        Product p = products.findById(id).orElseThrow();
+        p.setActive(false);
+        products.save(p);
         return "redirect:/admin/products";
     }
 

@@ -1,6 +1,7 @@
 package com.example.lshoestore.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 
 @Entity
 @Table(name = "users")
@@ -8,12 +9,21 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @NotBlank(message = "Họ tên không được để trống")
     @Column(nullable = false)
     private String fullName;
+
+    @NotBlank(message = "Email không được để trống")
+    @Email(message = "Email không hợp lệ")
     @Column(nullable = false, unique = true)
     private String email;
+
+    @NotBlank(message = "Mật khẩu không được để trống")
+    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
     @Column(nullable = false)
     private String password;
+
     @Column(nullable = false)
     private String role = "ROLE_USER";
     private String phone;
