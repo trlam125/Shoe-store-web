@@ -29,11 +29,11 @@ public class SecurityConfig {
             .formLogin(f -> f
                 .loginPage("/login")
                 .usernameParameter("email")
-                .successHandler(loginHandler)   // merge cart khi login
+                .successHandler(loginHandler)   // merge cart khi login + redirect đúng URL
                 .permitAll()
             )
-            .logout(l -> l.logoutSuccessUrl("/").permitAll())
-            .csrf(csrf -> csrf.disable());
+            .logout(l -> l.logoutSuccessUrl("/").permitAll());
+            // Fix #1: CSRF được bật (mặc định), Thymeleaf th:action tự inject token
         return http.build();
     }
 }

@@ -1,5 +1,6 @@
 package com.example.lshoestore.controller;
 
+import com.example.lshoestore.model.Product;
 import com.example.lshoestore.repository.*;
 import com.example.lshoestore.service.CartService;
 import jakarta.servlet.http.HttpSession;
@@ -48,8 +49,13 @@ public class HomeController {
 
     @GetMapping("/products/{id}")
     public String detail(@PathVariable Long id, Model model, Authentication auth, HttpSession session) {
-        model.addAttribute("product", products.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm id=" + id)));
+        Product product = products.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm id=" + id));
+        // Không cho phép xem trang chi tiết sản phẩm đã bị ẩn
+        if (!product.isActive()) {
+            return "redirect:/products";
+        }
+        model.addAttribute("product", product);
         model.addAttribute("cartCount", cart.count(auth, session));
         return "product/detail";
     }

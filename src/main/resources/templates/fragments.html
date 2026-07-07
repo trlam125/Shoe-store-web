@@ -2,7 +2,17 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="https://www.thymeleaf.org/extras/spring-security">
 <body>
 <header th:fragment="header" class="site-header">
-    <div class="topbar">Miễn phí giao hàng cho đơn từ 1.000.000đ - Thanh toán khi nhận hàng</div>
+    <!-- Fix #16: hiển thị flash warning (vd: sản phẩm bị xóa khi merge cart) toàn site -->
+    <div th:if="${warning}" class="global-warning"
+         th:text="${warning}"
+         style="background:#fff3cd;color:#856404;padding:10px 20px;text-align:center;font-size:14px;border-bottom:1px solid #ffc107;">
+    </div>
+    <div class="topbar">
+        <div class="topbar-track">
+            <span class="topbar-text">🚚 Miễn phí giao hàng cho đơn từ 1.000.000đ&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔄 Đổi trả miễn phí trong 30 ngày&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;💳 Thanh toán khi nhận hàng (COD)&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;✅ 100% giày chính hãng&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔥 Sale lên đến 50% - Số lượng có hạn&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;📞 Hotline: 0900 000 000&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;</span>
+            <span class="topbar-text">🚚 Miễn phí giao hàng cho đơn từ 1.000.000đ&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔄 Đổi trả miễn phí trong 30 ngày&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;💳 Thanh toán khi nhận hàng (COD)&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;✅ 100% giày chính hãng&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔥 Sale lên đến 50% - Số lượng có hạn&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;📞 Hotline: 0900 000 000&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;</span>
+        </div>
+    </div>
     <nav class="navbar"><a class="logo" th:href="@{/}">LSHOE</a>
         <form th:action="@{/products}" class="search"><input name="q" placeholder="Tìm kiếm giày..." th:value="${q}">
             <button>Tìm</button>
@@ -52,7 +62,7 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: #111;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
     display: flex;
     align-items: center;
     justify-content: center;

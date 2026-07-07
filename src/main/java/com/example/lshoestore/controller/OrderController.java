@@ -31,6 +31,7 @@ public class OrderController {
 
     @GetMapping("/checkout")
     public String checkout(Model model, Authentication auth, HttpSession session) {
+        if (auth == null || !auth.isAuthenticated()) return "redirect:/login";
         if (cart.isEmpty(auth, session)) return "redirect:/cart";
         User u = users.findByEmail(auth.getName()).orElseThrow();
         model.addAttribute("user", u);
@@ -47,7 +48,13 @@ public class OrderController {
                         @RequestParam String address,
                         RedirectAttributes redirectAttrs) {
 
-        // Validate input — không cần transaction
+        // Fix #8: guard giỏ hàng rỗng ở POST
+        if (cart.isEmpty(auth, session)) {
+            redirectAttrs.addFlashAttribute("error", "Giỏ hàng của bạn đang trống.");
+            return "redirect:/cart";
+        }
+
+        // Validate input
         if (receiverName == null || receiverName.isBlank()) {
             redirectAttrs.addFlashAttribute("error", "Vui lòng nhập họ tên người nhận.");
             return "redirect:/checkout";
@@ -65,10 +72,9 @@ public class OrderController {
         Collection<CartItem> items = cart.getItems(auth, session);
 
         try {
-            // Transaction nằm hoàn toàn trong OrderService — exception được bắt đúng chỗ
-            orderService.placeOrder(u, receiverName.trim(), phone.trim(), address.trim(), items);
+            // Fix #5: cart.clear() được gọi bên trong transaction của orderService
+            orderService.placeOrder(u, receiverName.trim(), phone.trim(), address.trim(), items, auth, session);
         } catch (IllegalStateException e) {
-            // Lấy phần message trước dấu "|"
             String msg = e.getMessage().contains("|")
                     ? e.getMessage().split("\\|")[0]
                     : e.getMessage();
@@ -76,14 +82,14 @@ public class OrderController {
             return "redirect:/cart";
         }
 
-        cart.clear(auth, session);
         return "redirect:/orders";
     }
 
     @GetMapping("/orders")
-    public String myOrders(Authentication auth, Model model) {
+    public String myOrders(Authentication auth, Model model, HttpSession session) {
         User u = users.findByEmail(auth.getName()).orElseThrow();
         model.addAttribute("orders", orders.findByUserOrderByCreatedAtDesc(u));
+        model.addAttribute("cartCount", cart.count(auth, session));
         return "order/list";
     }
 }

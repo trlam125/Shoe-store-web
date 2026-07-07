@@ -48,6 +48,12 @@
         <input th:field="*{stock}" type="number" min="0" required>
         <p class="error" th:if="${#fields.hasErrors('stock')}" th:errors="*{stock}"></p>
 
+        <!-- Fix #17: cho phép admin bật/tắt hiển thị sản phẩm khi chỉnh sửa -->
+        <div th:if="${product.id != null}" style="margin: 12px 0; display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="activeCheck" th:field="*{active}">
+            <label for="activeCheck" style="font-weight:normal; margin:0;">Đang bán (bỏ chọn để ẩn sản phẩm)</label>
+        </div>
+
         <button class="btn">Lưu sản phẩm</button>
     </form>
 </section>

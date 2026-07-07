@@ -9,6 +9,7 @@
 <div th:replace="~{fragments :: header}"></div>
 <section class="section">
     <h1>Quản lý đơn hàng</h1>
+    <p class="error" th:if="${error}" th:text="${error}" style="color:#c0392b;background:#fde;padding:10px;border-radius:6px;margin-bottom:12px;"></p>
     <table>
         <tr>
             <th>Mã</th>
@@ -34,7 +35,7 @@
                         <option th:each="s:${statuses}"
                                 th:value="${s}"
                                 th:selected="${s == o.status}"
-                                th:text="${s}"></option>
+                                th:text="${s.displayName}"></option>
                     </select>
                     <button>Cập nhật</button>
                 </form>

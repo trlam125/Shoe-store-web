@@ -7,12 +7,21 @@
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
-<section class="form-box"><h1>Thông tin giao hàng</h1>
-    <form th:action="@{/checkout}" method="post"><label>Họ tên người nhận</label><input name="receiverName"
-                                                                                        th:value="${user.fullName}"
-                                                                                        required><label>Số điện
-        thoại</label><input name="phone" th:value="${user.phone}" required><label>Địa chỉ nhận hàng</label><textarea
-            name="address" required th:text="${user.address}"></textarea>
+<section class="form-box">
+    <h1>Thông tin giao hàng</h1>
+    <p class="error" th:if="${error}" th:text="${error}"></p>
+    <form th:action="@{/checkout}" method="post">
+        <label>Họ tên người nhận</label>
+        <input name="receiverName" th:value="${user.fullName}" required maxlength="100">
+
+        <label>Số điện thoại</label>
+        <input name="phone" th:value="${user.phone}" required
+               pattern="^(0|\+84)[0-9]{8,10}$"
+               title="Số điện thoại hợp lệ (VD: 0901234567)">
+
+        <label>Địa chỉ nhận hàng</label>
+        <textarea name="address" required th:text="${user.address}"></textarea>
+
         <h3>Tổng tiền: <span th:text="${#numbers.formatDecimal(total,0,'COMMA',0,'POINT')} + 'đ'"></span></h3>
         <button class="btn">Đặt hàng COD</button>
     </form>

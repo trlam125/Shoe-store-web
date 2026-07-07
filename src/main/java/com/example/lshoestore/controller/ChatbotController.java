@@ -1,6 +1,7 @@
 package com.example.lshoestore.controller;
 
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -15,7 +16,16 @@ import java.util.Map;
 public class ChatbotController {
 
     private static final String CHATBOT_API_URL = "http://localhost:8000/api/chat";
-    private final RestTemplate restTemplate = new RestTemplate();
+    // Fix #11: set timeout để tránh block thread vô thời hạn khi chatbot treo
+    private static final int TIMEOUT_MS = 15_000; // 15 giây
+    private final RestTemplate restTemplate;
+
+    public ChatbotController() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(TIMEOUT_MS);
+        factory.setReadTimeout(TIMEOUT_MS);
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     @PostMapping("/chat")
     public ResponseEntity<Map> chat(@RequestBody Map<String, Object> body) {

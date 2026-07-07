@@ -20,16 +20,17 @@
 <section class="section">
     <div class="title-row"><h2>Sản phẩm mới tại LSHOE</h2><a th:href="@{/products}">Xem tất cả</a></div>
     <div class="grid">
-        <div class="card" th:each="p:${products}"><img th:src="${p.imageUrl}" alt="Giày">
+        <a class="card" th:each="p:${products}" th:href="@{/products/{id}(id=${p.id})}"><img th:src="${p.imageUrl}" alt="Giày">
             <div class="card-body"><p class="brand" th:text="${p.brand}">Nike</p>
                 <h3 th:text="${p.name}">Tên giày</h3>
                 <p class="desc" th:text="${p.description}">Mô tả</p>
                 <div><span class="price"
                            th:text="${#numbers.formatDecimal(p.price,0,'COMMA',0,'POINT')} + 'đ'">0đ</span><span
-                        class="old" th:text="${#numbers.formatDecimal(p.oldPrice,0,'COMMA',0,'POINT')} + 'đ'">0đ</span>
+                        class="old" th:if="${p.oldPrice != null}"
+                        th:text="${#numbers.formatDecimal(p.oldPrice,0,'COMMA',0,'POINT')} + 'đ'">0đ</span>
                 </div>
-                <a class="btn small" th:href="@{/products/{id}(id=${p.id})}">Xem chi tiết</a></div>
-        </div>
+            </div>
+        </a>
     </div>
 </section>
 <div th:replace="~{fragments :: footer}"></div>

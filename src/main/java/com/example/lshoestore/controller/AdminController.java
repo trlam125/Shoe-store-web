@@ -2,6 +2,7 @@ package com.example.lshoestore.controller;
 
 import com.example.lshoestore.model.*;
 import com.example.lshoestore.repository.*;
+import com.example.lshoestore.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -9,8 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/admin")
@@ -19,16 +19,20 @@ public class AdminController {
     private final ProductRepository products;
     private final CategoryRepository categories;
     private final OrderRepository orders;
+    private final OrderService orderService;
 
-    public AdminController(ProductRepository products, CategoryRepository categories, OrderRepository orders) {
+    public AdminController(ProductRepository products, CategoryRepository categories,
+                           OrderRepository orders, OrderService orderService) {
         this.products = products;
         this.categories = categories;
         this.orders = orders;
+        this.orderService = orderService;
     }
 
     @GetMapping
     public String dashboard(Model m) {
-        m.addAttribute("productCount", products.count());
+        // Fix #18: chỉ đếm sản phẩm đang bán (active=true)
+        m.addAttribute("productCount", products.findByActiveTrueOrderByIdDesc().size());
         m.addAttribute("orderCount", orders.count());
         return "admin/dashboard";
     }
@@ -70,8 +74,12 @@ public class AdminController {
         product.setCategory(categories.findById(categoryId).orElseThrow());
 
         if (product.getId() != null) {
-            products.findById(product.getId()).ifPresent(existing ->
-                    product.setActive(existing.isActive()));
+            // Fix #2: load từ DB trước để đảm bảo ID hợp lệ, giữ ảnh cũ
+            // active đã được bind từ form checkbox — không cần override
+            Product existing = products.findById(product.getId()).orElseThrow();
+            if (product.getImageUrl() == null || product.getImageUrl().isBlank()) {
+                product.setImageUrl(existing.getImageUrl());
+            }
         } else {
             product.setActive(true);
         }
@@ -80,11 +88,11 @@ public class AdminController {
         return "redirect:/admin/products";
     }
 
-    @PostMapping("/products/delete/{id}")
-    public String delete(@PathVariable Long id) {
-        // Soft delete: ẩn sản phẩm thay vì xóa để tránh lỗi FK với OrderItem
+    // Fix #17: toggle active/inactive thay vì chỉ soft-delete một chiều
+    @PostMapping("/products/toggle/{id}")
+    public String toggleActive(@PathVariable Long id) {
         Product p = products.findById(id).orElseThrow();
-        p.setActive(false);
+        p.setActive(!p.isActive());
         products.save(p);
         return "redirect:/admin/products";
     }
@@ -101,14 +109,14 @@ public class AdminController {
     }
 
     @PostMapping("/orders/{id}/status")
-    public String status(@PathVariable Long id, @RequestParam OrderStatus status) {
-        Order o = orders.findById(id).orElseThrow();
-        o.setStatus(status);
-        // Fix #7: tự động set completedAt khi đổi sang HOAN_THANH
-        if (status == OrderStatus.HOAN_THANH && o.getCompletedAt() == null) {
-            o.setCompletedAt(LocalDateTime.now());
+    public String status(@PathVariable Long id, @RequestParam OrderStatus status,
+                         RedirectAttributes redirectAttrs) {
+        try {
+            // Fix #3 #4: stock rollback + state machine trong OrderService
+            orderService.updateStatus(id, status);
+        } catch (IllegalStateException e) {
+            redirectAttrs.addFlashAttribute("error", e.getMessage());
         }
-        orders.save(o);
         return "redirect:/admin/orders";
     }
 }

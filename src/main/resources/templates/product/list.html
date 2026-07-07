@@ -12,13 +12,13 @@
                                                               th:href="@{/products(category=${c.id})}"
                                                               th:text="${c.name}"></a></div>
     <div class="grid">
-        <div class="card" th:each="p:${products}"><img th:src="${p.imageUrl}" alt="Giày">
+        <a class="card" th:each="p:${products}" th:href="@{/products/{id}(id=${p.id})}"><img th:src="${p.imageUrl}" alt="Giày">
             <div class="card-body"><p class="brand" th:text="${p.brand}"></p>
                 <h3 th:text="${p.name}"></h3>
                 <p class="desc" th:text="${p.description}"></p><span class="price"
-                                                                     th:text="${#numbers.formatDecimal(p.price,0,'COMMA',0,'POINT')} + 'đ'"></span><a
-                        class="btn small" th:href="@{/products/{id}(id=${p.id})}">Xem chi tiết</a></div>
-        </div>
+                                                                     th:text="${#numbers.formatDecimal(p.price,0,'COMMA',0,'POINT')} + 'đ'"></span>
+            </div>
+        </a>
     </div>
 </section>
 <div th:replace="~{fragments :: footer}"></div>

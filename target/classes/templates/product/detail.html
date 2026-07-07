@@ -15,6 +15,7 @@
         <p>Tồn kho: <b th:text="${product.stock}"></b></p>
         <div><span class="price big"
                    th:text="${#numbers.formatDecimal(product.price,0,'COMMA',0,'POINT')} + 'đ'"></span><span class="old"
+                                                                                                             th:if="${product.oldPrice != null}"
                                                                                                              th:text="${#numbers.formatDecimal(product.oldPrice,0,'COMMA',0,'POINT')} + 'đ'"></span>
         </div>
         <form th:action="@{/cart/add/{id}(id=${product.id})}" method="post">

@@ -8,7 +8,9 @@
 <body>
 <div th:replace="~{fragments :: header}"></div>
 <section class="section">
-    <div class="title-row"><h1>Quản lý sản phẩm</h1><a class="btn" th:href="@{/admin/products/new}">Thêm sản phẩm</a>
+    <div class="title-row">
+        <h1>Quản lý sản phẩm</h1>
+        <a class="btn" th:href="@{/admin/products/new}">Thêm sản phẩm</a>
     </div>
     <table>
         <tr>
@@ -17,6 +19,7 @@
             <th>Hãng</th>
             <th>Giá</th>
             <th>Tồn kho</th>
+            <th>Hiển thị</th>
             <th>Thao tác</th>
         </tr>
         <tr th:each="p:${products}">
@@ -25,13 +28,28 @@
             <td th:text="${p.brand}"></td>
             <td th:text="${#numbers.formatDecimal(p.price,0,'COMMA',0,'POINT')} + 'đ'"></td>
             <td th:text="${p.stock}"></td>
-            <td><a th:href="@{/admin/products/edit/{id}(id=${p.id})}">Sửa</a>
+            <td th:text="${p.active ? 'Đang bán' : 'Đã ẩn'}"></td>
+            <td>
+                <a th:href="@{/admin/products/edit/{id}(id=${p.id})}">Sửa</a>
                 <form class="inline" th:action="@{/admin/products/delete/{id}(id=${p.id})}" method="post">
-                    <button>Xóa</button>
+                    <button th:text="${p.active ? 'Ẩn' : 'Đã ẩn'}" th:disabled="${!p.active}">Ẩn</button>
                 </form>
             </td>
         </tr>
     </table>
+
+    <!-- Pagination -->
+    <div class="pagination" th:if="${totalPages > 1}">
+        <a th:if="${currentPage > 0}"
+           th:href="@{/admin/products(page=${currentPage - 1})}">&laquo; Trước</a>
+        <span th:each="i : ${#numbers.sequence(0, totalPages - 1)}">
+            <a th:href="@{/admin/products(page=${i})}"
+               th:text="${i + 1}"
+               th:classappend="${i == currentPage} ? 'active' : ''"></a>
+        </span>
+        <a th:if="${currentPage < totalPages - 1}"
+           th:href="@{/admin/products(page=${currentPage + 1})}">Tiếp &raquo;</a>
+    </div>
 </section>
 <div th:replace="~{fragments :: footer}"></div>
 </body>
