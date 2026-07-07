@@ -4,33 +4,29 @@ import com.example.lshoestore.model.*;
 import com.example.lshoestore.repository.ProductRepository;
 import com.example.lshoestore.repository.SavedCartItemRepository;
 import com.example.lshoestore.repository.UserRepository;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.annotation.SessionScope;
 
 import java.math.BigDecimal;
 import java.util.*;
 
 /**
  * CartService hỗ trợ hai chế độ:
- * - Guest (chưa đăng nhập): lưu trong session map.
- * - User đã đăng nhập: lưu vào bảng saved_cart_items trong DB,
- *   giỏ hàng tồn tại xuyên suốt các phiên đăng nhập.
+ * - Guest (chưa đăng nhập): lưu trong session map (qua HttpSession).
+ * - User đã đăng nhập: lưu vào bảng saved_cart_items trong DB.
  *
- * Khi user đăng nhập, CartMergeHandler gọi mergeGuestCart() để
- * chuyển toàn bộ session cart vào DB cart.
+ * Không còn @SessionScope — dùng singleton + HttpSession inject trực tiếp.
  */
 @Service
-@SessionScope
 public class CartService {
+
+    private static final String GUEST_CART_KEY = "guestCart";
 
     private final ProductRepository productRepository;
     private final SavedCartItemRepository savedCartRepo;
     private final UserRepository userRepository;
-
-    // Guest cart — chỉ dùng khi chưa đăng nhập
-    private final Map<Long, CartItem> guestItems = new LinkedHashMap<>();
 
     public CartService(ProductRepository productRepository,
                        SavedCartItemRepository savedCartRepo,
@@ -53,22 +49,34 @@ public class CartService {
         return userRepository.findByEmail(auth.getName()).orElseThrow();
     }
 
-    /** Chuyển DB rows → CartItem collection để controller/template dùng thống nhất */
+    @SuppressWarnings("unchecked")
+    private Map<Long, CartItem> getGuestCart(HttpSession session) {
+        Map<Long, CartItem> cart = (Map<Long, CartItem>) session.getAttribute(GUEST_CART_KEY);
+        if (cart == null) {
+            cart = new LinkedHashMap<>();
+            session.setAttribute(GUEST_CART_KEY, cart);
+        }
+        return cart;
+    }
+
     private Collection<CartItem> dbItemsAsCartItems(Authentication auth) {
         User u = getUser(auth);
         List<CartItem> result = new ArrayList<>();
         for (SavedCartItem sci : savedCartRepo.findByUser(u)) {
-            result.add(new CartItem(sci.getProduct(), sci.getQuantity()));
+            // Fix #4: reload product mới nhất từ DB để hiển thị giá/tồn kho hiện tại
+            Product fresh = productRepository.findById(sci.getProduct().getId())
+                    .orElse(sci.getProduct());
+            result.add(new CartItem(fresh, sci.getQuantity()));
         }
         return result;
     }
 
     // ------------------------------------------------------------------ //
-    //  Public API — tất cả method đều nhận Authentication
+    //  Public API — tất cả method nhận Authentication + HttpSession
     // ------------------------------------------------------------------ //
 
     @Transactional
-    public boolean add(Long productId, Authentication auth) {
+    public boolean add(Long productId, Authentication auth, HttpSession session) {
         Product p = productRepository.findById(productId).orElseThrow();
         if (!p.isActive() || p.getStock() <= 0) return false;
 
@@ -84,6 +92,7 @@ public class CartService {
                 savedCartRepo.save(new SavedCartItem(u, p, 1));
             }
         } else {
+            Map<Long, CartItem> guestItems = getGuestCart(session);
             CartItem item = guestItems.get(productId);
             if (item == null) {
                 guestItems.put(productId, new CartItem(p, 1));
@@ -96,73 +105,92 @@ public class CartService {
     }
 
     @Transactional
-    public void update(Long productId, int quantity, Authentication auth) {
+    public void update(Long productId, int quantity, Authentication auth, HttpSession session) {
         if (isLoggedIn(auth)) {
             User u = getUser(auth);
             savedCartRepo.findByUserAndProductId(u, productId).ifPresent(sci -> {
-                if (quantity <= 0) savedCartRepo.delete(sci);
-                else {
-                    sci.setQuantity(quantity);
+                if (quantity <= 0) {
+                    savedCartRepo.delete(sci);
+                } else {
+                    Product p = productRepository.findById(productId).orElseThrow();
+                    int capped = Math.min(quantity, p.getStock());
+                    sci.setQuantity(capped);
                     savedCartRepo.save(sci);
                 }
             });
         } else {
-            if (quantity <= 0) guestItems.remove(productId);
-            else if (guestItems.containsKey(productId))
-                guestItems.get(productId).setQuantity(quantity);
+            Map<Long, CartItem> guestItems = getGuestCart(session);
+            if (quantity <= 0) {
+                guestItems.remove(productId);
+            } else if (guestItems.containsKey(productId)) {
+                Product p = productRepository.findById(productId).orElseThrow();
+                int capped = Math.min(quantity, p.getStock());
+                guestItems.get(productId).setQuantity(capped);
+            }
         }
     }
 
     @Transactional
-    public void remove(Long productId, Authentication auth) {
+    public void remove(Long productId, Authentication auth, HttpSession session) {
         if (isLoggedIn(auth)) {
             User u = getUser(auth);
-            savedCartRepo.findByUserAndProductId(u, productId)
-                    .ifPresent(savedCartRepo::delete);
+            savedCartRepo.findByUserAndProductId(u, productId).ifPresent(savedCartRepo::delete);
         } else {
-            guestItems.remove(productId);
+            getGuestCart(session).remove(productId);
         }
     }
 
     @Transactional
-    public void clear(Authentication auth) {
+    public void clear(Authentication auth, HttpSession session) {
         if (isLoggedIn(auth)) {
             savedCartRepo.deleteByUser(getUser(auth));
         } else {
-            guestItems.clear();
+            getGuestCart(session).clear();
         }
     }
 
-    public Collection<CartItem> getItems(Authentication auth) {
+    public Collection<CartItem> getItems(Authentication auth, HttpSession session) {
         if (isLoggedIn(auth)) return dbItemsAsCartItems(auth);
-        return guestItems.values();
+        return getGuestCart(session).values();
     }
 
-    public int count(Authentication auth) {
-        return getItems(auth).stream().mapToInt(CartItem::getQuantity).sum();
+    public int count(Authentication auth, HttpSession session) {
+        return getItems(auth, session).stream().mapToInt(CartItem::getQuantity).sum();
     }
 
-    public BigDecimal total(Authentication auth) {
-        return getItems(auth).stream()
+    public BigDecimal total(Authentication auth, HttpSession session) {
+        return getItems(auth, session).stream()
                 .map(i -> i.getProduct().getPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public boolean isEmpty(Authentication auth) {
-        return getItems(auth).isEmpty();
+    public boolean isEmpty(Authentication auth, HttpSession session) {
+        return getItems(auth, session).isEmpty();
     }
 
     /**
-     * Gọi sau khi user đăng nhập thành công.
-     * Merge toàn bộ guest cart (session) vào DB cart, rồi xóa session cart.
+     * Merge guest cart → DB cart sau khi login. Gọi từ CartMergeLoginHandler.
+     * Fix #6: trả về danh sách tên sản phẩm bị bỏ qua (inactive/hết hàng) để controller thông báo.
      */
     @Transactional
-    public void mergeGuestCart(Authentication auth) {
-        if (guestItems.isEmpty()) return;
+    public List<String> mergeGuestCart(Authentication auth, HttpSession session) {
+        Map<Long, CartItem> guestItems = getGuestCart(session);
+        List<String> skipped = new ArrayList<>();
+        if (guestItems.isEmpty()) return skipped;
+
         User u = getUser(auth);
         for (CartItem ci : guestItems.values()) {
-            Product p = ci.getProduct();
-            if (!p.isActive()) continue;
+            // Reload product mới nhất từ DB
+            Product p = productRepository.findById(ci.getProduct().getId()).orElse(null);
+            if (p == null || !p.isActive()) {
+                skipped.add(ci.getProduct().getName());
+                continue;
+            }
+            if (p.getStock() <= 0) {
+                skipped.add(p.getName() + " (hết hàng)");
+                continue;
+            }
+
             Optional<SavedCartItem> existing = savedCartRepo.findByUserAndProductId(u, p.getId());
             if (existing.isPresent()) {
                 SavedCartItem sci = existing.get();
@@ -175,5 +203,6 @@ public class CartService {
             }
         }
         guestItems.clear();
+        return skipped;
     }
 }

@@ -9,6 +9,7 @@
 <div th:replace="~{fragments :: header}"></div>
 <section class="section"><h1>Giỏ hàng của bạn</h1>
     <p class="error" th:if="${error}" th:text="${error}"></p>
+    <p class="warning" th:if="${warning}" th:text="${warning}" style="color:#e67e00;background:#fff3cd;padding:10px;border-radius:6px;"></p>
     <p th:if="${#lists.isEmpty(items)}">Giỏ hàng đang trống.</p>
     <table th:if="${!#lists.isEmpty(items)}">
         <tr>

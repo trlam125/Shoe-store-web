@@ -2,9 +2,15 @@ package com.example.lshoestore.controller;
 
 import com.example.lshoestore.model.*;
 import com.example.lshoestore.repository.*;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @Controller
 @RequestMapping("/admin")
@@ -28,8 +34,12 @@ public class AdminController {
     }
 
     @GetMapping("/products")
-    public String productList(Model m) {
-        m.addAttribute("products", products.findAll());
+    public String productList(@RequestParam(defaultValue = "0") int page, Model m) {
+        Pageable pageable = PageRequest.of(page, 20);
+        var productPage = products.findAllByOrderByIdDesc(pageable);
+        m.addAttribute("products", productPage.getContent());
+        m.addAttribute("currentPage", page);
+        m.addAttribute("totalPages", productPage.getTotalPages());
         return "admin/products";
     }
 
@@ -48,9 +58,24 @@ public class AdminController {
     }
 
     @PostMapping("/products/save")
-    public String save(@ModelAttribute Product product, @RequestParam Long categoryId) {
+    public String save(@Valid @ModelAttribute Product product,
+                       BindingResult bindingResult,
+                       @RequestParam Long categoryId,
+                       Model m) {
+        if (bindingResult.hasErrors()) {
+            m.addAttribute("categories", categories.findAll());
+            return "admin/product-form";
+        }
+
         product.setCategory(categories.findById(categoryId).orElseThrow());
-        product.setActive(true);
+
+        if (product.getId() != null) {
+            products.findById(product.getId()).ifPresent(existing ->
+                    product.setActive(existing.isActive()));
+        } else {
+            product.setActive(true);
+        }
+
         products.save(product);
         return "redirect:/admin/products";
     }
@@ -65,9 +90,13 @@ public class AdminController {
     }
 
     @GetMapping("/orders")
-    public String orderList(Model m) {
-        m.addAttribute("orders", orders.findAllByOrderByCreatedAtDesc());
+    public String orderList(@RequestParam(defaultValue = "0") int page, Model m) {
+        Pageable pageable = PageRequest.of(page, 20);
+        var orderPage = orders.findAllByOrderByCreatedAtDesc(pageable);
+        m.addAttribute("orders", orderPage.getContent());
         m.addAttribute("statuses", OrderStatus.values());
+        m.addAttribute("currentPage", page);
+        m.addAttribute("totalPages", orderPage.getTotalPages());
         return "admin/orders";
     }
 
@@ -75,6 +104,10 @@ public class AdminController {
     public String status(@PathVariable Long id, @RequestParam OrderStatus status) {
         Order o = orders.findById(id).orElseThrow();
         o.setStatus(status);
+        // Fix #7: tự động set completedAt khi đổi sang HOAN_THANH
+        if (status == OrderStatus.HOAN_THANH && o.getCompletedAt() == null) {
+            o.setCompletedAt(LocalDateTime.now());
+        }
         orders.save(o);
         return "redirect:/admin/orders";
     }

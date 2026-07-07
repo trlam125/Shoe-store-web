@@ -7,18 +7,47 @@
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
-<section class="form-box"><h1>Thông tin sản phẩm</h1>
-    <form th:action="@{/admin/products/save}" method="post" th:object="${product}"><input type="hidden"
-                                                                                          th:field="*{id}"><label>Tên
-        giày</label><input th:field="*{name}" required><label>Hãng</label><input th:field="*{brand}" required><label>Danh
-        mục</label><select name="categoryId">
-        <option th:each="c:${categories}" th:value="${c.id}"
-                th:selected="${product.category != null and product.category.id == c.id}" th:text="${c.name}"></option>
-    </select><label>Mô tả</label><textarea th:field="*{description}"></textarea><label>Giá bán</label><input
-            th:field="*{price}" type="number" required><label>Giá gốc</label><input th:field="*{oldPrice}"
-                                                                                    type="number"><label>Link
-        ảnh</label><input th:field="*{imageUrl}"><label>Kích cỡ</label><input th:field="*{sizeText}"><label>Tồn
-        kho</label><input th:field="*{stock}" type="number">
+<section class="form-box">
+    <h1>Thông tin sản phẩm</h1>
+    <form th:action="@{/admin/products/save}" method="post" th:object="${product}">
+        <input type="hidden" th:field="*{id}">
+
+        <label>Tên giày</label>
+        <input th:field="*{name}" required>
+        <p class="error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
+
+        <label>Hãng</label>
+        <input th:field="*{brand}" required>
+        <p class="error" th:if="${#fields.hasErrors('brand')}" th:errors="*{brand}"></p>
+
+        <label>Danh mục</label>
+        <select name="categoryId">
+            <option th:each="c:${categories}"
+                    th:value="${c.id}"
+                    th:selected="${product.category != null and product.category.id == c.id}"
+                    th:text="${c.name}"></option>
+        </select>
+
+        <label>Mô tả</label>
+        <textarea th:field="*{description}"></textarea>
+
+        <label>Giá bán (đ)</label>
+        <input th:field="*{price}" type="number" min="1000" required>
+        <p class="error" th:if="${#fields.hasErrors('price')}" th:errors="*{price}"></p>
+
+        <label>Giá gốc (đ)</label>
+        <input th:field="*{oldPrice}" type="number" min="0">
+
+        <label>Link ảnh</label>
+        <input th:field="*{imageUrl}">
+
+        <label>Kích cỡ</label>
+        <input th:field="*{sizeText}" placeholder="VD: 36, 37, 38, 39, 40">
+
+        <label>Tồn kho</label>
+        <input th:field="*{stock}" type="number" min="0" required>
+        <p class="error" th:if="${#fields.hasErrors('stock')}" th:errors="*{stock}"></p>
+
         <button class="btn">Lưu sản phẩm</button>
     </form>
 </section>

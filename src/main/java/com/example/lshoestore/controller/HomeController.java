@@ -2,6 +2,7 @@ package com.example.lshoestore.controller;
 
 import com.example.lshoestore.repository.*;
 import com.example.lshoestore.service.CartService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,19 +22,19 @@ public class HomeController {
     }
 
     @GetMapping("/")
-    public String home(Model model, Authentication auth) {
+    public String home(Model model, Authentication auth, HttpSession session) {
         model.addAttribute("products", products.findByActiveTrueOrderByIdDesc());
         model.addAttribute("categories", categories.findAll());
-        model.addAttribute("cartCount", cart.count(auth));
+        model.addAttribute("cartCount", cart.count(auth, session));
         return "index";
     }
 
     @GetMapping("/products")
     public String list(@RequestParam(required = false) String q,
                        @RequestParam(required = false) Long category,
-                       Model model, Authentication auth) {
+                       Model model, Authentication auth, HttpSession session) {
         model.addAttribute("categories", categories.findAll());
-        model.addAttribute("cartCount", cart.count(auth));
+        model.addAttribute("cartCount", cart.count(auth, session));
         if (q != null && !q.isBlank())
             model.addAttribute("products", products.findByActiveTrueAndNameContainingIgnoreCaseOrderByIdDesc(q));
         else if (category != null)
@@ -46,10 +47,10 @@ public class HomeController {
     }
 
     @GetMapping("/products/{id}")
-    public String detail(@PathVariable Long id, Model model, Authentication auth) {
+    public String detail(@PathVariable Long id, Model model, Authentication auth, HttpSession session) {
         model.addAttribute("product", products.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm id=" + id)));
-        model.addAttribute("cartCount", cart.count(auth));
+        model.addAttribute("cartCount", cart.count(auth, session));
         return "product/detail";
     }
 }

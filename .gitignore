@@ -1,57 +1,122 @@
-# ========================
-#  Maven build output
-# ========================
+# ================================================
+#  Java / Maven
+# ================================================
 target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
 
-# ========================
+# Maven wrapper (nếu không muốn commit)
+# .mvn/wrapper/maven-wrapper.jar
+
+# ================================================
 #  IntelliJ IDEA
-# ========================
+# ================================================
 .idea/
 *.iws
 *.iml
 *.ipr
+out/
 
-# ========================
+# ================================================
 #  Eclipse / STS
-# ========================
-.apt_generated
+# ================================================
+.metadata/
 .classpath
-.factorypath
 .project
-.settings
+.settings/
+.factorypath
 .springBeans
 .sts4-cache
+bin/
 
-# ========================
+# ================================================
 #  VS Code
-# ========================
+# ================================================
 .vscode/
+*.code-workspace
 
-# ========================
-#  Spring Boot
-# ========================
-spring-shell.log
+# ================================================
+#  Python / Chatbot
+# ================================================
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
 
-# ========================
-#  Nhạy cảm — không commit
-# ========================
-application-prod.properties
-application-local.properties
-*.env
+# Python build
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# pyenv
+.python-version
+
+# ================================================
+#  Environment variables (CRITICAL — không commit)
+# ================================================
 .env
+.env.local
+.env.*.local
+*.env
+application-local.properties
+application-prod.properties
 
-# ========================
+# ================================================
 #  OS
-# ========================
-.DS_Store
+# ================================================
+# Windows
 Thumbs.db
-desktop.ini
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
 
-# ========================
-#  Log files
-# ========================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ================================================
+#  Logs
+# ================================================
 *.log
 logs/
+spring-shell.log
+
+# ================================================
+#  Database
+# ================================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ================================================
+#  Temporary files
+# ================================================
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.cache

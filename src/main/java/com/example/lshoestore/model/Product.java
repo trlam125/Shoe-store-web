@@ -1,6 +1,7 @@
 package com.example.lshoestore.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 
@@ -9,19 +10,34 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @NotBlank(message = "Tên sản phẩm không được để trống")
     @Column(nullable = false)
     private String name;
+
+    @NotBlank(message = "Tên hãng không được để trống")
     @Column(nullable = false)
     private String brand;
+
     @Column(length = 1000)
     private String description;
+
+    @NotNull(message = "Giá bán không được để trống")
+    @DecimalMin(value = "1000", message = "Giá bán phải từ 1.000đ trở lên")
     @Column(nullable = false)
     private BigDecimal price;
+
+    @DecimalMin(value = "0", message = "Giá gốc không được âm")
     private BigDecimal oldPrice;
+
     private String imageUrl;
     private String sizeText;
+
+    @Min(value = 0, message = "Tồn kho không được âm")
     private int stock;
+
     private boolean active = true;
+
     @ManyToOne
     private Category category;
 

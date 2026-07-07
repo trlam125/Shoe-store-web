@@ -1,27 +1,72 @@
-# Chuẩn hoá line endings: Windows checkout CRLF, commit LF
-* text=auto
+# ================================================
+#  Chuẩn hoá line endings
+#  - Commit luôn dùng LF
+#  - Windows checkout CRLF, Mac/Linux checkout LF
+# ================================================
+* text=auto eol=lf
 
-# Java / XML / Properties — luôn dùng LF
-*.java    text eol=lf
-*.xml     text eol=lf
-*.properties text eol=lf
-*.yml     text eol=lf
-*.yaml    text eol=lf
-*.html    text eol=lf
-*.css     text eol=lf
-*.js      text eol=lf
-*.md      text eol=lf
-*.sql     text eol=lf
+# ================================================
+#  Java / Spring Boot
+# ================================================
+*.java        text eol=lf
+*.xml         text eol=lf
+*.properties  text eol=lf
+*.yml         text eol=lf
+*.yaml        text eol=lf
 
-# Binary — không sờ vào line endings
-*.jar     binary
-*.class   binary
-*.png     binary
-*.jpg     binary
-*.jpeg    binary
-*.gif     binary
-*.ico     binary
-*.woff    binary
-*.woff2   binary
-*.ttf     binary
-*.eot     binary
+# ================================================
+#  Web / Template
+# ================================================
+*.html        text eol=lf
+*.css         text eol=lf
+*.js          text eol=lf
+*.ts          text eol=lf
+*.json        text eol=lf
+
+# ================================================
+#  Python / Chatbot
+# ================================================
+*.py          text eol=lf
+*.txt         text eol=lf
+*.md          text eol=lf
+*.sql         text eol=lf
+*.sh          text eol=lf
+
+# ================================================
+#  Windows batch — giữ CRLF vì CMD yêu cầu
+# ================================================
+*.bat         text eol=crlf
+*.cmd         text eol=crlf
+*.ps1         text eol=crlf
+
+# ================================================
+#  Binary — không sờ vào line endings
+# ================================================
+*.jar         binary
+*.class       binary
+*.war         binary
+*.zip         binary
+*.tar.gz      binary
+*.gz          binary
+
+# Images
+*.png         binary
+*.jpg         binary
+*.jpeg        binary
+*.gif         binary
+*.ico         binary
+*.svg         text eol=lf
+
+# Fonts
+*.woff        binary
+*.woff2       binary
+*.ttf         binary
+*.eot         binary
+*.otf         binary
+
+# ================================================
+#  GitHub / diff hint
+# ================================================
+*.java        diff=java
+*.py          diff=python
+*.md          diff=markdown

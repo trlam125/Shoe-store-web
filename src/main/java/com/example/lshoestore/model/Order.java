@@ -18,6 +18,7 @@ public class Order {
     private String phone;
     private String address;
     private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime completedAt;
     @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.CHO_XAC_NHAN;
     private BigDecimal total = BigDecimal.ZERO;
@@ -70,6 +71,14 @@ public class Order {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(LocalDateTime completedAt) {
+        this.completedAt = completedAt;
     }
 
     public OrderStatus getStatus() {
