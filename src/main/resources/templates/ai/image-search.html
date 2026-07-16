@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Tìm giày bằng ảnh - LSHOE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<section class="section">
+    <h1>Deep Learning: tìm giày tương tự bằng ảnh</h1>
+    <p>Tải ảnh một đôi giày. Mô hình ResNet18 pretrained sẽ trích xuất vector đặc trưng và xếp hạng sản phẩm tương tự.</p>
+    <form id="image-form" class="image-ai-form">
+        <input id="shoe-image" type="file" accept="image/*" required>
+        <button class="btn" type="submit">Phân tích ảnh</button>
+    </form>
+    <p id="ai-status"></p>
+    <div id="ai-results" class="grid"></div>
+</section>
+<div th:replace="~{fragments :: footer}"></div>
+<script th:inline="javascript">
+const form = document.getElementById('image-form');
+const statusText = document.getElementById('ai-status');
+const results = document.getElementById('ai-results');
+form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const file = document.getElementById('shoe-image').files[0];
+    if (!file) return;
+    statusText.textContent = 'Đang trích xuất đặc trưng ảnh và so sánh sản phẩm...';
+    results.innerHTML = '';
+    const data = new FormData();
+    data.append('file', file);
+    try {
+        const csrf = document.getElementById('chat-csrf');
+        const response = await fetch('/ai/image-search/analyze?limit=6', {
+            method: 'POST',
+            headers: {'X-CSRF-TOKEN': csrf.value},
+            body: data
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || 'AI service không thể xử lý ảnh.');
+        statusText.textContent = `Mô hình: ${payload.model}. Tìm thấy ${payload.matches.length} kết quả.`;
+        payload.matches.forEach(item => {
+            const card = document.createElement('a');
+            card.className = 'card';
+            card.href = `/products/${item.productId}`;
+
+            const image = document.createElement('img');
+            image.src = item.imageUrl;
+            image.alt = item.name;
+            const body = document.createElement('div');
+            body.className = 'card-body';
+            const brand = document.createElement('p');
+            brand.className = 'brand';
+            brand.textContent = item.brand;
+            const name = document.createElement('h3');
+            name.textContent = item.name;
+            const similarity = document.createElement('p');
+            similarity.textContent = `Độ tương đồng: ${(item.similarity * 100).toFixed(1)}%`;
+            body.append(brand, name, similarity);
+            card.append(image, body);
+            results.appendChild(card);
+        });
+    } catch (error) {
+        statusText.textContent = error.message;
+    }
+});
+</script>
+</body>
+</html>

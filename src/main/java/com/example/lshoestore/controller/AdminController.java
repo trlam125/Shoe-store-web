@@ -3,6 +3,7 @@ package com.example.lshoestore.controller;
 import com.example.lshoestore.model.*;
 import com.example.lshoestore.repository.*;
 import com.example.lshoestore.service.OrderService;
+import com.example.lshoestore.service.AiAnalyticsService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,13 +21,16 @@ public class AdminController {
     private final CategoryRepository categories;
     private final OrderRepository orders;
     private final OrderService orderService;
+    private final AiAnalyticsService aiAnalyticsService;
 
     public AdminController(ProductRepository products, CategoryRepository categories,
-                           OrderRepository orders, OrderService orderService) {
+                           OrderRepository orders, OrderService orderService,
+                           AiAnalyticsService aiAnalyticsService) {
         this.products = products;
         this.categories = categories;
         this.orders = orders;
         this.orderService = orderService;
+        this.aiAnalyticsService = aiAnalyticsService;
     }
 
     @GetMapping
@@ -34,6 +38,11 @@ public class AdminController {
         // Fix #18: chỉ đếm sản phẩm đang bán (active=true)
         m.addAttribute("productCount", products.findByActiveTrueOrderByIdDesc().size());
         m.addAttribute("orderCount", orders.count());
+        var segments = aiAnalyticsService.getCustomerSegments();
+        var forecast = aiAnalyticsService.getSalesForecast();
+        m.addAttribute("aiAvailable", !segments.isEmpty() || !forecast.isEmpty());
+        m.addAttribute("segments", segments.getOrDefault("segments", java.util.List.of()));
+        m.addAttribute("forecast", forecast.getOrDefault("predictions", java.util.List.of()));
         return "admin/dashboard";
     }
 

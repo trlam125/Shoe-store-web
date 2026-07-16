@@ -53,6 +53,7 @@
         <button onclick="sendChat()">Gửi</button>
     </div>
 </div>
+<input id="chat-csrf" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
 <style>
 #chat-bubble-btn {
@@ -225,6 +226,7 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <script>
 (function () {
     let chatHistory = [];
@@ -243,6 +245,7 @@
         const msg = input.value.trim();
         if (!msg) return;
         input.value = '';
+        const previousHistory = chatHistory.slice(-10);
 
         appendMsg(msg, 'user', false);
         chatHistory.push({ role: 'user', content: msg });
@@ -250,16 +253,22 @@
         const typingEl = appendMsg('Đang trả lời...', 'bot typing', false);
 
         try {
+            const csrf = document.getElementById('chat-csrf');
             const res = await fetch('/chatbot/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: msg, history: chatHistory.slice(-10) })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf.value
+                },
+                body: JSON.stringify({ message: msg, history: previousHistory })
             });
             const data = await res.json();
             typingEl.remove();
             const reply = data.reply || 'Xin lỗi, tôi không hiểu yêu cầu.';
             appendMsg(reply, 'bot', true);  // parse markdown
-            chatHistory.push({ role: 'assistant', content: reply });
+            if (res.ok) {
+                chatHistory.push({ role: 'assistant', content: reply });
+            }
         } catch (e) {
             typingEl.remove();
             appendMsg('Kết nối thất bại. Vui lòng thử lại.', 'bot', false);
@@ -271,8 +280,8 @@
         const el = document.createElement('div');
         el.className = 'chat-msg ' + cls;
         
-        if (parseMarkdown && typeof marked !== 'undefined') {
-            el.innerHTML = marked.parse(text);
+        if (parseMarkdown && typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+            el.innerHTML = DOMPurify.sanitize(marked.parse(text));
         } else {
             el.textContent = text;
         }

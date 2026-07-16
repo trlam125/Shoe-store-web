@@ -9,6 +9,7 @@
 <div th:replace="~{fragments :: header}"></div>
 <section class="section">
     <h1>Lịch sử đơn hàng</h1>
+    <p class="error" th:if="${error}" th:text="${error}" style="color:#c0392b;background:#fde;padding:10px;border-radius:6px;"></p>
     <p th:if="${#lists.isEmpty(orders)}">Bạn chưa có đơn hàng nào.</p>
     <table th:if="${!#lists.isEmpty(orders)}">
         <tr>
@@ -23,7 +24,7 @@
             <td th:text="${#temporals.format(o.createdAt,'dd/MM/yyyy HH:mm')}"></td>
             <td th:text="${o.completedAt != null ? #temporals.format(o.completedAt,'dd/MM/yyyy HH:mm') : '-'}"></td>
             <td th:text="${#numbers.formatDecimal(o.total,0,'COMMA',0,'POINT')} + 'đ'"></td>
-            <td th:text="${o.status}"></td>
+            <td th:text="${o.status.displayName}"></td>
         </tr>
     </table>
 </section>

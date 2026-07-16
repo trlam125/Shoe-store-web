@@ -18,11 +18,17 @@ public enum OrderStatus {
     }
 
     /**
-     * State machine: kiểm tra xem có được phép chuyển sang trạng thái mới không.
-     * HOAN_THANH và DA_HUY là trạng thái cuối — không cho phép chuyển tiếp.
+     * Chỉ cho phép đi tuần tự: chờ xác nhận -> chuẩn bị -> giao -> hoàn thành.
+     * Đơn chỉ có thể hủy trước khi chuyển sang trạng thái đang giao.
      */
     public boolean canTransitionTo(OrderStatus next) {
-        if (this == HOAN_THANH || this == DA_HUY) return false;
-        return true;
+        if (next == null || next == this) return false;
+
+        return switch (this) {
+            case CHO_XAC_NHAN -> next == DANG_CHUAN_BI || next == DA_HUY;
+            case DANG_CHUAN_BI -> next == DANG_GIAO || next == DA_HUY;
+            case DANG_GIAO -> next == HOAN_THANH;
+            case HOAN_THANH, DA_HUY -> false;
+        };
     }
 }

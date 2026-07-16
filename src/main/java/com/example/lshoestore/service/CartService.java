@@ -114,8 +114,12 @@ public class CartService {
                 } else {
                     Product p = productRepository.findById(productId).orElseThrow();
                     int capped = Math.min(quantity, p.getStock());
-                    sci.setQuantity(capped);
-                    savedCartRepo.save(sci);
+                    if (!p.isActive() || capped <= 0) {
+                        savedCartRepo.delete(sci);
+                    } else {
+                        sci.setQuantity(capped);
+                        savedCartRepo.save(sci);
+                    }
                 }
             });
         } else {
@@ -125,7 +129,11 @@ public class CartService {
             } else if (guestItems.containsKey(productId)) {
                 Product p = productRepository.findById(productId).orElseThrow();
                 int capped = Math.min(quantity, p.getStock());
-                guestItems.get(productId).setQuantity(capped);
+                if (!p.isActive() || capped <= 0) {
+                    guestItems.remove(productId);
+                } else {
+                    guestItems.get(productId).setQuantity(capped);
+                }
             }
         }
     }
@@ -165,7 +173,7 @@ public class CartService {
     }
 
     public boolean isEmpty(Authentication auth, HttpSession session) {
-        return getItems(auth, session).isEmpty();
+        return getItems(auth, session).stream().noneMatch(item -> item.getQuantity() > 0);
     }
 
     /**

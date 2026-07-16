@@ -24,6 +24,7 @@
             <td>
                 <form th:action="@{/cart/update/{id}(id=${i.product.id})}" method="post"><input type="number"
                                                                                                 name="quantity" min="0"
+                                                                                                th:max="${i.product.stock}"
                                                                                                 th:value="${i.quantity}">
                     <button>Cập nhật</button>
                 </form>

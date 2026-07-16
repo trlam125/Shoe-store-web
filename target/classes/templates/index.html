@@ -26,7 +26,8 @@
                 <p class="desc" th:text="${p.description}">Mô tả</p>
                 <div><span class="price"
                            th:text="${#numbers.formatDecimal(p.price,0,'COMMA',0,'POINT')} + 'đ'">0đ</span><span
-                        class="old" th:text="${#numbers.formatDecimal(p.oldPrice,0,'COMMA',0,'POINT')} + 'đ'">0đ</span>
+                        class="old" th:if="${p.oldPrice != null}"
+                        th:text="${#numbers.formatDecimal(p.oldPrice,0,'COMMA',0,'POINT')} + 'đ'">0đ</span>
                 </div>
             </div>
         </a>

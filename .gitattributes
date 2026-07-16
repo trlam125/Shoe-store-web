@@ -1,72 +1,52 @@
-# ================================================
-#  Chuẩn hoá line endings
-#  - Commit luôn dùng LF
-#  - Windows checkout CRLF, Mac/Linux checkout LF
-# ================================================
+# Normalize text files to LF in the repository by default.
 * text=auto eol=lf
 
-# ================================================
-#  Java / Spring Boot
-# ================================================
-*.java        text eol=lf
-*.xml         text eol=lf
-*.properties  text eol=lf
-*.yml         text eol=lf
-*.yaml        text eol=lf
+# Keep Windows scripts in CRLF so they run cleanly in cmd/PowerShell.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
 
-# ================================================
-#  Web / Template
-# ================================================
-*.html        text eol=lf
-*.css         text eol=lf
-*.js          text eol=lf
-*.ts          text eol=lf
-*.json        text eol=lf
+# Source files
+*.java text eol=lf diff=java
+*.kt text eol=lf
+*.xml text eol=lf
+*.properties text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+*.py text eol=lf diff=python
+*.sh text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf diff=markdown
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
 
-# ================================================
-#  Python / Chatbot
-# ================================================
-*.py          text eol=lf
-*.txt         text eol=lf
-*.md          text eol=lf
-*.sql         text eol=lf
-*.sh          text eol=lf
-
-# ================================================
-#  Windows batch — giữ CRLF vì CMD yêu cầu
-# ================================================
-*.bat         text eol=crlf
-*.cmd         text eol=crlf
-*.ps1         text eol=crlf
-
-# ================================================
-#  Binary — không sờ vào line endings
-# ================================================
-*.jar         binary
-*.class       binary
-*.war         binary
-*.zip         binary
-*.tar.gz      binary
-*.gz          binary
-
-# Images
-*.png         binary
-*.jpg         binary
-*.jpeg        binary
-*.gif         binary
-*.ico         binary
-*.svg         text eol=lf
-
-# Fonts
-*.woff        binary
-*.woff2       binary
-*.ttf         binary
-*.eot         binary
-*.otf         binary
-
-# ================================================
-#  GitHub / diff hint
-# ================================================
-*.java        diff=java
-*.py          diff=python
-*.md          diff=markdown
+# Binary assets
+*.jar binary
+*.war binary
+*.ear binary
+*.class binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+*.pt binary
+*.pth binary
+*.ckpt binary
+*.onnx binary

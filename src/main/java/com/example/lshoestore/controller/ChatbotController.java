@@ -1,45 +1,47 @@
 package com.example.lshoestore.controller;
 
-import org.springframework.http.*;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+import com.example.lshoestore.service.ChatbotService;
+import com.example.lshoestore.service.ChatbotService.ChatMessage;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
-/**
- * Proxy nhận request từ browser, forward sang FastAPI chatbot (port 8000).
- * Tránh CORS issue khi browser gọi thẳng sang port khác.
- */
 @RestController
 @RequestMapping("/chatbot")
 public class ChatbotController {
 
-    private static final String CHATBOT_API_URL = "http://localhost:8000/api/chat";
-    // Fix #11: set timeout để tránh block thread vô thời hạn khi chatbot treo
-    private static final int TIMEOUT_MS = 15_000; // 15 giây
-    private final RestTemplate restTemplate;
+    private static final int MAX_MESSAGE_LENGTH = 2_000;
+    private final ChatbotService chatbotService;
 
-    public ChatbotController() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(TIMEOUT_MS);
-        factory.setReadTimeout(TIMEOUT_MS);
-        this.restTemplate = new RestTemplate(factory);
+    public ChatbotController(ChatbotService chatbotService) {
+        this.chatbotService = chatbotService;
     }
 
     @PostMapping("/chat")
-    public ResponseEntity<Map> chat(@RequestBody Map<String, Object> body) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+    public ResponseEntity<Map<String, String>> chat(@RequestBody ChatRequest request) {
+        if (request == null || request.message() == null || request.message().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("reply", "Vui lòng nhập nội dung cần tư vấn."));
+        }
+        if (request.message().length() > MAX_MESSAGE_LENGTH) {
+            return ResponseEntity.badRequest().body(Map.of("reply", "Tin nhắn quá dài. Vui lòng nhập tối đa 2.000 ký tự."));
+        }
 
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(
-                    CHATBOT_API_URL, request, Map.class);
-            return ResponseEntity.ok(response.getBody());
-        } catch (Exception e) {
-            return ResponseEntity.ok(Map.of(
-                    "reply", "Trợ lý đang tạm thời không khả dụng. Vui lòng thử lại sau."));
+            String reply = chatbotService.chat(request.message().trim(), request.history());
+            return ResponseEntity.ok(Map.of("reply", reply));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("reply", e.getMessage()));
         }
     }
+
+    public record ChatRequest(String message, List<ChatMessage> history) {
+    }
+
 }

@@ -1,212 +1,276 @@
 # LSHOE Store
 
-Website bán giày sneaker xây dựng bằng Spring Boot + Thymeleaf + MySQL, tích hợp chatbot AI tư vấn sản phẩm.
+LSHOE Store is a shoe e-commerce application built with Spring Boot, Thymeleaf, PostgreSQL, and a separate Python AI service. It includes the standard shopping workflow, an NVIDIA-powered chatbot, customer segmentation, sales forecasting, and image-based product search.
 
----
+## Features
 
-## Công nghệ sử dụng
+- Product and category management
+- Shopping cart and order management
+- User authentication and authorization with Spring Security
+- Website chatbot powered by the NVIDIA API
+- Customer segmentation using RFM analysis and K-Means clustering
+- Product sales forecasting using machine learning
+- Similar-product image search using a pretrained ResNet18 model
 
-| Thành phần | Công nghệ |
-|---|---|
-| Backend | Spring Boot 3.5.3 / Java 21 |
-| Template engine | Thymeleaf + thymeleaf-extras-springsecurity6 |
-| Database | MySQL 8+ / Spring Data JPA |
-| Bảo mật | Spring Security (BCrypt) |
-| Chatbot API | Python / FastAPI / NVIDIA API |
-| Build tool | Maven |
+## Technology Stack
 
----
+### Web Application
 
-## Tính năng
+- Java 21
+- Spring Boot 3.5.3
+- Spring MVC, Spring Data JPA, and Spring Security
+- Thymeleaf
+- PostgreSQL 16
+- Maven
 
-### Khách hàng
-- Xem danh sách sản phẩm, lọc theo danh mục, tìm kiếm theo tên
-- Xem chi tiết sản phẩm
-- Thêm / cập nhật / xóa sản phẩm trong giỏ hàng
-- Giỏ hàng **lưu vào DB** — không mất khi đăng xuất
-- Khi đăng nhập, giỏ hàng guest tự động merge vào tài khoản
-- Đặt hàng COD với thông tin người nhận
-- Xem lịch sử đơn hàng
+### AI Service
 
-### Tài khoản
-- Đăng ký (validate email, mật khẩu tối thiểu 6 ký tự)
-- Đăng nhập / đăng xuất
+- Python 3.11
+- FastAPI and Uvicorn
+- pandas, scikit-learn, and psycopg
+- PyTorch and torchvision
+- ResNet18 pretrained on ImageNet
 
-### Admin (`/admin`)
-- Dashboard thống kê số sản phẩm và đơn hàng
-- Thêm / sửa / ẩn sản phẩm (soft delete — không mất lịch sử đơn hàng)
-- Xem và cập nhật trạng thái đơn hàng
+## Project Structure
 
-### Chatbot AI
-- Bubble chat góc phải dưới màn hình trên mọi trang
-- Tư vấn giày, size, phong cách phối đồ bằng tiếng Việt
-- Lưu lịch sử hội thoại trong phiên
+```text
+Lshoe-store/
+|-- ai-service/                   Python ML/DL service
+|   |-- app/main.py               FastAPI endpoints and AI logic
+|   |-- requirements.txt          Python dependencies
+|   |-- run.py                    Uvicorn entry point
+|   |-- run.bat                   Windows setup and launcher
+|   `-- run.sh                    Linux/macOS setup and launcher
+|-- Chatbot/                      Local chatbot environment file
+|-- src/main/java/                Spring Boot source code
+|-- src/main/resources/           Templates, static files, and configuration
+|-- docker-compose.yml            PostgreSQL development container
+`-- pom.xml                       Maven configuration
+```
 
----
+## Prerequisites
 
-## Cài đặt và chạy
+Install the following tools before running the project:
 
-### Yêu cầu
-- Java 21+
-- MySQL 8+
-- Maven 3.9+
-- Python 3.10+ (cho chatbot)
+- Java 21
+- Maven 3.9 or the Maven integration included with IntelliJ IDEA
+- PostgreSQL 16, or Docker Desktop
+- Python 3.11 for `ai-service`
+- An NVIDIA API key for the chatbot
+- Internet access the first time image search runs, so torchvision can download the pretrained ResNet18 weights
 
-### 1. Clone project
+## 1. Start PostgreSQL
+
+### Option A: Docker Compose
+
+From the project root, run:
 
 ```bash
-git clone <repo-url>
-cd lshoe-store
+docker compose up -d postgres
 ```
 
-### 2. Cấu hình database
+The Docker database uses these credentials:
 
-Mở `src/main/resources/application.properties`:
-
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/lshoe_store?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Ho_Chi_Minh
-spring.datasource.username=root
-spring.datasource.password=YOUR_PASSWORD
-server.port=8081
+```text
+Host: localhost
+Port: 5432
+Database: lshoe_store
+Username: postgres
+Password: postgres
 ```
 
-> Database tự tạo khi chạy lần đầu nhờ `createDatabaseIfNotExist=true`.
+### Option B: Local PostgreSQL
 
-### 3. Chạy Spring Boot
+Create the database manually:
+
+```sql
+CREATE DATABASE lshoe_store WITH ENCODING 'UTF8';
+```
+
+Use your own PostgreSQL username and password in the configuration steps below.
+
+## 2. Configure Spring Boot and the Chatbot
+
+Create `Chatbot/.env` in the project root. For the Docker Compose database, use:
+
+```env
+DATABASE_URL=jdbc:postgresql://localhost:5432/lshoe_store
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+
+NVIDIA_API_KEY=nvapi-your-key-here
+```
+
+Optional chatbot settings:
+
+```env
+CHATBOT_API_URL=https://integrate.api.nvidia.com/v1/chat/completions
+CHATBOT_MODEL=openai/gpt-oss-120b
+CHATBOT_TIMEOUT_MS=30000
+```
+
+Important notes:
+
+- Spring Boot database URLs must start with `jdbc:postgresql://`.
+- If `DB_PASSWORD` is not provided, Spring Boot currently defaults to `120505`.
+- The chatbot page can load without an API key, but chatbot requests will fail until `NVIDIA_API_KEY` is configured.
+- Do not commit `Chatbot/.env` or expose the API key in frontend code.
+
+## 3. Configure the AI Service
+
+Copy `ai-service/.env.example` to `ai-service/.env`, then update its database URL. For the Docker Compose database, use:
+
+```env
+AI_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lshoe_store
+AI_PORT=8001
+AI_HOST=0.0.0.0
+AI_RELOAD=true
+AI_ALLOWED_ORIGINS=http://localhost:8081,http://127.0.0.1:8081
+AI_MAX_UPLOAD_BYTES=10485760
+```
+
+The AI service URL does not use the JDBC prefix. Spring Boot and `ai-service` must connect to the same PostgreSQL database.
+
+## 4. Run the Project
+
+Spring Boot and `ai-service` are separate processes. Both must be running for all AI features to work.
+
+### Start the AI Service on Windows
+
+```bat
+cd ai-service
+run.bat
+```
+
+The script creates `.venv` when needed, installs the Python dependencies, and starts FastAPI on port `8001`.
+
+### Start the AI Service on Linux or macOS
+
+```bash
+cd ai-service
+chmod +x run.sh
+./run.sh
+```
+
+### Start the AI Service Manually
+
+```bash
+cd ai-service
+python -m venv .venv
+```
+
+Activate the virtual environment on Windows:
+
+```bat
+.venv\Scripts\activate
+```
+
+Activate it on Linux or macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+Then install dependencies and start the service:
+
+```bash
+pip install -r requirements.txt
+python run.py
+```
+
+### Start Spring Boot from the Terminal
+
+From the project root, run:
 
 ```bash
 mvn spring-boot:run
 ```
 
-Truy cập: [http://localhost:8081](http://localhost:8081)
+The web application is available at:
 
-### 4. Chạy Chatbot API (tùy chọn)
-
-Cấu hình API key trong `Chatbot/.env`:
-
-```env
-NVIDIA_API_KEY=your_api_key_here
+```text
+http://localhost:8081
 ```
 
-Khởi động server:
+## Running with IntelliJ IDEA
 
-```bash
-Chatbot\start_api.bat
-```
+1. Open the project root in IntelliJ IDEA.
+2. Select Java 21 as the Project SDK.
+3. Allow IntelliJ to import the Maven dependencies from `pom.xml`.
+4. Start PostgreSQL.
+5. Run `ai-service/run.bat` in a separate terminal.
+6. Run the `LshoeStoreApplication` class from IntelliJ.
+7. Open `http://localhost:8081` in a browser.
 
-hoặc thủ công:
+The Spring Boot application can run without `ai-service`, but customer segmentation, sales forecasting, and image search will be unavailable. The chatbot only requires Spring Boot, internet access, and a valid NVIDIA API key.
 
-```bash
-cd Chatbot
-venv\Scripts\activate
-uvicorn api:app --host 0.0.0.0 --port 8000 --reload
-```
+## Application URLs
 
-> Chatbot chạy ở port 8000, Spring Boot tự proxy — không cần cấu hình thêm.
+| Component | URL |
+| --- | --- |
+| Store website | `http://localhost:8081` |
+| Admin dashboard | `http://localhost:8081/admin` |
+| Image search | `http://localhost:8081/ai/image-search` |
+| AI service health check | `http://localhost:8001/health` |
+| AI service Swagger UI | `http://localhost:8001/docs` |
 
----
+## AI Service API
 
-## Tài khoản mặc định
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/health` | Checks the AI service and database connection |
+| `GET` | `/ml/customer-segments` | Returns RFM customer segments generated with K-Means |
+| `GET` | `/ml/sales-forecast?days=7` | Forecasts product sales for the requested number of days |
+| `POST` | `/dl/image-search?limit=6` | Finds products with images similar to an uploaded image |
 
-Tự động tạo khi khởi động lần đầu:
+The browser sends image-search requests through Spring Boot at `/ai/image-search/analyze`; Spring Boot then proxies them to the Python service.
 
-| Email | Mật khẩu | Vai trò |
-|---|---|---|
-| admin@lshoe.vn | admin123 | ADMIN |
+## AI and Data Notes
 
----
+- Customer segmentation uses completed orders and works best when the database contains enough customers and purchase history.
+- Sales forecasting uses completed-order history and fills missing dates with zero sales before training.
+- When there is not enough sales history, the service returns a fallback estimate instead of failing.
+- Image search uses a pretrained ResNet18 neural network to extract image embeddings and compare visual similarity.
+- The first image-search request may take longer while the pretrained model weights are downloaded and loaded.
+- Uploaded images must be JPEG, PNG, or WebP and no larger than 10 MB.
 
-## Cấu trúc project
+## Troubleshooting
 
-```
-lshoe-store/
-├── Chatbot/
-│   ├── api.py               # FastAPI server (POST /api/chat)
-│   ├── app.py               # Streamlit app (standalone)
-│   ├── start_api.bat        # Script khởi động API
-│   ├── requirements.txt
-│   └── .env                 # NVIDIA_API_KEY (không commit)
-│
-├── src/main/java/com/example/lshoestore/
-│   ├── config/
-│   │   ├── CartMergeLoginHandler.java   # Merge guest cart khi login
-│   │   ├── DataSeeder.java              # Seed dữ liệu mẫu
-│   │   └── SecurityConfig.java
-│   ├── controller/
-│   │   ├── AdminController.java
-│   │   ├── AuthController.java
-│   │   ├── CartController.java
-│   │   ├── ChatbotController.java       # Proxy → FastAPI :8000
-│   │   ├── HomeController.java
-│   │   └── OrderController.java
-│   ├── model/
-│   │   ├── CartItem.java                # DTO (không persist)
-│   │   ├── Category.java
-│   │   ├── Order.java
-│   │   ├── OrderItem.java
-│   │   ├── OrderStatus.java             # Enum trạng thái đơn hàng
-│   │   ├── Product.java
-│   │   ├── SavedCartItem.java           # Giỏ hàng lưu DB
-│   │   └── User.java
-│   ├── repository/
-│   ├── service/
-│   │   ├── CartService.java             # DB cart (user) + session cart (guest)
-│   │   └── CustomUserDetailsService.java
-│   └── LshoeStoreApplication.java
-│
-├── src/main/resources/
-│   ├── static/css/style.css
-│   ├── templates/
-│   │   ├── admin/
-│   │   ├── auth/
-│   │   ├── cart/
-│   │   ├── order/
-│   │   ├── product/
-│   │   ├── fragments.html               # Header, footer, chat bubble
-│   │   └── index.html
-│   └── application.properties
-│
-├── seed_data.sql            # Insert dữ liệu thủ công qua MySQL
-├── .gitignore
-├── .gitattributes
-└── pom.xml
-```
+### Spring Boot cannot connect to PostgreSQL
 
----
+- Confirm PostgreSQL is running on port `5432`.
+- Check `DATABASE_URL`, `DB_USERNAME`, and `DB_PASSWORD` in `Chatbot/.env`.
+- If Docker Compose is used, set the password to `postgres` unless `docker-compose.yml` was changed.
 
-## Phân quyền
+### The chatbot does not respond
 
-| URL | Quyền truy cập |
-|---|---|
-| `/`, `/products/**` | Tất cả |
-| `/login`, `/register` | Tất cả |
-| `/cart/**`, `/checkout`, `/orders/**` | Đã đăng nhập |
-| `/admin/**` | ROLE_ADMIN |
-| `/chatbot/chat` | Tất cả |
+- Confirm `NVIDIA_API_KEY` exists in `Chatbot/.env`.
+- Restart Spring Boot after changing the environment file.
+- Confirm the machine can access `https://integrate.api.nvidia.com`.
+- Check the Spring Boot console for an API authentication or timeout error.
 
----
+### AI features are unavailable
 
-## Trạng thái đơn hàng
+- Confirm `ai-service` is running at `http://localhost:8001`.
+- Open `http://localhost:8001/health` and verify the database status.
+- Confirm `AI_DATABASE_URL` points to the same database used by Spring Boot.
+- Review the `ai-service` terminal for Python dependency or database errors.
 
-```
-CHO_XAC_NHAN → DANG_CHUAN_BI → DANG_GIAO → HOAN_THANH
-                                           ↘ DA_HUY
-```
+### Image search fails
 
-Admin cập nhật thủ công tại `/admin/orders`.
+- Use a JPEG, PNG, or WebP image smaller than 10 MB.
+- Allow extra time on the first request while ResNet18 is initialized.
+- Confirm internet access is available if the model weights have not been downloaded before.
 
----
+### Python is not found on Windows
 
-## Kiến trúc Chatbot
+- Install Python 3.11 and enable the **Add Python to PATH** option.
+- Restart IntelliJ IDEA and its terminal after installing Python.
+- Run `py -3.11 --version` or `python --version` to confirm the installation.
 
-```
-Browser ──POST /chatbot/chat──▶ Spring Boot :8081
-                                      │
-                               (proxy forward)
-                                      │
-                               FastAPI :8000
-                                      │
-                               NVIDIA API (GPT)
-```
+## Security
 
-Spring Boot đóng vai proxy để ẩn API key và tránh CORS.
+- Keep `.env` files, database passwords, and API keys out of source control.
+- Use environment-specific secrets in production.
+- Do not expose the Python AI service directly to the public internet; route browser requests through Spring Boot.
+- Replace development passwords before deploying the application.

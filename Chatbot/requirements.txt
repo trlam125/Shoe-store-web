@@ -2,3 +2,5 @@ openai
 streamlit
 python-dotenv
 pillow
+fastapi
+uvicorn

@@ -1,0 +1,11 @@
+-- LSHOE PostgreSQL helper script
+-- Hibernate + DataSeeder tự tạo schema và dữ liệu mẫu khi chạy ứng dụng.
+-- Script này chỉ tạo database khi chạy bằng tài khoản PostgreSQL có quyền CREATEDB.
+-- Trong psql, chạy ngoài database lshoe_store:
+--   CREATE DATABASE lshoe_store WITH ENCODING 'UTF8';
+-- Sau đó cấu hình DB_USERNAME và DB_PASSWORD rồi chạy Spring Boot.
+
+-- Kiểm tra sau khi ứng dụng đã khởi động:
+-- SELECT COUNT(*) FROM category;
+-- SELECT COUNT(*) FROM product;
+-- SELECT COUNT(*) FROM users;

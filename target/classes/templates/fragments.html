@@ -2,6 +2,11 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="https://www.thymeleaf.org/extras/spring-security">
 <body>
 <header th:fragment="header" class="site-header">
+    <!-- Fix #16: hiển thị flash warning (vd: sản phẩm bị xóa khi merge cart) toàn site -->
+    <div th:if="${warning}" class="global-warning"
+         th:text="${warning}"
+         style="background:#fff3cd;color:#856404;padding:10px 20px;text-align:center;font-size:14px;border-bottom:1px solid #ffc107;">
+    </div>
     <div class="topbar">
         <div class="topbar-track">
             <span class="topbar-text">🚚 Miễn phí giao hàng cho đơn từ 1.000.000đ&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔄 Đổi trả miễn phí trong 30 ngày&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;💳 Thanh toán khi nhận hàng (COD)&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;✅ 100% giày chính hãng&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔥 Sale lên đến 50% - Số lượng có hạn&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;📞 Hotline: 0900 000 000&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;</span>

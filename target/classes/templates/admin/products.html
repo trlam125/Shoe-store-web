@@ -31,8 +31,8 @@
             <td th:text="${p.active ? 'Đang bán' : 'Đã ẩn'}"></td>
             <td>
                 <a th:href="@{/admin/products/edit/{id}(id=${p.id})}">Sửa</a>
-                <form class="inline" th:action="@{/admin/products/delete/{id}(id=${p.id})}" method="post">
-                    <button th:text="${p.active ? 'Ẩn' : 'Đã ẩn'}" th:disabled="${!p.active}">Ẩn</button>
+                <form class="inline" th:action="@{/admin/products/toggle/{id}(id=${p.id})}" method="post">
+                    <button th:text="${p.active ? 'Ẩn' : 'Hiện lại'}">Ẩn</button>
                 </form>
             </td>
         </tr>

@@ -54,6 +54,10 @@ public class OrderService {
                 throw new IllegalStateException(
                         "Sản phẩm \"" + p.getName() + "\" hiện không còn bán.|inactive");
             }
+            if (ci.getQuantity() <= 0) {
+                throw new IllegalStateException(
+                        "Số lượng sản phẩm \"" + p.getName() + "\" không hợp lệ.|quantity");
+            }
             if (p.getStock() < ci.getQuantity()) {
                 throw new IllegalStateException(
                         "Sản phẩm \"" + p.getName() + "\" chỉ còn " + p.getStock() + " đôi trong kho.|stock");
@@ -89,6 +93,13 @@ public class OrderService {
     public void updateStatus(Long orderId, OrderStatus newStatus) {
         Order o = orders.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng id=" + orderId));
+
+        if (newStatus == null) {
+            throw new IllegalArgumentException("Trạng thái đơn hàng không hợp lệ.");
+        }
+        if (o.getStatus() == newStatus) {
+            return;
+        }
 
         // Fix #4: state machine — không cho phép chuyển từ trạng thái cuối
         if (!o.getStatus().canTransitionTo(newStatus)) {

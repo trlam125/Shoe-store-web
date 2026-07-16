@@ -1,122 +1,115 @@
-# ================================================
-#  Java / Maven
-# ================================================
-target/
-*.class
-*.jar
-*.war
-*.ear
-*.nar
-hs_err_pid*
-replay_pid*
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+ehthumbs.db
+*.lnk
+*~
 
-# Maven wrapper (nếu không muốn commit)
-# .mvn/wrapper/maven-wrapper.jar
-
-# ================================================
-#  IntelliJ IDEA
-# ================================================
+# Editor and IDE files
 .idea/
-*.iws
 *.iml
 *.ipr
+*.iws
 out/
-
-# ================================================
-#  Eclipse / STS
-# ================================================
-.metadata/
-.classpath
-.project
-.settings/
-.factorypath
-.springBeans
-.sts4-cache
-bin/
-
-# ================================================
-#  VS Code
-# ================================================
 .vscode/
 *.code-workspace
 
-# ================================================
-#  Python / Chatbot
-# ================================================
-# Virtual environments
-venv/
-.venv/
-env/
-ENV/
-*.pyc
-__pycache__/
-*.pyo
-*.pyd
-.Python
-
-# Python build
+# Java and Maven build output
+target/
 build/
 dist/
-*.egg-info/
-*.egg
+dependency-reduced-pom.xml
+hs_err_pid*
+replay_pid*
 
-# Jupyter Notebook
-.ipynb_checkpoints/
+# Logs and runtime output
+*.log
+logs/
+spring-shell.log
+*.pid
 
-# pyenv
-.python-version
-
-# ================================================
-#  Environment variables (CRITICAL — không commit)
-# ================================================
+# Environment and local secrets
 .env
 .env.local
 .env.*.local
 *.env
+!.env.example
+!**/.env.example
 application-local.properties
 application-prod.properties
 
-# ================================================
-#  OS
-# ================================================
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-*.lnk
+# Python virtual environments
+venv/
+.venv/
+env/
+ENV/
+**/venv/
+**/.venv/
+**/env/
+**/ENV/
 
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
+# Python cache and tooling
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.python-version
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.ipynb_checkpoints/
 
-# Linux
-*~
-.directory
-.Trash-*
+# Python packaging artifacts
+*.egg
+*.egg-info/
+pip-wheel-metadata/
 
-# ================================================
-#  Logs
-# ================================================
-*.log
-logs/
-spring-shell.log
+# Machine learning artifacts and local datasets
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.joblib
+*.pkl
+*.h5
+*.hdf5
+data/
+datasets/
+uploads/
+tmp/
+temp/
+*.tmp
+*.temp
+*.cache
 
-# ================================================
-#  Database
-# ================================================
+# Archives and local database files
+*.zip
+*.tar
+*.gz
+*.7z
 *.db
 *.sqlite
 *.sqlite3
 
-# ================================================
-#  Temporary files
-# ================================================
-*.tmp
-*.temp
-*.swp
-*.swo
-*.bak
-*.cache
+# Node and frontend caches
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.parcel-cache/
+.next/
+.nuxt/
+.svelte-kit/
+coverage/
+
