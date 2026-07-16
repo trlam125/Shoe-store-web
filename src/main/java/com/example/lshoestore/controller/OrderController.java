@@ -1,14 +1,18 @@
 package com.example.lshoestore.controller;
 
-import com.example.lshoestore.model.*;
-import com.example.lshoestore.repository.*;
+import com.example.lshoestore.model.CartItem;
+import com.example.lshoestore.model.User;
+import com.example.lshoestore.repository.OrderRepository;
+import com.example.lshoestore.repository.UserRepository;
 import com.example.lshoestore.service.CartService;
 import com.example.lshoestore.service.OrderService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Collection;
@@ -29,12 +33,18 @@ public class OrderController {
         this.orderService = orderService;
     }
 
+    private boolean isLoggedIn(Authentication auth) {
+        return auth != null && auth.isAuthenticated()
+                && !"anonymousUser".equals(auth.getPrincipal());
+    }
+
     @GetMapping("/checkout")
     public String checkout(Model model, Authentication auth, HttpSession session) {
-        if (auth == null || !auth.isAuthenticated()) return "redirect:/login";
+        if (!isLoggedIn(auth)) return "redirect:/login";
         if (cart.isEmpty(auth, session)) return "redirect:/cart";
-        User u = users.findByEmail(auth.getName()).orElseThrow();
-        model.addAttribute("user", u);
+
+        User user = users.findByEmailIgnoreCase(auth.getName()).orElseThrow();
+        model.addAttribute("user", user);
         model.addAttribute("items", cart.getItems(auth, session));
         model.addAttribute("total", cart.total(auth, session));
         model.addAttribute("cartCount", cart.count(auth, session));
@@ -47,14 +57,12 @@ public class OrderController {
                         @RequestParam String phone,
                         @RequestParam String address,
                         RedirectAttributes redirectAttrs) {
+        if (!isLoggedIn(auth)) return "redirect:/login";
 
-        // Fix #8: guard giỏ hàng rỗng ở POST
         if (cart.isEmpty(auth, session)) {
             redirectAttrs.addFlashAttribute("error", "Giỏ hàng của bạn đang trống.");
             return "redirect:/cart";
         }
-
-        // Validate input
         if (receiverName == null || receiverName.isBlank()) {
             redirectAttrs.addFlashAttribute("error", "Vui lòng nhập họ tên người nhận.");
             return "redirect:/checkout";
@@ -68,17 +76,25 @@ public class OrderController {
             return "redirect:/checkout";
         }
 
-        User u = users.findByEmail(auth.getName()).orElseThrow();
+        User user = users.findByEmailIgnoreCase(auth.getName()).orElseThrow();
         Collection<CartItem> items = cart.getItems(auth, session);
 
         try {
-            // Fix #5: cart.clear() được gọi bên trong transaction của orderService
-            orderService.placeOrder(u, receiverName.trim(), phone.trim(), address.trim(), items, auth, session);
+            orderService.placeOrder(
+                    user,
+                    receiverName.trim(),
+                    phone.trim(),
+                    address.trim(),
+                    items,
+                    auth,
+                    session
+            );
         } catch (IllegalStateException e) {
-            String msg = e.getMessage().contains("|")
-                    ? e.getMessage().split("\\|")[0]
-                    : e.getMessage();
-            redirectAttrs.addFlashAttribute("error", msg);
+            String message = e.getMessage();
+            if (message != null && message.contains("|")) {
+                message = message.split("\\|")[0];
+            }
+            redirectAttrs.addFlashAttribute("error", message != null ? message : "Không thể tạo đơn hàng.");
             return "redirect:/cart";
         }
 
@@ -87,8 +103,10 @@ public class OrderController {
 
     @GetMapping("/orders")
     public String myOrders(Authentication auth, Model model, HttpSession session) {
-        User u = users.findByEmail(auth.getName()).orElseThrow();
-        model.addAttribute("orders", orders.findByUserOrderByCreatedAtDesc(u));
+        if (!isLoggedIn(auth)) return "redirect:/login";
+
+        User user = users.findByEmailIgnoreCase(auth.getName()).orElseThrow();
+        model.addAttribute("orders", orders.findByUserOrderByCreatedAtDesc(user));
         model.addAttribute("cartCount", cart.count(auth, session));
         return "order/list";
     }

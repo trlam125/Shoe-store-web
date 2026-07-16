@@ -46,7 +46,7 @@ public class CartService {
     }
 
     private User getUser(Authentication auth) {
-        return userRepository.findByEmail(auth.getName()).orElseThrow();
+        return userRepository.findByEmailIgnoreCase(auth.getName()).orElseThrow();
     }
 
     @SuppressWarnings("unchecked")

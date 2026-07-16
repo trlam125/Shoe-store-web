@@ -91,7 +91,8 @@ public class OrderService {
      */
     @Transactional
     public void updateStatus(Long orderId, OrderStatus newStatus) {
-        Order o = orders.findById(orderId)
+        // Serialize status changes so two concurrent cancellations cannot restore stock twice.
+        Order o = orders.findByIdWithLock(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng id=" + orderId));
 
         if (newStatus == null) {

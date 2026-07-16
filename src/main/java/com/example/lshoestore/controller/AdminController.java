@@ -48,6 +48,7 @@ public class AdminController {
 
     @GetMapping("/products")
     public String productList(@RequestParam(defaultValue = "0") int page, Model m) {
+        page = Math.max(page, 0);
         Pageable pageable = PageRequest.of(page, 20);
         var productPage = products.findAllByOrderByIdDesc(pageable);
         m.addAttribute("products", productPage.getContent());
@@ -108,6 +109,7 @@ public class AdminController {
 
     @GetMapping("/orders")
     public String orderList(@RequestParam(defaultValue = "0") int page, Model m) {
+        page = Math.max(page, 0);
         Pageable pageable = PageRequest.of(page, 20);
         var orderPage = orders.findAllByOrderByCreatedAtDesc(pageable);
         m.addAttribute("orders", orderPage.getContent());
@@ -123,7 +125,7 @@ public class AdminController {
         try {
             // Fix #3 #4: stock rollback + state machine trong OrderService
             orderService.updateStatus(id, status);
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException | IllegalArgumentException e) {
             redirectAttrs.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/admin/orders";

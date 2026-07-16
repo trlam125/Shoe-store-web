@@ -3,11 +3,14 @@ package com.example.lshoestore.controller;
 import com.example.lshoestore.model.User;
 import com.example.lshoestore.repository.UserRepository;
 import jakarta.validation.Valid;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Locale;
 
 @Controller
 public class AuthController {
@@ -35,13 +38,25 @@ public class AuthController {
         if (bindingResult.hasErrors()) {
             return "auth/register";
         }
-        if (users.existsByEmail(user.getEmail())) {
-            model.addAttribute("error", "Email đã được sử dụng");
+
+        // Registration must always create a new regular user, regardless of extra request fields.
+        user.setId(null);
+        user.setFullName(user.getFullName().trim());
+        user.setEmail(user.getEmail().trim().toLowerCase(Locale.ROOT));
+
+        if (users.existsByEmailIgnoreCase(user.getEmail())) {
+            model.addAttribute("error", "Email đã được sử dụng.");
             return "auth/register";
         }
         user.setPassword(encoder.encode(user.getPassword()));
         user.setRole("ROLE_USER");
-        users.save(user);
+        try {
+            users.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            user.setPassword("");
+            model.addAttribute("error", "Email đã được sử dụng.");
+            return "auth/register";
+        }
         return "redirect:/login?registered";
     }
 }

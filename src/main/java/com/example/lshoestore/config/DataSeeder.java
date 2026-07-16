@@ -24,7 +24,7 @@ public class DataSeeder {
                            ProductRepository products,
                            PasswordEncoder encoder) {
         return args -> {
-            if (!users.existsByEmail("admin@lshoe.vn")) {
+            if (!users.existsByEmailIgnoreCase("admin@lshoe.vn")) {
                 User admin = new User();
                 admin.setFullName("Quản trị viên LSHOE");
                 admin.setEmail("admin@lshoe.vn");
