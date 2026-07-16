@@ -23,6 +23,14 @@
         <label>Mật khẩu</label>
         <input th:field="*{password}" type="password" required>
         <p class="error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
+
+        <label>Xác minh bạn không phải robot</label>
+        <div class="captcha-box">
+            <strong th:text="${captchaQuestion}">2 + 3 = ?</strong>
+            <input name="captchaAnswer" type="number" required autocomplete="off"
+                   inputmode="numeric" placeholder="Nhập kết quả">
+        </div>
+        <p class="error" th:if="${captchaError}" th:text="${captchaError}"></p>
         <button class="btn">Đăng ký</button>
     </form>
 </section>

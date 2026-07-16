@@ -109,12 +109,32 @@ CHATBOT_MODEL=openai/gpt-oss-120b
 CHATBOT_TIMEOUT_MS=30000
 ```
 
+Optional password-reset email settings (Gmail example):
+
+```env
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-google-app-password
+MAIL_SMTP_AUTH=true
+MAIL_STARTTLS=true
+PASSWORD_RESET_EXPIRY_MINUTES=30
+PASSWORD_RESET_LOG_LINK=true
+```
+
+Use a Google App Password instead of the normal Gmail password. When SMTP is not configured,
+the reset link is written to the Spring Boot console for local IntelliJ development. Set
+`PASSWORD_RESET_LOG_LINK=false` in production so reset tokens are never written to logs.
+
 Important notes:
 
 - Spring Boot database URLs must start with `jdbc:postgresql://`.
 - If `DB_PASSWORD` is not provided, Spring Boot currently defaults to `120505`.
 - The chatbot page can load without an API key, but chatbot requests will fail until `NVIDIA_API_KEY` is configured.
 - Do not commit `Chatbot/.env` or expose the API key in frontend code.
+
+The default seeded administrator is `lam@gmail.com` with password `admin123`. Change this
+development password before deploying the application.
 
 ## 3. Configure the AI Service
 

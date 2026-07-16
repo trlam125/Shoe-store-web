@@ -24,14 +24,28 @@ public class DataSeeder {
                            ProductRepository products,
                            PasswordEncoder encoder) {
         return args -> {
-            if (!users.existsByEmailIgnoreCase("admin@lshoe.vn")) {
+            users.findByEmailIgnoreCase("admin@lshoe.vn").ifPresent(legacyAdmin -> {
+                if (!users.existsByEmailIgnoreCase("lam@gmail.com")) {
+                    legacyAdmin.setEmail("lam@gmail.com");
+                    users.save(legacyAdmin);
+                }
+            });
+
+            if (!users.existsByEmailIgnoreCase("lam@gmail.com")) {
                 User admin = new User();
                 admin.setFullName("Quản trị viên LSHOE");
-                admin.setEmail("admin@lshoe.vn");
+                admin.setEmail("lam@gmail.com");
                 admin.setPassword(encoder.encode("admin123"));
                 admin.setRole("ROLE_ADMIN");
                 users.save(admin);
             }
+
+            users.findByEmailIgnoreCase("lam@gmail.com").ifPresent(admin -> {
+                if (!"ROLE_ADMIN".equals(admin.getRole())) {
+                    admin.setRole("ROLE_ADMIN");
+                    users.save(admin);
+                }
+            });
 
             String[][] categoryData = {
                     {"Giày Nike", "Sneaker Nike nam nữ, dễ phối đồ và phù hợp sử dụng hằng ngày"},

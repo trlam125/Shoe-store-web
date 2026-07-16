@@ -299,6 +299,28 @@ body {
     min-height: 100px;
 }
 
+.captcha-box {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.45fr) 1fr;
+    gap: 12px;
+    align-items: center;
+    margin: 8px 0 16px;
+}
+
+.captcha-box strong {
+    display: grid;
+    place-items: center;
+    min-height: 46px;
+    border: 1px dashed #999;
+    border-radius: 12px;
+    background: #f6f3ec;
+    letter-spacing: 0.08em;
+}
+
+.captcha-box input {
+    margin: 0;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
