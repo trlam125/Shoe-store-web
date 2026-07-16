@@ -31,13 +31,15 @@
             <td th:text="${o.completedAt != null ? #temporals.format(o.completedAt,'dd/MM/yyyy HH:mm') : '-'}"></td>
             <td>
                 <form th:action="@{/admin/orders/{id}/status(id=${o.id})}" method="post">
-                    <select name="status">
+                    <select name="status" th:disabled="${o.status.terminal}">
                         <option th:each="s:${statuses}"
+                                th:if="${s == o.status || o.status.canTransitionTo(s)}"
                                 th:value="${s}"
                                 th:selected="${s == o.status}"
                                 th:text="${s.displayName}"></option>
                     </select>
-                    <button>Cập nhật</button>
+                    <button th:if="${!o.status.terminal}">Cập nhật</button>
+                    <span th:if="${o.status.terminal}">Đã kết thúc</span>
                 </form>
             </td>
         </tr>

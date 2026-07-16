@@ -2,7 +2,10 @@ package com.example.lshoestore.controller;
 
 import com.example.lshoestore.model.User;
 import com.example.lshoestore.repository.UserRepository;
+import com.example.lshoestore.service.CartService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -16,25 +19,31 @@ import java.util.Locale;
 public class AuthController {
     private final UserRepository users;
     private final PasswordEncoder encoder;
+    private final CartService cart;
 
-    public AuthController(UserRepository users, PasswordEncoder encoder) {
+    public AuthController(UserRepository users, PasswordEncoder encoder, CartService cart) {
         this.users = users;
         this.encoder = encoder;
+        this.cart = cart;
     }
 
     @GetMapping("/login")
-    public String login() {
+    public String login(Model model, Authentication auth, HttpSession session) {
+        model.addAttribute("cartCount", cart.count(auth, session));
         return "auth/login";
     }
 
     @GetMapping("/register")
-    public String register(Model model) {
+    public String register(Model model, Authentication auth, HttpSession session) {
         model.addAttribute("user", new User());
+        model.addAttribute("cartCount", cart.count(auth, session));
         return "auth/register";
     }
 
     @PostMapping("/register")
-    public String doRegister(@Valid @ModelAttribute User user, BindingResult bindingResult, Model model) {
+    public String doRegister(@Valid @ModelAttribute User user, BindingResult bindingResult, Model model,
+                             Authentication auth, HttpSession session) {
+        model.addAttribute("cartCount", cart.count(auth, session));
         if (bindingResult.hasErrors()) {
             return "auth/register";
         }

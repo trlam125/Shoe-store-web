@@ -2,6 +2,8 @@ package com.example.lshoestore.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.lshoestore.service.CartService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
@@ -11,6 +13,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.LinkedMultiValueMap;
@@ -40,12 +43,15 @@ public class AiController {
     private final String aiServiceUrl;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final CartService cart;
 
     public AiController(@Value("${ai.service.url:http://localhost:8001}") String aiServiceUrl,
                         @Value("${ai.service.image-timeout-ms:120000}") int timeoutMs,
-                        ObjectMapper objectMapper) {
+                        ObjectMapper objectMapper,
+                        CartService cart) {
         this.aiServiceUrl = aiServiceUrl.replaceAll("/+$", "");
         this.objectMapper = objectMapper;
+        this.cart = cart;
 
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(3_000);
@@ -54,7 +60,8 @@ public class AiController {
     }
 
     @GetMapping("/image-search")
-    public String imageSearch(Model model) {
+    public String imageSearch(Model model, Authentication auth, HttpSession session) {
+        model.addAttribute("cartCount", cart.count(auth, session));
         return "ai/image-search";
     }
 

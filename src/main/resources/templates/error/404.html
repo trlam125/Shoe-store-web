@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Không tìm thấy trang - LSHOE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<main class="section" style="text-align:center;min-height:50vh;padding-top:80px;">
+    <p style="font-size:14px;font-weight:700;letter-spacing:0.18em;">LỖI 404</p>
+    <h1>Không tìm thấy sản phẩm</h1>
+    <p>Sản phẩm bạn đang tìm không tồn tại hoặc đã được gỡ khỏi hệ thống.</p>
+    <a class="btn" th:href="@{/products}">Quay lại danh sách sản phẩm</a>
+</main>
+<div th:replace="~{fragments :: footer}"></div>
+</body>
+</html>

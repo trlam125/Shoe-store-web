@@ -3,6 +3,7 @@ package com.example.lshoestore.controller;
 import com.example.lshoestore.model.Product;
 import com.example.lshoestore.repository.*;
 import com.example.lshoestore.service.CartService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -48,9 +49,14 @@ public class HomeController {
     }
 
     @GetMapping("/products/{id}")
-    public String detail(@PathVariable Long id, Model model, Authentication auth, HttpSession session) {
-        Product product = products.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm id=" + id));
+    public String detail(@PathVariable Long id, Model model, Authentication auth,
+                         HttpSession session, HttpServletResponse response) {
+        Product product = products.findById(id).orElse(null);
+        if (product == null) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            model.addAttribute("cartCount", cart.count(auth, session));
+            return "error/404";
+        }
         // Không cho phép xem trang chi tiết sản phẩm đã bị ẩn
         if (!product.isActive()) {
             return "redirect:/products";

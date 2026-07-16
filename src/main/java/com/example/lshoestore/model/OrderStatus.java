@@ -17,6 +17,10 @@ public enum OrderStatus {
         return displayName;
     }
 
+    public boolean isTerminal() {
+        return this == HOAN_THANH || this == DA_HUY;
+    }
+
     /**
      * Chỉ cho phép đi tuần tự: chờ xác nhận -> chuẩn bị -> giao -> hoàn thành.
      * Đơn chỉ có thể hủy trước khi chuyển sang trạng thái đang giao.

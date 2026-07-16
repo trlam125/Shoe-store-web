@@ -3,17 +3,29 @@ setlocal
 cd /d "%~dp0"
 
 set "VENV=.venv"
-if exist "%VENV%\Scripts\python.exe" goto venv_ready
+if exist ".venv\Scripts\python.exe" (
+    ".venv\Scripts\python.exe" --version >nul 2>&1
+    if not errorlevel 1 goto venv_ready
+)
+if exist "venv\Scripts\python.exe" (
+    "venv\Scripts\python.exe" --version >nul 2>&1
+    if not errorlevel 1 (
+        set "VENV=venv"
+        goto venv_ready
+    )
+)
 
 where py >nul 2>&1
 if not errorlevel 1 (
-    py -3.11 -m venv "%VENV%"
+    py -3.11 -m venv --clear "%VENV%"
+    if errorlevel 1 exit /b 1
     goto venv_ready
 )
 
 where python >nul 2>&1
 if not errorlevel 1 (
-    python -m venv "%VENV%"
+    python -m venv --clear "%VENV%"
+    if errorlevel 1 exit /b 1
     goto venv_ready
 )
 
@@ -23,7 +35,7 @@ exit /b 1
 :venv_ready
 "%VENV%\Scripts\python.exe" --version >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Virtualenv bi hong. Hay xoa thu muc ai-service\.venv va chay lai.
+    echo [ERROR] Khong the khoi dong Python trong virtualenv "%VENV%".
     exit /b 1
 )
 
