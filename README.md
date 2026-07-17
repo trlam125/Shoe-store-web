@@ -155,6 +155,38 @@ The AI service URL does not use the JDBC prefix. Spring Boot and `ai-service` mu
 
 Spring Boot and `ai-service` are separate processes. Both must be running for all AI features to work.
 
+## 5. Expose the IntelliJ Website with Cloudflare Tunnel
+
+Keep Spring Boot running at `http://localhost:8081`, then run:
+
+```bat
+run-cloudflare.bat
+```
+
+Without configuration, the script starts a temporary Quick Tunnel and prints a random public
+`https://...trycloudflare.com` URL. The URL changes every time the tunnel restarts.
+
+To run it from IntelliJ IDEA:
+
+1. Open **Run > Edit Configurations**.
+2. Add a **Shell Script** configuration named `Cloudflare Tunnel`.
+3. Select **Script file** and choose `run-cloudflare.bat`.
+4. Set the working directory to the project root.
+5. Run `LshoeStoreApplication` first, then run `Cloudflare Tunnel`.
+
+To start both with one Run button, add a **Compound** configuration named
+`LSHOE + Cloudflare`, then include the `LshoeStoreApplication` and `Cloudflare Tunnel`
+configurations. Stop the Compound configuration to close both processes.
+
+For a persistent hostname, create a remotely managed tunnel in the Cloudflare dashboard and add
+its token to the `Cloudflare Tunnel` run configuration as an environment variable:
+
+```text
+TUNNEL_TOKEN=your-cloudflare-tunnel-token
+```
+
+Never commit the tunnel token or the downloaded `cloudflared` executable.
+
 ### Start the AI Service on Windows
 
 ```bat

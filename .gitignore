@@ -39,6 +39,9 @@ spring-shell.log
 !**/.env.example
 application-local.properties
 application-prod.properties
+cloudflared*.exe
+.cloudflared/
+cloudflare-tunnel-token.txt
 
 # Python virtual environments
 venv/
@@ -112,4 +115,3 @@ node_modules/
 .nuxt/
 .svelte-kit/
 coverage/
-
