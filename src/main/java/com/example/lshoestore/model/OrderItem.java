@@ -24,6 +24,10 @@ public class OrderItem {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal price;
 
+    // Nullable trong mapping để migration có thể nâng cấp dữ liệu đơn hàng cũ an toàn.
+    @Column(name = "selected_size", length = 160)
+    private String selectedSize;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Order getOrder() { return order; }
@@ -34,4 +38,6 @@ public class OrderItem {
     public void setQuantity(int quantity) { this.quantity = quantity; }
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
+    public String getSelectedSize() { return selectedSize; }
+    public void setSelectedSize(String selectedSize) { this.selectedSize = selectedSize; }
 }

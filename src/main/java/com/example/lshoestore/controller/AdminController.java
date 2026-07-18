@@ -7,11 +7,14 @@ import com.example.lshoestore.repository.CategoryRepository;
 import com.example.lshoestore.repository.OrderRepository;
 import com.example.lshoestore.repository.ProductRepository;
 import com.example.lshoestore.service.AiAnalyticsService;
+import com.example.lshoestore.service.CartService;
 import com.example.lshoestore.service.OrderService;
 import com.example.lshoestore.service.ProductAdminService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -32,17 +35,26 @@ public class AdminController {
     private final OrderService orderService;
     private final ProductAdminService productAdminService;
     private final AiAnalyticsService aiAnalyticsService;
+    private final CartService cartService;
 
     public AdminController(ProductRepository products, CategoryRepository categories,
                            OrderRepository orders, OrderService orderService,
                            ProductAdminService productAdminService,
-                           AiAnalyticsService aiAnalyticsService) {
+                           AiAnalyticsService aiAnalyticsService,
+                           CartService cartService) {
         this.products = products;
         this.categories = categories;
         this.orders = orders;
         this.orderService = orderService;
         this.productAdminService = productAdminService;
         this.aiAnalyticsService = aiAnalyticsService;
+        this.cartService = cartService;
+    }
+
+
+    @ModelAttribute("cartCount")
+    public int cartCount(Authentication authentication, HttpSession session) {
+        return cartService.count(authentication, session);
     }
 
     @GetMapping

@@ -3,6 +3,7 @@ package com.example.lshoestore.controller;
 import com.example.lshoestore.dto.CheckoutForm;
 import com.example.lshoestore.exception.BusinessException;
 import com.example.lshoestore.exception.ResourceNotFoundException;
+import com.example.lshoestore.model.CartItem;
 import com.example.lshoestore.model.User;
 import com.example.lshoestore.repository.OrderRepository;
 import com.example.lshoestore.repository.UserRepository;
@@ -20,6 +21,8 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Controller
@@ -40,7 +43,8 @@ public class OrderController {
     @GetMapping("/checkout")
     public String checkout(Model model, Authentication auth, HttpSession session) {
         User user = currentUser(auth);
-        if (cart.isEmpty(auth, session)) return "redirect:/cart";
+        List<CartItem> items = cart.getItems(auth, session);
+        if (items.isEmpty()) return "redirect:/cart";
 
         CheckoutForm form = new CheckoutForm();
         form.setReceiverName(user.getFullName());
@@ -48,7 +52,7 @@ public class OrderController {
         form.setAddress(user.getAddress());
         form.setCheckoutToken(UUID.randomUUID().toString());
         model.addAttribute("checkoutForm", form);
-        addCheckoutData(model, auth, session);
+        addCheckoutData(model, items);
         return "order/checkout";
     }
 
@@ -61,7 +65,12 @@ public class OrderController {
                         RedirectAttributes redirectAttributes) {
         User user = currentUser(auth);
         if (bindingResult.hasErrors()) {
-            addCheckoutData(model, auth, session);
+            List<CartItem> items = cart.getItems(auth, session);
+            if (items.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Giỏ hàng của bạn đang trống.");
+                return "redirect:/cart";
+            }
+            addCheckoutData(model, items);
             return "order/checkout";
         }
 
@@ -102,9 +111,13 @@ public class OrderController {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản người dùng"));
     }
 
-    private void addCheckoutData(Model model, Authentication auth, HttpSession session) {
-        model.addAttribute("items", cart.getItems(auth, session));
-        model.addAttribute("total", cart.total(auth, session));
-        model.addAttribute("cartCount", cart.count(auth, session));
+    private void addCheckoutData(Model model, List<CartItem> items) {
+        BigDecimal total = items.stream()
+                .map(CartItem::getSubtotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        int cartCount = items.stream().mapToInt(CartItem::getQuantity).sum();
+        model.addAttribute("items", items);
+        model.addAttribute("total", total);
+        model.addAttribute("cartCount", cartCount);
     }
 }

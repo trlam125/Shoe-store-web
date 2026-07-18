@@ -1,40 +1,65 @@
-# Detect text automatically and store normalized LF line endings in Git.
+# ============================================================
+# LSHOE Store - Git attributes
+# Normalize text files while keeping platform scripts usable.
+# ============================================================
+
+# Let Git detect text files and store them with LF in the repository.
 * text=auto eol=lf
 
-# Windows launch scripts use CRLF.
+# ---------- Platform-specific scripts ----------
+# Windows command scripts are checked out with CRLF.
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 
-# Source code and configuration.
+# Unix shell scripts must keep LF.
+*.sh text eol=lf
+
+# ---------- Source code ----------
 *.java text eol=lf diff=java
 *.kt text eol=lf
+*.kts text eol=lf
 *.py text eol=lf diff=python
-*.sh text eol=lf
-*.xml text eol=lf
-*.properties text eol=lf
-*.yml text eol=lf
-*.yaml text eol=lf
-*.sql text eol=lf
-*.html text eol=lf
-*.css text eol=lf
-*.scss text eol=lf
 *.js text eol=lf
 *.mjs text eol=lf
 *.cjs text eol=lf
 *.ts text eol=lf
 *.tsx text eol=lf
+
+# ---------- Web templates and styles ----------
+*.html text eol=lf
+*.htm text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.sass text eol=lf
+*.less text eol=lf
+*.svg text eol=lf
+
+# ---------- Configuration, data and documentation ----------
+*.xml text eol=lf
+*.properties text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
 *.json text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.conf text eol=lf
+*.sql text eol=lf
+*.csv text eol=lf
+*.tsv text eol=lf
 *.md text eol=lf diff=markdown
 *.txt text eol=lf
-*.csv text eol=lf
-*.toml text eol=lf
+*.env text eol=lf
+*.env.* text eol=lf
+
+pom.xml text eol=lf
+docker-compose.yml text eol=lf
+docker-compose.yaml text eol=lf
 Dockerfile text eol=lf
 .gitignore text eol=lf
 .gitattributes text eol=lf
-.env.example text eol=lf
 
-# Images, fonts, documents, executables and archives are binary.
+# ---------- Binary assets ----------
 *.png binary
 *.jpg binary
 *.jpeg binary
@@ -42,24 +67,51 @@ Dockerfile text eol=lf
 *.webp binary
 *.ico binary
 *.bmp binary
+*.tif binary
+*.tiff binary
+
+# Fonts
 *.woff binary
 *.woff2 binary
 *.ttf binary
 *.otf binary
 *.eot binary
+
+# Documents
 *.pdf binary
-*.exe binary
-*.dll binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+
+# Java packages and native binaries
 *.jar binary
 *.war binary
 *.ear binary
+*.class binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+
+# Archives
 *.zip binary
+*.tar binary
 *.gz binary
 *.tgz binary
-*.tar binary
 *.7z binary
+*.rar binary
 
-# Machine-learning artifacts are binary when explicitly committed.
+# Databases and dumps
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+*.dump binary
+*.backup binary
+
+# AI/ML model artifacts
 *.pt binary
 *.pth binary
 *.ckpt binary
@@ -68,3 +120,4 @@ Dockerfile text eol=lf
 *.pkl binary
 *.h5 binary
 *.hdf5 binary
+*.safetensors binary

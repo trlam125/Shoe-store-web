@@ -15,6 +15,7 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findTop12ByActiveTrueOrderByIdDesc();
     List<Product> findByActiveTrueOrderByIdDesc();
+    List<Product> findTop80ByActiveTrueAndStockGreaterThanOrderByIdDesc(int stock);
     List<Product> findByActiveTrueAndNameContainingIgnoreCaseOrderByIdDesc(String keyword);
     List<Product> findByActiveTrueAndCategory_IdOrderByIdDesc(Long categoryId);
 

@@ -18,7 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class OrderService {
@@ -47,9 +51,39 @@ public class OrderService {
             throw new BusinessException("Đơn hàng này đã được tạo trước đó.", "duplicate_checkout");
         }
 
-        List<SavedCartItem> cartRows = savedCartItems.findByUserWithLock(lockedUser);
+        List<SavedCartItem> cartRows = new ArrayList<>(savedCartItems.findByUserWithLock(lockedUser));
         if (cartRows.isEmpty()) {
             throw new BusinessException("Giỏ hàng của bạn đang trống.", "empty_cart");
+        }
+        cartRows.sort(Comparator.comparing((SavedCartItem row) -> row.getProduct().getId())
+                .thenComparing(SavedCartItem::getSelectedSize,
+                        Comparator.nullsFirst(String::compareToIgnoreCase))
+                .thenComparing(SavedCartItem::getId));
+
+        Map<Long, Product> lockedProducts = lockProductsInStableOrder(cartRows);
+        Map<Long, Long> quantityByProduct = new LinkedHashMap<>();
+        for (SavedCartItem row : cartRows) {
+            Product product = lockedProducts.get(row.getProduct().getId());
+            if (!product.isActive()) {
+                throw new BusinessException("Sản phẩm " + product.getName() + " hiện không còn bán.", "inactive");
+            }
+            if (row.getQuantity() <= 0) {
+                throw new BusinessException("Số lượng sản phẩm không hợp lệ.", "quantity");
+            }
+            String selectedSize = normalizeOrderSize(product, row.getSelectedSize());
+            row.setSelectedSize(selectedSize);
+            quantityByProduct.merge(product.getId(), (long) row.getQuantity(), Long::sum);
+        }
+
+        for (Map.Entry<Long, Long> entry : quantityByProduct.entrySet()) {
+            Product product = lockedProducts.get(entry.getKey());
+            long requested = entry.getValue();
+            if (requested <= 0 || product.getStock() < requested) {
+                throw new BusinessException(
+                        "Sản phẩm " + product.getName() + " chỉ còn " + product.getStock()
+                                + " đôi trong kho nhưng giỏ đang có " + requested + " đôi ở các kích cỡ.",
+                        "stock");
+            }
         }
 
         Order order = new Order();
@@ -60,34 +94,25 @@ public class OrderService {
         order.setCheckoutToken(form.getCheckoutToken());
 
         for (SavedCartItem row : cartRows) {
-            Product product = products.findByIdWithLock(row.getProduct().getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-            if (!product.isActive()) {
-                throw new BusinessException("Sản phẩm " + product.getName() + " hiện không còn bán.", "inactive");
-            }
-            if (row.getQuantity() <= 0) {
-                throw new BusinessException("Số lượng sản phẩm không hợp lệ.", "quantity");
-            }
-            if (product.getStock() < row.getQuantity()) {
-                throw new BusinessException(
-                        "Sản phẩm " + product.getName() + " chỉ còn " + product.getStock() + " đôi trong kho.",
-                        "stock");
-            }
-
-            product.setStock(product.getStock() - row.getQuantity());
+            Product product = lockedProducts.get(row.getProduct().getId());
             OrderItem item = new OrderItem();
             item.setOrder(order);
             item.setProduct(product);
+            item.setSelectedSize(row.getSelectedSize());
             item.setQuantity(row.getQuantity());
             item.setPrice(product.getPrice());
             order.getItems().add(item);
+        }
+        for (Map.Entry<Long, Long> entry : quantityByProduct.entrySet()) {
+            Product product = lockedProducts.get(entry.getKey());
+            product.setStock((int) (product.getStock() - entry.getValue()));
         }
 
         BigDecimal total = order.getItems().stream()
                 .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         if (total.compareTo(MAX_ORDER_TOTAL) > 0) {
-            throw new BusinessException("Tong gia tri don hang vuot gioi han cho phep.", "total_limit");
+            throw new BusinessException("Tổng giá trị đơn hàng vượt giới hạn cho phép.", "total_limit");
         }
         order.setTotal(total);
 
@@ -108,15 +133,58 @@ public class OrderService {
         }
 
         if (newStatus == OrderStatus.DA_HUY) {
-            for (OrderItem item : order.getItems()) {
-                products.findByIdWithLock(item.getProduct().getId())
-                        .ifPresent(product -> product.setStock(product.getStock() + item.getQuantity()));
-            }
+            restoreStockInStableOrder(order.getItems());
         }
 
         order.setStatus(newStatus);
         if (newStatus == OrderStatus.HOAN_THANH && order.getCompletedAt() == null) {
             order.setCompletedAt(LocalDateTime.now());
         }
+    }
+
+    private Map<Long, Product> lockProductsInStableOrder(List<SavedCartItem> cartRows) {
+        Map<Long, Product> locked = new LinkedHashMap<>();
+        cartRows.stream()
+                .map(row -> row.getProduct().getId())
+                .distinct()
+                .sorted()
+                .forEach(productId -> locked.put(productId,
+                        products.findByIdWithLock(productId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Product not found"))));
+        return locked;
+    }
+
+    private void restoreStockInStableOrder(List<OrderItem> orderItems) {
+        Map<Long, Long> quantityByProduct = new LinkedHashMap<>();
+        orderItems.stream()
+                .sorted(Comparator.comparing((OrderItem item) -> item.getProduct().getId())
+                        .thenComparing(OrderItem::getSelectedSize,
+                                Comparator.nullsFirst(String::compareToIgnoreCase)))
+                .forEach(item -> quantityByProduct.merge(
+                        item.getProduct().getId(), (long) item.getQuantity(), Long::sum));
+
+        quantityByProduct.keySet().stream().sorted().forEach(productId -> {
+            Product product = products.findByIdWithLock(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy sản phẩm cần hoàn lại tồn kho"));
+            long restoredStock = (long) product.getStock() + quantityByProduct.get(productId);
+            if (restoredStock > Integer.MAX_VALUE) {
+                throw new BusinessException(
+                        "Không thể hoàn lại tồn kho vì số lượng vượt giới hạn hệ thống.",
+                        "stock_overflow");
+            }
+            product.setStock((int) restoredStock);
+        });
+    }
+
+    private String normalizeOrderSize(Product product, String selectedSize) {
+        String cleaned = selectedSize == null ? "" : selectedSize.trim();
+        return product.getAvailableSizes().stream()
+                .filter(size -> size.equalsIgnoreCase(cleaned))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(
+                        "Kích cỡ của sản phẩm " + product.getName()
+                                + " không còn hợp lệ. Vui lòng cập nhật lại giỏ hàng.",
+                        "invalid_size"));
     }
 }

@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(indexes = {
@@ -11,6 +15,8 @@ import java.time.LocalDateTime;
         @Index(name = "idx_product_category", columnList = "category_id")
 })
 public class Product {
+    public static final String DEFAULT_SIZE = "Không áp dụng";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -64,6 +70,17 @@ public class Product {
 
     @PreUpdate
     void onUpdate() { updatedAt = LocalDateTime.now(); }
+
+    @Transient
+    public List<String> getAvailableSizes() {
+        if (sizeText == null || sizeText.isBlank()) return List.of(DEFAULT_SIZE);
+        Set<String> unique = new LinkedHashSet<>();
+        for (String token : sizeText.split("[,;/|\\n]+")) {
+            String value = token == null ? "" : token.trim();
+            if (!value.isBlank()) unique.add(value);
+        }
+        return unique.isEmpty() ? List.of(DEFAULT_SIZE) : new ArrayList<>(unique);
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

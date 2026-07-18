@@ -1,63 +1,66 @@
-# Operating system files
-.DS_Store
-Thumbs.db
-Thumbs.db:encryptable
-Desktop.ini
-$RECYCLE.BIN/
-ehthumbs.db
-*.lnk
-*~
+# ============================================================
+# LSHOE Store - Git ignore rules
+# Spring Boot (Maven) + Python AI services + PostgreSQL
+# ============================================================
 
-# IntelliJ IDEA and editors
-.idea/
-*.iml
-*.ipr
-*.iws
-out/
-.vscode/
-*.code-workspace
-*.swp
-*.swo
-
-# Java, Maven and JVM output
-target/
-build/
-dist/
-dependency-reduced-pom.xml
-*.class
-hs_err_pid*
-replay_pid*
-.attach_pid*
-
-# Logs and runtime files
-*.log
-logs/
-*.pid
-*.pid.lock
-spring-shell.log
-
-# Environment files and secrets
+# ---------- Secrets and environment-specific configuration ----------
 .env
 .env.*
-*.env
-!.env.example
+!*.env.example
+!*.env.template
 !**/.env.example
+!**/.env.template
+
+# Local Spring configuration that may contain credentials
 application-local.properties
-application-prod.properties
 application-secrets.properties
-secrets/
+application-*.local.properties
+**/application-local.properties
+**/application-secrets.properties
+**/application-*.local.properties
+
+# Private keys, certificates and tokens
 *.pem
 *.key
 *.p12
 *.pfx
+*.jks
+*.keystore
+*.crt
+*.cer
+secrets/
+**/secrets/
 
-# Cloudflare local files
-cloudflared*.exe
-.cloudflared/
-cloudflare-tunnel-token.txt
-cert.pem
+# ---------- Java / Maven ----------
+target/
+**/target/
+build/
+**/build/
+out/
+**/out/
+*.class
+*.jar.original
+dependency-reduced-pom.xml
+.flattened-pom.xml
+.mvn/timing.properties
 
-# Python virtual environments
+# JVM crash and diagnostic files
+hs_err_pid*
+replay_pid*
+.attach_pid*
+*.hprof
+
+# ---------- Python ----------
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.so
+.Python
+.python-version
+
+# Virtual environments
 .venv/
 venv/
 env/
@@ -67,14 +70,18 @@ ENV/
 **/env/
 **/ENV/
 
-# Python caches and tooling
-__pycache__/
-*.py[cod]
-*.pyd
-.Python
-.python-version
-.mypy_cache/
+# Python package/build output
+pip-wheel-metadata/
+*.egg
+*.egg-info/
+dist/
+**/dist/
+.eggs/
+wheels/
+
+# Python test, lint and coverage caches
 .pytest_cache/
+.mypy_cache/
 .ruff_cache/
 .pyre/
 .hypothesis/
@@ -83,13 +90,9 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
-.ipynb_checkpoints/
-.uv/
-*.egg
-*.egg-info/
-pip-wheel-metadata/
+coverage.xml
 
-# AI/ML models, datasets and generated files
+# ---------- AI/ML generated artifacts ----------
 *.pt
 *.pth
 *.ckpt
@@ -98,27 +101,52 @@ pip-wheel-metadata/
 *.pkl
 *.h5
 *.hdf5
-data/
-datasets/
-models/
-checkpoints/
-uploads/
+*.safetensors
+
+# Runtime/generated AI data (scoped to this repository)
+/data/
+/datasets/
+/models/
+/checkpoints/
+/Chatbot/data/
+/Chatbot/uploads/
+/Chatbot/models/
+/ai-service/data/
+/ai-service/uploads/
+/ai-service/models/
+/ai-service/checkpoints/
+
+# ---------- Runtime uploads, temporary files and logs ----------
+/uploads/
+/src/main/resources/static/uploads/
+logs/
+**/logs/
+*.log
+*.pid
+*.pid.lock
+spring-shell.log
+
 tmp/
 temp/
+**/tmp/
+**/temp/
 *.tmp
 *.temp
 *.cache
 
-# Local databases and PostgreSQL volumes
+# ---------- Databases and local data volumes ----------
 *.db
 *.sqlite
 *.sqlite3
+*.dump
+*.backup
 pgdata/
 postgres-data/
 .pgdata/
 
-# Node and frontend caches
+# ---------- Node/frontend tooling (if added later) ----------
 node_modules/
+**/node_modules/
 .npm/
 .pnpm-store/
 .yarn/
@@ -128,9 +156,51 @@ node_modules/
 .svelte-kit/
 coverage/
 
-# Generated archives
+# ---------- IDEs and editors ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.code-workspace
+.settings/
+.project
+.classpath
+.factorypath
+
+*.swp
+*.swo
+*~
+
+# ---------- Operating-system files ----------
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ---------- Cloudflare Tunnel local files ----------
+cloudflared
+cloudflared.exe
+cloudflared-*
+.cloudflared/
+cloudflare-tunnel-token.txt
+cert.pem
+
+# ---------- Local Docker overrides ----------
+docker-compose.override.yml
+docker-compose.override.yaml
+compose.override.yml
+compose.override.yaml
+
+# ---------- Generated archives ----------
 *.zip
 *.tar
 *.tar.gz
 *.tgz
 *.7z
+*.rar

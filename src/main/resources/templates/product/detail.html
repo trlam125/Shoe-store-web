@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${product.name} + ' - LSHOE'">Chi tiết sản phẩm</title>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=2}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=5}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
@@ -15,12 +15,20 @@
         <h1 th:text="${product.name}"></h1>
         <p class="detail-copy" th:text="${product.description}"></p>
         <div class="product-meta">
-            <p><span>Kích cỡ</span><b th:text="${product.sizeText != null and !product.sizeText.isBlank() ? product.sizeText : 'Liên hệ cửa hàng'}"></b></p>
+            <p><span>Kích cỡ</span><b th:text="${#strings.listJoin(product.availableSizes, ', ')}"></b></p>
             <p><span>Tình trạng</span><b th:text="${product.stock > 0 ? 'Còn ' + product.stock + ' sản phẩm' : 'Tạm hết hàng'}"></b></p>
             <p><span>Danh mục</span><b th:text="${product.category != null ? product.category.name : 'Khác'}"></b></p>
         </div>
         <div class="price-row"><span class="price big" th:text="${#numbers.formatDecimal(product.price,0,'COMMA',0,'POINT')} + 'đ'"></span><span class="old" th:if="${product.oldPrice != null}" th:text="${#numbers.formatDecimal(product.oldPrice,0,'COMMA',0,'POINT')} + 'đ'"></span></div>
-        <form th:action="@{/cart/add/{id}(id=${product.id})}" method="post">
+        <form class="add-cart-form" th:action="@{/cart/add/{id}(id=${product.id})}" method="post">
+            <label class="size-label" for="selectedSize">Chọn kích cỡ</label>
+            <div class="size-options" id="selectedSize">
+                <label class="size-option" th:each="size, stat : ${product.availableSizes}">
+                    <input type="radio" name="selectedSize" th:value="${size}"
+                           th:checked="${stat.first}" required>
+                    <span th:text="${size}">39</span>
+                </label>
+            </div>
             <button class="btn" type="submit" th:disabled="${product.stock <= 0}" th:text="${product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Sản phẩm tạm hết hàng'}">Thêm vào giỏ hàng</button>
         </form>
         <p class="secure-note">✓ Thanh toán COD &nbsp; ✓ Đổi trả trong 30 ngày &nbsp; ✓ Hàng chính hãng</p>

@@ -17,7 +17,6 @@ import org.springframework.web.servlet.support.SessionFlashMapManager;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.List;
 
 @Component
 public class CartMergeLoginHandler extends SimpleUrlAuthenticationSuccessHandler {
@@ -35,10 +34,9 @@ public class CartMergeLoginHandler extends SimpleUrlAuthenticationSuccessHandler
                                         Authentication authentication) throws IOException, ServletException {
         HttpSession session = request.getSession(false);
         if (session != null) {
-            List<String> skipped = cartService.mergeGuestCart(authentication, session);
-            if (!skipped.isEmpty()) {
-                String message = "Một số sản phẩm không còn khả dụng đã bị xóa khỏi giỏ hàng: "
-                        + String.join(", ", skipped);
+            CartService.CartMergeResult result = cartService.mergeGuestCart(authentication, session);
+            if (!result.warnings().isEmpty()) {
+                String message = String.join(" ", result.warnings());
                 FlashMap flashMap = new FlashMap();
                 flashMap.put("warning", message);
                 FlashMapManager flashMapManager = new SessionFlashMapManager();

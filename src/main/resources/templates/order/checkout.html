@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Thanh toán - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=2}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=5}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
@@ -36,7 +36,7 @@
         <h2>Tóm tắt thanh toán</h2>
         <div class="summary-product" th:each="i : ${items}">
             <img th:src="${i.product.imageUrl}" th:alt="${i.product.name}">
-            <div><b th:text="${i.product.name}">Tên giày</b><span th:text="${'Số lượng: ' + i.quantity}">Số lượng</span></div>
+            <div><b th:text="${i.product.name}">Tên giày</b><span th:text="${'Size: ' + i.selectedSize + ' · Số lượng: ' + i.quantity}">Thông tin</span></div>
             <strong th:text="${#numbers.formatDecimal(i.subtotal,0,'COMMA',0,'POINT')} + 'đ'">0đ</strong>
         </div>
         <div class="summary-total"><span>Tổng thanh toán</span><strong th:text="${#numbers.formatDecimal(total,0,'COMMA',0,'POINT')} + 'đ'">0đ</strong></div>

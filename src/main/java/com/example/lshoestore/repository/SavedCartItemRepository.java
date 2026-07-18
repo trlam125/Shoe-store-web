@@ -16,17 +16,27 @@ import java.util.Optional;
 
 public interface SavedCartItemRepository extends JpaRepository<SavedCartItem, Long> {
     @EntityGraph(attributePaths = "product")
-    List<SavedCartItem> findByUserOrderByIdAsc(User user);
+    List<SavedCartItem> findByUserOrderByProduct_IdAscSelectedSizeAsc(User user);
 
-    Optional<SavedCartItem> findByUserAndProductId(User user, Long productId);
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM SavedCartItem s WHERE s.user = :user AND s.product.id = :productId")
-    Optional<SavedCartItem> findByUserAndProductIdWithLock(@Param("user") User user,
-                                                           @Param("productId") Long productId);
+    Optional<SavedCartItem> findByUserAndProductIdAndSelectedSize(User user, Long productId, String selectedSize);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM SavedCartItem s JOIN FETCH s.product WHERE s.user = :user ORDER BY s.id")
+    @Query("SELECT s FROM SavedCartItem s WHERE s.user = :user "
+            + "AND s.product.id = :productId AND s.selectedSize = :selectedSize")
+    Optional<SavedCartItem> findByUserAndProductIdAndSelectedSizeWithLock(
+            @Param("user") User user,
+            @Param("productId") Long productId,
+            @Param("selectedSize") String selectedSize);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM SavedCartItem s WHERE s.user = :user AND s.product.id = :productId "
+            + "ORDER BY s.selectedSize, s.id")
+    List<SavedCartItem> findAllByUserAndProductIdWithLock(@Param("user") User user,
+                                                          @Param("productId") Long productId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM SavedCartItem s JOIN FETCH s.product WHERE s.user = :user "
+            + "ORDER BY s.product.id, s.selectedSize, s.id")
     List<SavedCartItem> findByUserWithLock(@Param("user") User user);
 
     @Modifying

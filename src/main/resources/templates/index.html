@@ -4,19 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>LSHOE - Cửa hàng giày chính hãng</title>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=3}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=6}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
-<section class="hero">
-    <div>
-        <p class="badge">Bộ sưu tập mới</p>
-        <h1>Bước vào phong cách của riêng bạn</h1>
-        <p>Khám phá sneaker từ Nike, Adidas, New Balance, Puma, MLB và Converse với lựa chọn đa dạng cho mọi cá tính.</p>
-        <div class="hero-actions">
-            <a class="btn" th:href="@{/products}">Khám phá ngay</a>
-            <a class="btn secondary hero-secondary" th:href="@{/products}">Xem bộ sưu tập</a>
-        </div>
+<section class="hero-slider" aria-label="Bộ sưu tập nổi bật" aria-roledescription="carousel">
+    <div class="hero-slides">
+        <article id="hero-slide-1" class="hero-slide hero-slide-one is-active" data-hero-slide
+                 role="group" aria-label="Ảnh 1 trên 2" aria-hidden="false">
+            <div class="hero-content">
+                <p class="badge">Bộ sưu tập mới</p>
+                <h1>Bước vào phong cách của riêng bạn</h1>
+                <p>Khám phá sneaker từ Nike, Adidas, New Balance, Puma, MLB và Converse với lựa chọn đa dạng cho mọi cá tính.</p>
+
+            </div>
+        </article>
+        <article id="hero-slide-2" class="hero-slide hero-slide-two" data-hero-slide
+                 role="group" aria-label="Ảnh 2 trên 2" aria-hidden="true">
+            <div class="hero-content">
+                <p class="badge">Chọn đúng đôi, bật đúng chất</p>
+                <h2>Giày đẹp cho từng nhịp sống</h2>
+                <p>Từ đi học, đi làm đến dạo phố và luyện tập, LSHOE giúp bạn tìm mẫu giày vừa phong cách vừa thoải mái.</p>
+
+            </div>
+        </article>
+    </div>
+    <div class="hero-fixed-actions" aria-label="Liên kết nổi bật">
+        <a class="btn" th:href="@{/products}">Khám phá ngay</a>
+        <a class="btn secondary hero-secondary" th:href="@{/products}">Xem bộ sưu tập</a>
+    </div>
+    <button class="hero-arrow hero-prev" type="button" aria-label="Ảnh trước">‹</button>
+    <button class="hero-arrow hero-next" type="button" aria-label="Ảnh tiếp theo">›</button>
+    <div class="hero-dots" role="tablist" aria-label="Chọn ảnh trình chiếu">
+        <button class="hero-dot is-active" type="button" role="tab" data-hero-dot="0"
+                aria-label="Hiển thị ảnh 1" aria-controls="hero-slide-1" aria-selected="true" tabindex="0"></button>
+        <button class="hero-dot" type="button" role="tab" data-hero-dot="1"
+                aria-label="Hiển thị ảnh 2" aria-controls="hero-slide-2" aria-selected="false" tabindex="-1"></button>
     </div>
 </section>
 <section class="feature-strip">
@@ -46,5 +69,80 @@
     <div class="empty-state" th:if="${#lists.isEmpty(products)}"><div class="empty-icon">👟</div><h3>Chưa có sản phẩm</h3><p>Cửa hàng đang cập nhật bộ sưu tập mới.</p></div>
 </section>
 <div th:replace="~{fragments :: footer}"></div>
+<script>
+(function () {
+    const slider = document.querySelector('.hero-slider');
+    if (!slider) return;
+
+    const slides = Array.from(slider.querySelectorAll('[data-hero-slide]'));
+    const dots = Array.from(slider.querySelectorAll('[data-hero-dot]'));
+    const previous = slider.querySelector('.hero-prev');
+    const next = slider.querySelector('.hero-next');
+    const dotList = slider.querySelector('.hero-dots');
+    const motionQuery = typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-reduced-motion: reduce)')
+        : null;
+    let reduceMotion = motionQuery ? motionQuery.matches : false;
+    let current = 0;
+    let timer = null;
+
+    function show(index) {
+        if (slides.length === 0 || !Number.isFinite(index)) return;
+        current = ((Math.trunc(index) % slides.length) + slides.length) % slides.length;
+        slides.forEach((slide, i) => {
+            const active = i === current;
+            slide.classList.toggle('is-active', active);
+            slide.setAttribute('aria-hidden', String(!active));
+        });
+        dots.forEach((dot, i) => {
+            const active = i === current;
+            dot.classList.toggle('is-active', active);
+            dot.setAttribute('aria-selected', String(active));
+            dot.setAttribute('tabindex', active ? '0' : '-1');
+        });
+    }
+
+    function stop() {
+        if (timer !== null) window.clearInterval(timer);
+        timer = null;
+    }
+
+    function start() {
+        stop();
+        if (!reduceMotion && !document.hidden && slides.length > 1) {
+            timer = window.setInterval(() => show(current + 1), 5000);
+        }
+    }
+
+    const hasMultipleSlides = slides.length > 1;
+    if (previous) previous.hidden = !hasMultipleSlides;
+    if (next) next.hidden = !hasMultipleSlides;
+    if (dotList) dotList.hidden = !hasMultipleSlides;
+    if (slides.length === 0) return;
+
+    if (previous) previous.addEventListener('click', () => { show(current - 1); start(); });
+    if (next) next.addEventListener('click', () => { show(current + 1); start(); });
+    dots.forEach(dot => dot.addEventListener('click', () => {
+        const target = Number.parseInt(dot.dataset.heroDot, 10);
+        show(target);
+        start();
+    }));
+    if (dotList) dotList.addEventListener('keydown', event => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        show(current + (event.key === 'ArrowRight' ? 1 : -1));
+        if (dots[current]) dots[current].focus();
+        start();
+    });
+    document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+    if (motionQuery) motionQuery.addEventListener('change', event => {
+        reduceMotion = event.matches;
+        start();
+    });
+
+    show(0);
+    start();
+})();
+</script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 package com.example.lshoestore.controller;
 
+import com.example.lshoestore.exception.BusinessException;
 import com.example.lshoestore.service.CartService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
@@ -32,29 +33,47 @@ public class CartController {
     }
 
     @PostMapping("/add/{id}")
-    public String add(@PathVariable Long id, Authentication auth, HttpSession session,
+    public String add(@PathVariable Long id,
+                      @RequestParam(required = false) String selectedSize,
+                      Authentication auth,
+                      HttpSession session,
                       RedirectAttributes redirectAttributes) {
-        if (!cart.add(id, auth, session)) {
-            redirectAttributes.addFlashAttribute("error", "Sản phẩm đã hết hàng hoặc không khả dụng.");
-        } else {
-            redirectAttributes.addFlashAttribute("success", "Đã thêm sản phẩm vào giỏ hàng.");
+        try {
+            if (!cart.add(id, selectedSize, auth, session)) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Số lượng trong giỏ đã đạt mức tồn kho hiện tại.");
+            } else {
+                redirectAttributes.addFlashAttribute("success", "Đã thêm sản phẩm vào giỏ hàng.");
+            }
+        } catch (BusinessException exception) {
+            redirectAttributes.addFlashAttribute("error", exception.getMessage());
+        }
+        return "redirect:/products/" + id;
+    }
+
+    @PostMapping("/update/{id}")
+    public String update(@PathVariable Long id,
+                         @RequestParam String selectedSize,
+                         @RequestParam int quantity,
+                         Authentication auth,
+                         HttpSession session,
+                         RedirectAttributes redirectAttributes) {
+        try {
+            cart.update(id, selectedSize, quantity, auth, session);
+            redirectAttributes.addFlashAttribute("success", "Đã cập nhật giỏ hàng.");
+        } catch (BusinessException exception) {
+            redirectAttributes.addFlashAttribute("error", exception.getMessage());
         }
         return "redirect:/cart";
     }
 
-    @PostMapping("/update/{id}")
-    public String update(@PathVariable Long id, @RequestParam int quantity,
-                         Authentication auth, HttpSession session,
-                         RedirectAttributes redirectAttributes) {
-        cart.update(id, quantity, auth, session);
-        redirectAttributes.addFlashAttribute("success", "Đã cập nhật giỏ hàng.");
-        return "redirect:/cart";
-    }
-
     @PostMapping("/remove/{id}")
-    public String remove(@PathVariable Long id, Authentication auth, HttpSession session,
+    public String remove(@PathVariable Long id,
+                         @RequestParam String selectedSize,
+                         Authentication auth,
+                         HttpSession session,
                          RedirectAttributes redirectAttributes) {
-        cart.remove(id, auth, session);
+        cart.remove(id, selectedSize, auth, session);
         redirectAttributes.addFlashAttribute("success", "Đã xóa sản phẩm khỏi giỏ hàng.");
         return "redirect:/cart";
     }

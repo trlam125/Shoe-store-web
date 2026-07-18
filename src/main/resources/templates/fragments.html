@@ -15,8 +15,13 @@
         <form th:action="@{/products}" class="search"><input name="q" placeholder="Tìm kiếm giày..." th:value="${q}">
             <button>Tìm</button>
         </form>
-        <div class="navlinks"><a th:href="@{/products}">Sản phẩm</a><a th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a th:href="@{/cart}">Giỏ hàng <span
-                th:text="${cartCount != null ? cartCount : 0}">0</span></a><a sec:authorize="isAnonymous()"
+        <div class="navlinks"><a th:href="@{/products}">Sản phẩm</a><a th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a class="cart-nav-link" th:href="@{/cart}" aria-label="Mở giỏ hàng">
+            <svg class="cart-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 3h2l1.7 9.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6L20 6H6.1M9 19.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm10 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/>
+            </svg>
+            <span class="cart-nav-label">Giỏ hàng</span>
+            <span class="cart-count-badge" th:text="${cartCount != null ? cartCount : 0}">0</span>
+        </a><a sec:authorize="isAnonymous()"
                                                                               th:href="@{/login}">Đăng nhập</a><a
                 sec:authorize="isAuthenticated()" th:href="@{/orders}">Đơn hàng</a><a sec:authorize="hasRole('ADMIN')"
                                                                                       th:href="@{/admin}">Admin</a>
@@ -52,7 +57,7 @@
     </div>
     <div id="chat-input-row">
         <input id="chat-input" type="text" placeholder="Nhập tin nhắn..." onkeydown="if(event.key==='Enter') sendChat()"/>
-        <button onclick="sendChat()">Gửi</button>
+        <button id="chat-send-btn" onclick="sendChat()">Gửi</button>
     </div>
 </div>
 <input id="chat-csrf" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
@@ -96,8 +101,8 @@
     position: fixed;
     bottom: 96px;
     right: 28px;
-    width: 340px;
-    height: 480px;
+    width: min(420px, calc(100vw - 32px));
+    height: min(560px, calc(100vh - 130px));
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.18);
@@ -140,11 +145,13 @@
 
 .chat-msg {
     max-width: 82%;
+    min-width: 0;
     padding: 9px 13px;
     border-radius: 14px;
     font-size: 14px;
     line-height: 1.5;
-    word-break: break-word;
+    word-break: normal;
+    overflow-wrap: anywhere;
 }
 .chat-msg.user {
     align-self: flex-end;
@@ -157,7 +164,12 @@
     background: #f1f1f1;
     color: #222;
     border-bottom-left-radius: 4px;
-    max-width: 95%;   /* rộng hơn để bảng có chỗ hiển thị */
+    max-width: 95%;
+}
+.chat-msg.bot.has-table {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
 }
 .chat-msg.typing { color: #999; font-style: italic; }
 
@@ -171,18 +183,46 @@
     padding: 0;
 }
 .chat-msg.bot li { margin-bottom: 3px; }
+.chat-table-scroll {
+    width: 100%;
+    margin: 8px 0 4px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    border: 1px solid #d5d8df;
+    border-radius: 10px;
+    background: #fff;
+    -webkit-overflow-scrolling: touch;
+}
 .chat-msg.bot table {
     border-collapse: collapse;
-    width: 100%;
+    width: max-content;
+    min-width: 100%;
+    margin: 0;
     font-size: 12px;
-    margin: 6px 0;
+    line-height: 1.4;
 }
 .chat-msg.bot th, .chat-msg.bot td {
-    border: 1px solid #ccc;
-    padding: 4px 7px;
+    min-width: 96px;
+    max-width: 220px;
+    border: 1px solid #d5d8df;
+    padding: 7px 9px;
     text-align: left;
+    vertical-align: top;
+    word-break: normal;
+    overflow-wrap: normal;
+    hyphens: none;
 }
-.chat-msg.bot th { background: #e4e4e4; font-weight: 600; }
+.chat-msg.bot th {
+    background: #e9ebef;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.chat-msg.bot th:first-child,
+.chat-msg.bot td:first-child { min-width: 105px; }
+.chat-msg.bot th:nth-child(2),
+.chat-msg.bot td:nth-child(2) { min-width: 150px; }
+.chat-msg.bot th:nth-child(4),
+.chat-msg.bot td:nth-child(4) { min-width: 140px; }
 .chat-msg.bot code {
     background: #e4e4e4;
     border-radius: 4px;
@@ -225,6 +265,7 @@
     white-space: nowrap;
 }
 #chat-input-row button:hover { background: #333; }
+#chat-input-row button:disabled, #chat-input:disabled { opacity: .58; cursor: not-allowed; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
@@ -233,6 +274,7 @@
 (function () {
     let chatHistory = [];
     let opened = false;
+    let sending = false;
 
     window.toggleChat = function () {
         const win = document.getElementById('chat-window');
@@ -244,8 +286,12 @@
 
     window.sendChat = async function () {
         const input = document.getElementById('chat-input');
+        const sendButton = document.getElementById('chat-send-btn');
         const msg = input.value.trim();
-        if (!msg) return;
+        if (!msg || sending) return;
+        sending = true;
+        input.disabled = true;
+        sendButton.disabled = true;
         input.value = '';
         const previousHistory = chatHistory.slice(-10);
 
@@ -275,6 +321,11 @@
         } catch (e) {
             typingEl.remove();
             appendMsg('Kết nối thất bại. Vui lòng thử lại.', 'bot', false);
+        } finally {
+            sending = false;
+            input.disabled = false;
+            sendButton.disabled = false;
+            input.focus();
         }
     };
 
@@ -285,6 +336,15 @@
         
         if (parseMarkdown && typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
             el.innerHTML = DOMPurify.sanitize(marked.parse(text));
+
+            // Bảng Markdown không bị ép cột quá hẹp: cho phép cuộn ngang thay vì xuống dòng từng chữ.
+            el.querySelectorAll('table').forEach((table) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'chat-table-scroll';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
+                el.classList.add('has-table');
+            });
         } else {
             el.textContent = text;
         }
