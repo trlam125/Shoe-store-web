@@ -1,42 +1,44 @@
-"""
-FastAPI server — expose POST /api/chat để Spring Boot gọi vào.
-Chạy: uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+"""Optional standalone chatbot API.
+
+Run locally only:
+    uvicorn api:app --host 127.0.0.1 --port 8000
+
+The Spring Boot application already has its own /chatbot/chat endpoint, so this
+service is only kept for independent experiments.
 """
 
 import os
+
 from dotenv import load_dotenv
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field, field_validator
 from openai import OpenAI
 
 load_dotenv()
 
 app = FastAPI(title="LSHOE Chatbot API")
 
-# Cho phép Spring Boot (localhost:8081) gọi vào
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:8081"],
-    allow_methods=["POST"],
-    allow_headers=["Content-Type"],
-)
-
-client = OpenAI(
-    base_url="https://integrate.api.nvidia.com/v1",
-    api_key=os.getenv("NVIDIA_API_KEY"),
-)
-
 SYSTEM_PROMPT = (
-    "Bạn là trợ lý tư vấn giày của LSHOE — cửa hàng sneaker nam nữ tại Hà Nội. "
-    "Hãy giúp khách hàng tìm giày phù hợp, tư vấn size, phong cách phối đồ và "
-    "các chương trình khuyến mãi. Trả lời ngắn gọn, thân thiện bằng tiếng Việt."
+    "Bạn là trợ lý tư vấn giày của LSHOE. Hãy giúp khách hàng chọn giày, "
+    "tư vấn size và phối đồ. Trả lời ngắn gọn, thân thiện bằng tiếng Việt."
 )
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str = Field(min_length=1, max_length=2_000)
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, value: str) -> str:
+        if value not in {"user", "assistant"}:
+            raise ValueError("role must be user or assistant")
+        return value
 
 
 class ChatRequest(BaseModel):
-    message: str
-    history: list[dict] = []   # [{"role": "user"|"assistant", "content": "..."}]
+    message: str = Field(min_length=1, max_length=2_000)
+    history: list[ChatMessage] = Field(default_factory=list, max_length=10)
 
 
 class ChatResponse(BaseModel):
@@ -44,21 +46,25 @@ class ChatResponse(BaseModel):
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-def chat(req: ChatRequest):
+def chat(req: ChatRequest) -> ChatResponse:
+    api_key = os.getenv("NVIDIA_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=503, detail="NVIDIA_API_KEY is not configured")
+
+    client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=api_key)
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages += req.history[-10:]   # Giữ tối đa 10 lượt gần nhất
-    messages.append({"role": "user", "content": req.message})
+    messages.extend(item.model_dump() for item in req.history[-10:])
+    messages.append({"role": "user", "content": req.message.strip()})
 
     try:
         response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model=os.getenv("CHATBOT_MODEL", "openai/gpt-oss-120b"),
             messages=messages,
             temperature=0.7,
-            max_tokens=1024,
+            max_tokens=1_024,
             stream=False,
         )
-        reply = response.choices[0].message.content
-    except Exception as e:
-        reply = f"Xin lỗi, tôi đang gặp sự cố kỹ thuật. Vui lòng thử lại sau. ({e})"
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Chat provider is unavailable") from exc
 
-    return ChatResponse(reply=reply)
+    return ChatResponse(reply=response.choices[0].message.content or "")

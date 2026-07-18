@@ -1,6 +1,10 @@
 package com.example.lshoestore.service;
 
-import com.example.lshoestore.model.*;
+import com.example.lshoestore.exception.ResourceNotFoundException;
+import com.example.lshoestore.model.CartItem;
+import com.example.lshoestore.model.Product;
+import com.example.lshoestore.model.SavedCartItem;
+import com.example.lshoestore.model.User;
 import com.example.lshoestore.repository.ProductRepository;
 import com.example.lshoestore.repository.SavedCartItemRepository;
 import com.example.lshoestore.repository.UserRepository;
@@ -10,18 +14,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-/**
- * CartService hỗ trợ hai chế độ:
- * - Guest (chưa đăng nhập): lưu trong session map (qua HttpSession).
- * - User đã đăng nhập: lưu vào bảng saved_cart_items trong DB.
- *
- * Không còn @SessionScope — dùng singleton + HttpSession inject trực tiếp.
- */
 @Service
 public class CartService {
-
     private static final String GUEST_CART_KEY = "guestCart";
 
     private final ProductRepository productRepository;
@@ -36,17 +38,20 @@ public class CartService {
         this.userRepository = userRepository;
     }
 
-    // ------------------------------------------------------------------ //
-    //  Internal helpers
-    // ------------------------------------------------------------------ //
-
     private boolean isLoggedIn(Authentication auth) {
-        return auth != null && auth.isAuthenticated()
-                && !"anonymousUser".equals(auth.getPrincipal());
+        return auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal());
     }
 
-    private User getUser(Authentication auth) {
-        return userRepository.findByEmailIgnoreCase(auth.getName()).orElseThrow();
+    public User getUser(Authentication auth) {
+        if (!isLoggedIn(auth)) throw new ResourceNotFoundException("User not found");
+        return userRepository.findByEmailIgnoreCase(auth.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    private User getUserForUpdate(Authentication auth) {
+        User user = getUser(auth);
+        return userRepository.findByIdWithLock(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     @SuppressWarnings("unchecked")
@@ -59,46 +64,32 @@ public class CartService {
         return cart;
     }
 
-    private Collection<CartItem> dbItemsAsCartItems(Authentication auth) {
-        User u = getUser(auth);
-        List<CartItem> result = new ArrayList<>();
-        for (SavedCartItem sci : savedCartRepo.findByUser(u)) {
-            // Fix #4: reload product mới nhất từ DB để hiển thị giá/tồn kho hiện tại
-            Product fresh = productRepository.findById(sci.getProduct().getId())
-                    .orElse(sci.getProduct());
-            result.add(new CartItem(fresh, sci.getQuantity()));
-        }
-        return result;
-    }
-
-    // ------------------------------------------------------------------ //
-    //  Public API — tất cả method nhận Authentication + HttpSession
-    // ------------------------------------------------------------------ //
-
     @Transactional
     public boolean add(Long productId, Authentication auth, HttpSession session) {
-        Product p = productRepository.findById(productId).orElseThrow();
-        if (!p.isActive() || p.getStock() <= 0) return false;
-
         if (isLoggedIn(auth)) {
-            User u = getUser(auth);
-            Optional<SavedCartItem> existing = savedCartRepo.findByUserAndProductId(u, productId);
+            User user = getUserForUpdate(auth);
+            Product product = productRepository.findByIdWithLock(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            if (!product.isActive() || product.getStock() <= 0) return false;
+            Optional<SavedCartItem> existing = savedCartRepo
+                    .findByUserAndProductIdWithLock(user, productId);
             if (existing.isPresent()) {
-                SavedCartItem sci = existing.get();
-                if (sci.getQuantity() >= p.getStock()) return false;
-                sci.setQuantity(sci.getQuantity() + 1);
-                savedCartRepo.save(sci);
+                SavedCartItem item = existing.get();
+                if (item.getQuantity() >= product.getStock()) return false;
+                item.setQuantity(item.getQuantity() + 1);
             } else {
-                savedCartRepo.save(new SavedCartItem(u, p, 1));
+                savedCartRepo.saveAndFlush(new SavedCartItem(user, product, 1));
             }
         } else {
-            Map<Long, CartItem> guestItems = getGuestCart(session);
-            CartItem item = guestItems.get(productId);
-            if (item == null) {
-                guestItems.put(productId, new CartItem(p, 1));
-            } else {
-                if (item.getQuantity() >= p.getStock()) return false;
-                item.setQuantity(item.getQuantity() + 1);
+            Product product = productRepository.findByIdWithLock(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            if (!product.isActive() || product.getStock() <= 0) return false;
+            synchronized (session) {
+                Map<Long, CartItem> guest = getGuestCart(session);
+                CartItem current = guest.get(productId);
+                int currentQuantity = current == null ? 0 : current.getQuantity();
+                if (currentQuantity >= product.getStock()) return false;
+                guest.put(productId, new CartItem(product, currentQuantity + 1));
             }
         }
         return true;
@@ -106,34 +97,28 @@ public class CartService {
 
     @Transactional
     public void update(Long productId, int quantity, Authentication auth, HttpSession session) {
+        if (quantity <= 0) {
+            remove(productId, auth, session);
+            return;
+        }
+
         if (isLoggedIn(auth)) {
-            User u = getUser(auth);
-            savedCartRepo.findByUserAndProductId(u, productId).ifPresent(sci -> {
-                if (quantity <= 0) {
-                    savedCartRepo.delete(sci);
-                } else {
-                    Product p = productRepository.findById(productId).orElseThrow();
-                    int capped = Math.min(quantity, p.getStock());
-                    if (!p.isActive() || capped <= 0) {
-                        savedCartRepo.delete(sci);
-                    } else {
-                        sci.setQuantity(capped);
-                        savedCartRepo.save(sci);
-                    }
-                }
+            User user = getUserForUpdate(auth);
+            Product product = productRepository.findByIdWithLock(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            int capped = Math.min(quantity, Math.max(product.getStock(), 0));
+            savedCartRepo.findByUserAndProductIdWithLock(user, productId).ifPresent(item -> {
+                if (!product.isActive() || capped <= 0) savedCartRepo.delete(item);
+                else item.setQuantity(capped);
             });
         } else {
-            Map<Long, CartItem> guestItems = getGuestCart(session);
-            if (quantity <= 0) {
-                guestItems.remove(productId);
-            } else if (guestItems.containsKey(productId)) {
-                Product p = productRepository.findById(productId).orElseThrow();
-                int capped = Math.min(quantity, p.getStock());
-                if (!p.isActive() || capped <= 0) {
-                    guestItems.remove(productId);
-                } else {
-                    guestItems.get(productId).setQuantity(capped);
-                }
+            Product product = productRepository.findByIdWithLock(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            int capped = Math.min(quantity, Math.max(product.getStock(), 0));
+            synchronized (session) {
+                Map<Long, CartItem> guest = getGuestCart(session);
+                if (!product.isActive() || capped <= 0) guest.remove(productId);
+                else if (guest.containsKey(productId)) guest.put(productId, new CartItem(product, capped));
             }
         }
     }
@@ -141,76 +126,134 @@ public class CartService {
     @Transactional
     public void remove(Long productId, Authentication auth, HttpSession session) {
         if (isLoggedIn(auth)) {
-            User u = getUser(auth);
-            savedCartRepo.findByUserAndProductId(u, productId).ifPresent(savedCartRepo::delete);
+            User user = getUserForUpdate(auth);
+            savedCartRepo.findByUserAndProductIdWithLock(user, productId).ifPresent(savedCartRepo::delete);
         } else {
-            getGuestCart(session).remove(productId);
+            synchronized (session) {
+                getGuestCart(session).remove(productId);
+            }
         }
     }
 
     @Transactional
     public void clear(Authentication auth, HttpSession session) {
         if (isLoggedIn(auth)) {
-            savedCartRepo.deleteByUser(getUser(auth));
+            savedCartRepo.deleteByUser(getUserForUpdate(auth));
         } else {
-            getGuestCart(session).clear();
+            synchronized (session) {
+                getGuestCart(session).clear();
+            }
         }
     }
 
-    public Collection<CartItem> getItems(Authentication auth, HttpSession session) {
-        if (isLoggedIn(auth)) return dbItemsAsCartItems(auth);
-        return getGuestCart(session).values();
+    @Transactional
+    public List<CartItem> getItems(Authentication auth, HttpSession session) {
+        return isLoggedIn(auth) ? synchronizeDatabaseCart(getUser(auth)) : synchronizeGuestCart(session);
     }
 
+    private List<CartItem> synchronizeDatabaseCart(User user) {
+        List<CartItem> result = new ArrayList<>();
+        List<SavedCartItem> rows = savedCartRepo.findByUserOrderByIdAsc(user);
+        for (SavedCartItem row : rows) {
+            Product product = productRepository.findById(row.getProduct().getId()).orElse(null);
+            if (product == null || !product.isActive() || product.getStock() <= 0) {
+                savedCartRepo.delete(row);
+                continue;
+            }
+            int quantity = Math.min(row.getQuantity(), product.getStock());
+            if (quantity <= 0) {
+                savedCartRepo.delete(row);
+                continue;
+            }
+            if (row.getQuantity() != quantity) row.setQuantity(quantity);
+            result.add(new CartItem(product, quantity));
+        }
+        return result;
+    }
+
+    private List<CartItem> synchronizeGuestCart(HttpSession session) {
+        synchronized (session) {
+            Map<Long, CartItem> guest = getGuestCart(session);
+            List<CartItem> result = new ArrayList<>();
+            Iterator<Map.Entry<Long, CartItem>> iterator = guest.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<Long, CartItem> entry = iterator.next();
+                Product product = productRepository.findById(entry.getKey()).orElse(null);
+                if (product == null || !product.isActive() || product.getStock() <= 0) {
+                    iterator.remove();
+                    continue;
+                }
+                int quantity = Math.min(entry.getValue().getQuantity(), product.getStock());
+                if (quantity <= 0) {
+                    iterator.remove();
+                    continue;
+                }
+                CartItem refreshed = new CartItem(product, quantity);
+                entry.setValue(refreshed);
+                result.add(refreshed);
+            }
+            return result;
+        }
+    }
+
+    @Transactional
     public int count(Authentication auth, HttpSession session) {
         return getItems(auth, session).stream().mapToInt(CartItem::getQuantity).sum();
     }
 
+    @Transactional
     public BigDecimal total(Authentication auth, HttpSession session) {
         return getItems(auth, session).stream()
-                .map(i -> i.getProduct().getPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
+                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    @Transactional
     public boolean isEmpty(Authentication auth, HttpSession session) {
-        return getItems(auth, session).stream().noneMatch(item -> item.getQuantity() > 0);
+        return getItems(auth, session).isEmpty();
     }
 
-    /**
-     * Merge guest cart → DB cart sau khi login. Gọi từ CartMergeLoginHandler.
-     * Fix #6: trả về danh sách tên sản phẩm bị bỏ qua (inactive/hết hàng) để controller thông báo.
-     */
     @Transactional
     public List<String> mergeGuestCart(Authentication auth, HttpSession session) {
-        Map<Long, CartItem> guestItems = getGuestCart(session);
+        List<CartItem> guestItems;
+        synchronized (session) {
+            Map<Long, CartItem> guest = getGuestCart(session);
+            if (guest.isEmpty()) return new ArrayList<>();
+            guestItems = new ArrayList<>(guest.values());
+        }
         List<String> skipped = new ArrayList<>();
-        if (guestItems.isEmpty()) return skipped;
 
-        User u = getUser(auth);
-        for (CartItem ci : guestItems.values()) {
-            // Reload product mới nhất từ DB
-            Product p = productRepository.findById(ci.getProduct().getId()).orElse(null);
-            if (p == null || !p.isActive()) {
-                skipped.add(ci.getProduct().getName());
+        User user = getUserForUpdate(auth);
+        for (CartItem guestItem : guestItems) {
+            Product product = productRepository.findByIdWithLock(guestItem.getProduct().getId()).orElse(null);
+            if (product == null || !product.isActive() || product.getStock() <= 0) {
+                skipped.add(guestItem.getProduct().getName());
                 continue;
             }
-            if (p.getStock() <= 0) {
-                skipped.add(p.getName() + " (hết hàng)");
-                continue;
-            }
-
-            Optional<SavedCartItem> existing = savedCartRepo.findByUserAndProductId(u, p.getId());
-            if (existing.isPresent()) {
-                SavedCartItem sci = existing.get();
-                int merged = Math.min(sci.getQuantity() + ci.getQuantity(), p.getStock());
-                sci.setQuantity(merged);
-                savedCartRepo.save(sci);
-            } else {
-                int qty = Math.min(ci.getQuantity(), p.getStock());
-                if (qty > 0) savedCartRepo.save(new SavedCartItem(u, p, qty));
+            Optional<SavedCartItem> existing = savedCartRepo
+                    .findByUserAndProductIdWithLock(user, product.getId());
+            int mergedQuantity = Math.min(
+                    (existing.map(SavedCartItem::getQuantity).orElse(0)) + guestItem.getQuantity(),
+                    product.getStock());
+            if (existing.isPresent()) existing.get().setQuantity(mergedQuantity);
+            else if (mergedQuantity > 0) savedCartRepo.save(new SavedCartItem(user, product, mergedQuantity));
+        }
+        synchronized (session) {
+            Map<Long, CartItem> currentGuest = getGuestCart(session);
+            for (CartItem merged : guestItems) {
+                Long productId = merged.getProduct().getId();
+                CartItem current = currentGuest.get(productId);
+                if (current == null) continue;
+                int remaining = current.getQuantity() - merged.getQuantity();
+                if (remaining <= 0) currentGuest.remove(productId);
+                else currentGuest.put(productId, new CartItem(current.getProduct(), remaining));
             }
         }
-        guestItems.clear();
         return skipped;
+    }
+
+    @Transactional(readOnly = true)
+    public Collection<SavedCartItem> getLockedItemsForCheckout(User user) {
+        return savedCartRepo.findByUserWithLock(user);
     }
 }

@@ -2,31 +2,25 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Đơn hàng - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=2}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
 <section class="section">
-    <h1>Lịch sử đơn hàng</h1>
-    <p class="error" th:if="${error}" th:text="${error}" style="color:#c0392b;background:#fde;padding:10px;border-radius:6px;"></p>
-    <p th:if="${#lists.isEmpty(orders)}">Bạn chưa có đơn hàng nào.</p>
-    <table th:if="${!#lists.isEmpty(orders)}">
-        <tr>
-            <th>Mã đơn</th>
-            <th>Ngày đặt</th>
-            <th>Hoàn thành lúc</th>
-            <th>Tổng tiền</th>
-            <th>Trạng thái</th>
-        </tr>
-        <tr th:each="o:${orders}">
-            <td th:text="${o.id}"></td>
+    <div class="title-row"><div><p class="eyebrow">Tài khoản của bạn</p><h1>Lịch sử đơn hàng</h1></div><a class="btn secondary small" th:href="@{/products}">Mua thêm sản phẩm</a></div>
+    <div class="empty-state" th:if="${#lists.isEmpty(orders)}"><div class="empty-icon">📦</div><h3>Bạn chưa có đơn hàng nào</h3><p>Đơn hàng mới sẽ xuất hiện tại đây sau khi bạn thanh toán.</p><a class="btn" th:href="@{/products}">Bắt đầu mua sắm</a></div>
+    <div class="table-wrap" th:if="${!#lists.isEmpty(orders)}"><table>
+        <thead><tr><th>Mã đơn</th><th>Ngày đặt</th><th>Hoàn thành lúc</th><th>Tổng tiền</th><th>Trạng thái</th></tr></thead>
+        <tbody><tr th:each="o : ${orders}">
+            <td><b th:text="${'#' + o.id}"></b></td>
             <td th:text="${#temporals.format(o.createdAt,'dd/MM/yyyy HH:mm')}"></td>
             <td th:text="${o.completedAt != null ? #temporals.format(o.completedAt,'dd/MM/yyyy HH:mm') : '-'}"></td>
-            <td th:text="${#numbers.formatDecimal(o.total,0,'COMMA',0,'POINT')} + 'đ'"></td>
-            <td th:text="${o.status.displayName}"></td>
-        </tr>
-    </table>
+            <td><b th:text="${#numbers.formatDecimal(o.total,0,'COMMA',0,'POINT')} + 'đ'"></b></td>
+            <td><span class="status-pill" th:classappend="${o.status.name().toLowerCase()}" th:text="${o.status.displayName}"></span></td>
+        </tr></tbody>
+    </table></div>
 </section>
 <div th:replace="~{fragments :: footer}"></div>
 </body>

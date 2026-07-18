@@ -15,10 +15,10 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByUserOrderByCreatedAtDesc(User user);
-
     List<Order> findAllByOrderByCreatedAtDesc();
-
     Page<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    boolean existsByCheckoutToken(String checkoutToken);
+    Optional<Order> findByCheckoutToken(String checkoutToken);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM Order o WHERE o.id = :id")

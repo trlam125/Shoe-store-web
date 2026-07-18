@@ -3,17 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Không tìm thấy trang - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <title>Không tìm thấy - LSHOE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=2}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
-<main class="section" style="text-align:center;min-height:50vh;padding-top:80px;">
-    <p style="font-size:14px;font-weight:700;letter-spacing:0.18em;">LỖI 404</p>
-    <h1>Không tìm thấy sản phẩm</h1>
-    <p>Sản phẩm bạn đang tìm không tồn tại hoặc đã được gỡ khỏi hệ thống.</p>
-    <a class="btn" th:href="@{/products}">Quay lại danh sách sản phẩm</a>
-</main>
+<main class="not-found"><div class="not-found-code">404</div><p class="eyebrow">Nội dung không tồn tại</p><h1>Không tìm thấy trang bạn yêu cầu</h1><p th:text="${errorMessage != null ? errorMessage : 'Đường dẫn có thể đã thay đổi, bị xóa hoặc không còn khả dụng.'}"></p><div><a class="btn" th:href="@{/}">Về trang chủ</a><a class="btn secondary" th:href="@{/products}">Xem sản phẩm</a></div></main>
 <div th:replace="~{fragments :: footer}"></div>
 </body>
 </html>

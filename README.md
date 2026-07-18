@@ -1,328 +1,199 @@
 # LSHOE Store
 
-LSHOE Store is a shoe e-commerce application built with Spring Boot, Thymeleaf, PostgreSQL, and a separate Python AI service. It includes the standard shopping workflow, an NVIDIA-powered chatbot, customer segmentation, sales forecasting, and image-based product search.
+LSHOE là website bán giày xây dựng bằng Spring Boot, Thymeleaf và PostgreSQL. Dự án có giỏ hàng cho khách và tài khoản, đặt hàng COD, quản trị sản phẩm/đơn hàng, chatbot tư vấn và dịch vụ AI tìm giày bằng ảnh, phân nhóm khách hàng, dự báo tồn kho.
 
-## Features
+## Công nghệ
 
-- Product and category management
-- Shopping cart and order management
-- User authentication and authorization with Spring Security
-- Website chatbot powered by the NVIDIA API
-- Customer segmentation using RFM analysis and K-Means clustering
-- Product sales forecasting using machine learning
-- Similar-product image search using a pretrained ResNet18 model
-
-## Technology Stack
-
-### Web Application
-
-- Java 21
-- Spring Boot 3.5.3
-- Spring MVC, Spring Data JPA, and Spring Security
-- Thymeleaf
+- Java 21, Spring Boot 3.5, Spring Security, Spring Data JPA
+- Thymeleaf, HTML/CSS/JavaScript thuần
 - PostgreSQL 16
-- Maven
+- Python 3.11 cho dịch vụ AI FastAPI
+- ResNet18, K-Means và Random Forest
 
-### AI Service
+## Các bản vá logic và bảo mật
 
-- Python 3.11
-- FastAPI and Uvicorn
-- pandas, scikit-learn, and psycopg
-- PyTorch and torchvision
-- ResNet18 pretrained on ImageNet
+- Bỏ tài khoản admin viết cứng. Admin đầu tiên chỉ được tạo từ biến môi trường khi bảng người dùng đang trống.
+- Tự vô hiệu mật khẩu cũ `admin123` nếu database còn tài khoản mặc định từ phiên bản trước.
+- Checkout dùng mã dùng một lần, khóa người dùng, giỏ và sản phẩm trong transaction để ngăn tạo đơn trùng và bán vượt kho.
+- Admin sửa sản phẩm bằng DTO và optimistic locking, tránh ghi đè tồn kho cũ khi khách vừa đặt hàng.
+- Giỏ hàng luôn tải lại giá, trạng thái và tồn kho hiện tại; sản phẩm ngừng bán hoặc hết hàng được loại khỏi giỏ.
+- Các thao tác thêm/cập nhật giỏ được khóa theo người dùng để giảm lỗi request đồng thời.
+- Token đặt lại mật khẩu được khóa và dùng một lần; đổi mật khẩu thu hồi toàn bộ phiên cũ.
+- Phiên cũ từ phiên bản trước cũng bị buộc đăng nhập lại.
+- Link đặt lại mật khẩu không được ghi log trong production và không dùng Host header để tạo link khi chưa cấu hình URL công khai.
+- Bổ sung validation độ dài, định dạng email/số điện thoại, tồn kho, giá và dữ liệu checkout.
+- ID không tồn tại trả trang 404 thay vì lỗi 500.
+- Chatbot và tìm kiếm ảnh có giới hạn request; upload ảnh giới hạn loại file và dung lượng.
+- FastAPI mặc định chỉ bind `127.0.0.1`; các API nội bộ yêu cầu secret hoặc chỉ chấp nhận loopback.
+- Chống SSRF khi dịch vụ AI tải ảnh sản phẩm từ URL.
+- Dự báo tồn kho bao gồm cả sản phẩm chưa từng bán; cache ảnh được vô hiệu theo phiên bản sản phẩm.
+- Tự bổ sung `completed_at` cho đơn hoàn thành cũ.
+- Cấu hình PostgreSQL mặc định thống nhất giữa Java, AI và Docker.
+- Khóa NVIDIA thật đã được loại khỏi mã nguồn. Hãy thu hồi khóa cũ nếu ZIP trước từng được chia sẻ.
 
-## Project Structure
+Chi tiết nằm trong [FIXES.md](FIXES.md).
 
-```text
-Lshoe-store/
-|-- ai-service/                   Python ML/DL service
-|   |-- app/main.py               FastAPI endpoints and AI logic
-|   |-- requirements.txt          Python dependencies
-|   |-- run.py                    Uvicorn entry point
-|   |-- run.bat                   Windows setup and launcher
-|   `-- run.sh                    Linux/macOS setup and launcher
-|-- Chatbot/                      Local chatbot environment file
-|-- src/main/java/                Spring Boot source code
-|-- src/main/resources/           Templates, static files, and configuration
-|-- docker-compose.yml            PostgreSQL development container
-`-- pom.xml                       Maven configuration
-```
+## Cài đặt nhanh
 
-## Prerequisites
+### 1. Yêu cầu
 
-Install the following tools before running the project:
+- JDK 21
+- Maven 3.9 trở lên hoặc IntelliJ IDEA có Maven tích hợp
+- PostgreSQL 16, hoặc Docker Desktop
+- Python 3.11 nếu dùng tính năng AI
 
-- Java 21
-- Maven 3.9 or the Maven integration included with IntelliJ IDEA
-- PostgreSQL 16, or Docker Desktop
-- Python 3.11 for `ai-service`
-- An NVIDIA API key for the chatbot
-- Internet access the first time image search runs, so torchvision can download the pretrained ResNet18 weights
+### 2. Tạo database
 
-## 1. Start PostgreSQL
+Dùng Docker:
 
-### Option A: Docker Compose
-
-From the project root, run:
-
-```bash
+```powershell
 docker compose up -d postgres
 ```
 
-The Docker database uses these credentials:
-
-```text
-Host: localhost
-Port: 5432
-Database: lshoe_store
-Username: postgres
-Password: postgres
-```
-
-### Option B: Local PostgreSQL
-
-Create the database manually:
+Hoặc tạo thủ công:
 
 ```sql
-CREATE DATABASE lshoe_store WITH ENCODING 'UTF8';
+CREATE DATABASE lshoe_store;
 ```
 
-Use your own PostgreSQL username and password in the configuration steps below.
+### 3. Cấu hình ứng dụng
 
-## 2. Configure Spring Boot and the Chatbot
+Sao chép file mẫu:
 
-Create `Chatbot/.env` in the project root. For the Docker Compose database, use:
+```powershell
+Copy-Item .env.example .env
+```
+
+Tối thiểu cần chỉnh:
 
 ```env
 DATABASE_URL=jdbc:postgresql://localhost:5432/lshoe_store
 DB_USERNAME=postgres
 DB_PASSWORD=postgres
 
-NVIDIA_API_KEY=nvapi-your-key-here
+APP_ENV=production
+APP_PUBLIC_BASE_URL=http://localhost:8081
+BOOTSTRAP_ADMIN_EMAIL=admin@example.com
+BOOTSTRAP_ADMIN_PASSWORD=mat-khau-manh-cua-ban
+SEED_DEMO_DATA=false
 ```
 
-Optional chatbot settings:
+`BOOTSTRAP_ADMIN_EMAIL` và `BOOTSTRAP_ADMIN_PASSWORD` chỉ tạo admin khi bảng `users` đang hoàn toàn trống. Không có tài khoản mặc định trong mã nguồn.
 
-```env
-CHATBOT_API_URL=https://integrate.api.nvidia.com/v1/chat/completions
-CHATBOT_MODEL=openai/gpt-oss-120b
-CHATBOT_TIMEOUT_MS=30000
-```
+Đặt `SEED_DEMO_DATA=true` nếu muốn thêm dữ liệu sản phẩm mẫu. Các danh mục nền vẫn được tạo khi database chưa có danh mục để trang thêm sản phẩm có thể sử dụng.
 
-Optional password-reset email settings (Gmail example):
+### 4. Chạy Spring Boot
 
-```env
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-google-app-password
-MAIL_SMTP_AUTH=true
-MAIL_STARTTLS=true
-PASSWORD_RESET_EXPIRY_MINUTES=30
-PASSWORD_RESET_LOG_LINK=true
-```
-
-Use a Google App Password instead of the normal Gmail password. When SMTP is not configured,
-the reset link is written to the Spring Boot console for local IntelliJ development. Set
-`PASSWORD_RESET_LOG_LINK=false` in production so reset tokens are never written to logs.
-
-Important notes:
-
-- Spring Boot database URLs must start with `jdbc:postgresql://`.
-- If `DB_PASSWORD` is not provided, Spring Boot currently defaults to `120505`.
-- The chatbot page can load without an API key, but chatbot requests will fail until `NVIDIA_API_KEY` is configured.
-- Do not commit `Chatbot/.env` or expose the API key in frontend code.
-
-The default seeded administrator is `lam@gmail.com` with password `admin123`. Change this
-development password before deploying the application.
-
-## 3. Configure the AI Service
-
-Copy `ai-service/.env.example` to `ai-service/.env`, then update its database URL. For the Docker Compose database, use:
-
-```env
-AI_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lshoe_store
-AI_PORT=8001
-AI_HOST=0.0.0.0
-AI_RELOAD=true
-AI_ALLOWED_ORIGINS=http://localhost:8081,http://127.0.0.1:8081
-AI_MAX_UPLOAD_BYTES=10485760
-```
-
-The AI service URL does not use the JDBC prefix. Spring Boot and `ai-service` must connect to the same PostgreSQL database.
-
-## 4. Run the Project
-
-Spring Boot and `ai-service` are separate processes. Both must be running for all AI features to work.
-
-## 5. Expose the IntelliJ Website with Cloudflare Tunnel
-
-Keep Spring Boot running at `http://localhost:8081`, then run:
-
-```bat
-run-cloudflare.bat
-```
-
-Without configuration, the script starts a temporary Quick Tunnel and prints a random public
-`https://...trycloudflare.com` URL. The URL changes every time the tunnel restarts.
-
-To run it from IntelliJ IDEA:
-
-1. Open **Run > Edit Configurations**.
-2. Add a **Shell Script** configuration named `Cloudflare Tunnel`.
-3. Select **Script file** and choose `run-cloudflare.bat`.
-4. Set the working directory to the project root.
-5. Run `LshoeStoreApplication` first, then run `Cloudflare Tunnel`.
-
-To start both with one Run button, add a **Compound** configuration named
-`LSHOE + Cloudflare`, then include the `LshoeStoreApplication` and `Cloudflare Tunnel`
-configurations. Stop the Compound configuration to close both processes.
-
-For a persistent hostname, create a remotely managed tunnel in the Cloudflare dashboard and add
-its token to the `Cloudflare Tunnel` run configuration as an environment variable:
-
-```text
-TUNNEL_TOKEN=your-cloudflare-tunnel-token
-```
-
-Never commit the tunnel token or the downloaded `cloudflared` executable.
-
-### Start the AI Service on Windows
-
-```bat
-cd ai-service
-run.bat
-```
-
-The script creates `.venv` when needed, installs the Python dependencies, and starts FastAPI on port `8001`.
-
-### Start the AI Service on Linux or macOS
-
-```bash
-cd ai-service
-chmod +x run.sh
-./run.sh
-```
-
-### Start the AI Service Manually
-
-```bash
-cd ai-service
-python -m venv .venv
-```
-
-Activate the virtual environment on Windows:
-
-```bat
-.venv\Scripts\activate
-```
-
-Activate it on Linux or macOS:
-
-```bash
-source .venv/bin/activate
-```
-
-Then install dependencies and start the service:
-
-```bash
-pip install -r requirements.txt
-python run.py
-```
-
-### Start Spring Boot from the Terminal
-
-From the project root, run:
-
-```bash
+```powershell
 mvn spring-boot:run
 ```
 
-The web application is available at:
+Hoặc mở project bằng IntelliJ và chạy `LshoeStoreApplication`.
+
+Truy cập:
 
 ```text
 http://localhost:8081
 ```
 
-## Running with IntelliJ IDEA
+## Cấu hình email quên mật khẩu
 
-1. Open the project root in IntelliJ IDEA.
-2. Select Java 21 as the Project SDK.
-3. Allow IntelliJ to import the Maven dependencies from `pom.xml`.
-4. Start PostgreSQL.
-5. Run `ai-service/run.bat` in a separate terminal.
-6. Run the `LshoeStoreApplication` class from IntelliJ.
-7. Open `http://localhost:8081` in a browser.
+Ví dụ Gmail:
 
-The Spring Boot application can run without `ai-service`, but customer segmentation, sales forecasting, and image search will be unavailable. The chatbot only requires Spring Boot, internet access, and a valid NVIDIA API key.
+```env
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=email-cua-ban@gmail.com
+MAIL_PASSWORD=mat-khau-ung-dung-16-ky-tu
+MAIL_SMTP_AUTH=true
+MAIL_STARTTLS=true
+APP_PUBLIC_BASE_URL=https://ten-mien-cua-ban.example
+```
 
-## Application URLs
+Không dùng mật khẩu Gmail chính. Hãy tạo App Password. Khi chạy qua Cloudflare Quick Tunnel, cập nhật `APP_PUBLIC_BASE_URL` theo URL đang sử dụng trước khi gửi link đặt lại mật khẩu.
 
-| Component | URL |
-| --- | --- |
-| Store website | `http://localhost:8081` |
-| Admin dashboard | `http://localhost:8081/admin` |
-| Image search | `http://localhost:8081/ai/image-search` |
-| AI service health check | `http://localhost:8001/health` |
-| AI service Swagger UI | `http://localhost:8001/docs` |
+Nếu SMTP hoặc URL công khai chưa được cấu hình ở production, hệ thống vẫn trả thông báo chung nhưng không tạo/ghi lộ link reset.
 
-## AI Service API
+## Dịch vụ AI
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/health` | Checks the AI service and database connection |
-| `GET` | `/ml/customer-segments` | Returns RFM customer segments generated with K-Means |
-| `GET` | `/ml/sales-forecast?days=7` | Forecasts product sales for the requested number of days |
-| `POST` | `/dl/image-search?limit=6` | Finds products with images similar to an uploaded image |
+### 1. Cấu hình
 
-The browser sends image-search requests through Spring Boot at `/ai/image-search/analyze`; Spring Boot then proxies them to the Python service.
+```powershell
+Copy-Item ai-service\.env.example ai-service\.env
+```
 
-## AI and Data Notes
+Giá trị `AI_INTERNAL_API_KEY` trong `ai-service/.env` phải giống giá trị trong `.env` của Spring Boot.
 
-- Customer segmentation uses completed orders and works best when the database contains enough customers and purchase history.
-- Sales forecasting uses completed-order history and fills missing dates with zero sales before training.
-- When there is not enough sales history, the service returns a fallback estimate instead of failing.
-- Image search uses a pretrained ResNet18 neural network to extract image embeddings and compare visual similarity.
-- The first image-search request may take longer while the pretrained model weights are downloaded and loaded.
-- Uploaded images must be JPEG, PNG, or WebP and no larger than 10 MB.
+### 2. Chạy thủ công
 
-## Troubleshooting
+```powershell
+cd ai-service
+.\run.bat
+```
 
-### Spring Boot cannot connect to PostgreSQL
+Dịch vụ chạy tại `http://127.0.0.1:8001`. Spring Boot cũng có thể tự khởi động dịch vụ nếu:
 
-- Confirm PostgreSQL is running on port `5432`.
-- Check `DATABASE_URL`, `DB_USERNAME`, and `DB_PASSWORD` in `Chatbot/.env`.
-- If Docker Compose is used, set the password to `postgres` unless `docker-compose.yml` was changed.
+```env
+AI_SERVICE_AUTOSTART=true
+```
 
-### The chatbot does not respond
+Lần đầu chạy ResNet18 có thể cần tải trọng số mô hình và mất nhiều thời gian.
 
-- Confirm `NVIDIA_API_KEY` exists in `Chatbot/.env`.
-- Restart Spring Boot after changing the environment file.
-- Confirm the machine can access `https://integrate.api.nvidia.com`.
-- Check the Spring Boot console for an API authentication or timeout error.
+## Chatbot NVIDIA
 
-### AI features are unavailable
+Thêm vào `.env`:
 
-- Confirm `ai-service` is running at `http://localhost:8001`.
-- Open `http://localhost:8001/health` and verify the database status.
-- Confirm `AI_DATABASE_URL` points to the same database used by Spring Boot.
-- Review the `ai-service` terminal for Python dependency or database errors.
+```env
+NVIDIA_API_KEY=khóa-của-bạn
+CHATBOT_MODEL=openai/gpt-oss-120b
+```
 
-### Image search fails
+Thư mục `Chatbot` chỉ là bản thử nghiệm độc lập; website chính gọi NVIDIA trực tiếp từ Spring Boot. Không commit `.env` hoặc API key.
 
-- Use a JPEG, PNG, or WebP image smaller than 10 MB.
-- Allow extra time on the first request while ResNet18 is initialized.
-- Confirm internet access is available if the model weights have not been downloaded before.
+## Cloudflare Tunnel
 
-### Python is not found on Windows
+Chạy website trước, sau đó đặt `cloudflared.exe` cạnh `run-cloudflare.bat` và chạy:
 
-- Install Python 3.11 and enable the **Add Python to PATH** option.
-- Restart IntelliJ IDEA and its terminal after installing Python.
-- Run `py -3.11 --version` or `python --version` to confirm the installation.
+```powershell
+.\run-cloudflare.bat
+```
 
-## Security
+Script cũng nhận `cloudflared` từ `PATH`. Với Named Tunnel:
 
-- Keep `.env` files, database passwords, and API keys out of source control.
-- Use environment-specific secrets in production.
-- Do not expose the Python AI service directly to the public internet; route browser requests through Spring Boot.
-- Replace development passwords before deploying the application.
+```powershell
+$env:TUNNEL_TOKEN="token-cua-ban"
+.\run-cloudflare.bat
+```
+
+## Cấu trúc chính
+
+```text
+src/main/java/com/example/lshoestore/
+├── config/       # Security, seed, migration và AI autostart
+├── controller/   # Web/API controllers
+├── dto/          # Form DTO, chống overposting
+├── exception/    # Exception nghiệp vụ và 404
+├── model/        # JPA entities
+├── repository/   # Repository và truy vấn khóa
+├── security/     # Principal và kiểm tra phiên
+└── service/      # Giỏ hàng, đơn hàng, reset mật khẩu, AI
+
+src/main/resources/
+├── static/css/style.css
+├── templates/
+└── application.properties
+
+ai-service/
+├── app/main.py
+├── run.py
+├── run.bat
+└── .env.example
+```
+
+## Lưu ý triển khai
+
+- Không đưa `.env`, API key, App Password hoặc file log lên GitHub.
+- Sao lưu PostgreSQL trước khi chạy bản mới trên database đang sử dụng.
+- Hibernate sẽ tự bổ sung các cột/index mới bằng `ddl-auto=update`; production lâu dài nên chuyển sang Flyway hoặc Liquibase.
+- Rate limit hiện lưu trong bộ nhớ từng tiến trình. Khi chạy nhiều server, nên chuyển sang Redis.
+- Để tránh lỗi đồng thời giữa nhiều instance, nên bổ sung transaction isolation/project-level locking ở tầng database khi hệ thống mở rộng.

@@ -2,24 +2,48 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Sản phẩm - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=3}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
-<section class="section"><h1>Tất cả giày</h1>
-    <div class="chips"><a th:href="@{/products}">Tất cả</a><a th:each="c:${categories}"
-                                                              th:href="@{/products(category=${c.id})}"
-                                                              th:text="${c.name}"></a></div>
+<section class="section">
+    <div class="catalog-heading"><p class="eyebrow">Bộ sưu tập LSHOE</p><h1>Tìm đôi giày dành cho bạn</h1><p>Chọn theo thương hiệu, phong cách hoặc tìm nhanh bằng tên sản phẩm.</p></div>
+    <div class="chips">
+        <a th:href="@{/products}" th:classappend="${selectedCategory == null and (q == null or q.isBlank())} ? 'active' : ''">Tất cả</a>
+        <a th:each="c : ${categories}" th:href="@{/products(category=${c.id})}" th:text="${c.name}" th:classappend="${selectedCategory != null and selectedCategory.equals(c.id)} ? 'active' : ''"></a>
+    </div>
+    <p class="search-result" th:if="${q != null and !q.isBlank()}" th:text="${'Kết quả tìm kiếm cho: “' + q + '”'}">Kết quả</p>
     <div class="grid">
-        <a class="card" th:each="p:${products}" th:href="@{/products/{id}(id=${p.id})}"><img th:src="${p.imageUrl}" alt="Giày">
-            <div class="card-body"><p class="brand" th:text="${p.brand}"></p>
+        <a class="card" th:each="p : ${products}" th:href="@{/products/{id}(id=${p.id})}">
+            <div class="card-image-wrap"><img th:src="${p.imageUrl}" th:alt="${p.name}" loading="lazy"></div>
+            <div class="card-body">
+                <p class="brand" th:text="${p.brand}"></p>
                 <h3 th:text="${p.name}"></h3>
-                <p class="desc" th:text="${p.description}"></p><span class="price"
-                                                                     th:text="${#numbers.formatDecimal(p.price,0,'COMMA',0,'POINT')} + 'đ'"></span>
+                <p class="desc" th:text="${p.description}"></p>
+                <div class="price-row"><span class="price" th:text="${#numbers.formatDecimal(p.price,0,'COMMA',0,'POINT')} + 'đ'"></span><span class="old" th:if="${p.oldPrice != null}" th:text="${#numbers.formatDecimal(p.oldPrice,0,'COMMA',0,'POINT')} + 'đ'"></span></div>
+                <span class="stock-pill" th:classappend="${p.stock <= 0} ? 'out' : ''" th:text="${p.stock > 0 ? 'Còn hàng' : 'Tạm hết hàng'}"></span>
             </div>
         </a>
     </div>
+
+    <nav class="pagination" th:if="${productPage.totalPages > 1}" aria-label="Phân trang sản phẩm">
+        <a class="page-link"
+           th:classappend="${productPage.first} ? 'disabled' : ''"
+           th:href="${productPage.first} ? '#' : @{/products(page=${productPage.number - 1}, q=${q}, category=${selectedCategory})}"
+           aria-label="Trang trước">←</a>
+        <a class="page-link"
+           th:each="pageNumber : ${#numbers.sequence(startPage, endPage)}"
+           th:classappend="${pageNumber == productPage.number} ? 'active' : ''"
+           th:href="@{/products(page=${pageNumber}, q=${q}, category=${selectedCategory})}"
+           th:text="${pageNumber + 1}">1</a>
+        <a class="page-link"
+           th:classappend="${productPage.last} ? 'disabled' : ''"
+           th:href="${productPage.last} ? '#' : @{/products(page=${productPage.number + 1}, q=${q}, category=${selectedCategory})}"
+           aria-label="Trang sau">→</a>
+    </nav>
+    <div class="empty-state" th:if="${#lists.isEmpty(products)}"><div class="empty-icon">🔎</div><h3>Không tìm thấy sản phẩm phù hợp</h3><p>Thử đổi từ khóa hoặc chọn một danh mục khác.</p><a class="btn secondary" th:href="@{/products}">Xem tất cả sản phẩm</a></div>
 </section>
 <div th:replace="~{fragments :: footer}"></div>
 </body>

@@ -1,131 +1,122 @@
 package com.example.lshoestore.service;
 
-import com.example.lshoestore.model.*;
-import com.example.lshoestore.repository.*;
-import jakarta.servlet.http.HttpSession;
-import org.springframework.security.core.Authentication;
+import com.example.lshoestore.dto.CheckoutForm;
+import com.example.lshoestore.exception.BusinessException;
+import com.example.lshoestore.exception.ResourceNotFoundException;
+import com.example.lshoestore.model.Order;
+import com.example.lshoestore.model.OrderItem;
+import com.example.lshoestore.model.OrderStatus;
+import com.example.lshoestore.model.Product;
+import com.example.lshoestore.model.SavedCartItem;
+import com.example.lshoestore.model.User;
+import com.example.lshoestore.repository.OrderRepository;
+import com.example.lshoestore.repository.ProductRepository;
+import com.example.lshoestore.repository.SavedCartItemRepository;
+import com.example.lshoestore.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Collection;
+import java.util.List;
 
 @Service
 public class OrderService {
-
+    private static final BigDecimal MAX_ORDER_TOTAL = new BigDecimal("9999999999999.99");
     private final OrderRepository orders;
     private final ProductRepository products;
-    private final CartService cartService;
+    private final SavedCartItemRepository savedCartItems;
+    private final UserRepository users;
 
-    public OrderService(OrderRepository orders, ProductRepository products, CartService cartService) {
+    public OrderService(OrderRepository orders,
+                        ProductRepository products,
+                        SavedCartItemRepository savedCartItems,
+                        UserRepository users) {
         this.orders = orders;
         this.products = products;
-        this.cartService = cartService;
+        this.savedCartItems = savedCartItems;
+        this.users = users;
     }
 
-    /**
-     * Tạo đơn hàng trong một transaction với pessimistic lock.
-     * Cart được clear trong cùng transaction để đảm bảo tính nhất quán.
-     * Ném IllegalStateException nếu giỏ hàng rỗng, sản phẩm inactive hoặc thiếu stock.
-     */
     @Transactional
-    public Order placeOrder(User user,
-                            String receiverName, String phone, String address,
-                            Collection<CartItem> cartItems,
-                            Authentication auth, HttpSession session) {
+    public Order placeOrder(User user, CheckoutForm form) {
+        User lockedUser = users.findByIdWithLock(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản người dùng"));
 
-        // Fix #8: kiểm tra giỏ hàng rỗng trong transaction
-        if (cartItems == null || cartItems.isEmpty()) {
-            throw new IllegalStateException("Giỏ hàng của bạn đang trống.|empty");
+        if (orders.existsByCheckoutToken(form.getCheckoutToken())) {
+            throw new BusinessException("Đơn hàng này đã được tạo trước đó.", "duplicate_checkout");
         }
 
-        Order o = new Order();
-        o.setUser(user);
-        o.setReceiverName(receiverName);
-        o.setPhone(phone);
-        o.setAddress(address);
-
-        for (CartItem ci : cartItems) {
-            Product p = products.findByIdWithLock(ci.getProduct().getId())
-                    .orElseThrow(() -> new IllegalStateException(
-                            "Sản phẩm không tồn tại: " + ci.getProduct().getId()));
-
-            if (!p.isActive()) {
-                throw new IllegalStateException(
-                        "Sản phẩm \"" + p.getName() + "\" hiện không còn bán.|inactive");
-            }
-            if (ci.getQuantity() <= 0) {
-                throw new IllegalStateException(
-                        "Số lượng sản phẩm \"" + p.getName() + "\" không hợp lệ.|quantity");
-            }
-            if (p.getStock() < ci.getQuantity()) {
-                throw new IllegalStateException(
-                        "Sản phẩm \"" + p.getName() + "\" chỉ còn " + p.getStock() + " đôi trong kho.|stock");
-            }
-
-            p.setStock(p.getStock() - ci.getQuantity());
-
-            OrderItem it = new OrderItem();
-            it.setOrder(o);
-            it.setProduct(p);
-            it.setQuantity(ci.getQuantity());
-            it.setPrice(p.getPrice()); // lưu giá tại thời điểm mua
-            o.getItems().add(it);
+        List<SavedCartItem> cartRows = savedCartItems.findByUserWithLock(lockedUser);
+        if (cartRows.isEmpty()) {
+            throw new BusinessException("Giỏ hàng của bạn đang trống.", "empty_cart");
         }
 
-        // Tính total từ các item đã validated — không query lại
-        o.setTotal(o.getItems().stream()
-                .map(it -> it.getPrice().multiply(java.math.BigDecimal.valueOf(it.getQuantity())))
-                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add));
+        Order order = new Order();
+        order.setUser(lockedUser);
+        order.setReceiverName(form.getReceiverName().trim());
+        order.setPhone(form.getPhone().trim());
+        order.setAddress(form.getAddress().trim());
+        order.setCheckoutToken(form.getCheckoutToken());
 
-        Order saved = orders.save(o);
+        for (SavedCartItem row : cartRows) {
+            Product product = products.findByIdWithLock(row.getProduct().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            if (!product.isActive()) {
+                throw new BusinessException("Sản phẩm " + product.getName() + " hiện không còn bán.", "inactive");
+            }
+            if (row.getQuantity() <= 0) {
+                throw new BusinessException("Số lượng sản phẩm không hợp lệ.", "quantity");
+            }
+            if (product.getStock() < row.getQuantity()) {
+                throw new BusinessException(
+                        "Sản phẩm " + product.getName() + " chỉ còn " + product.getStock() + " đôi trong kho.",
+                        "stock");
+            }
 
-        // Fix #5: clear cart trong cùng transaction để tránh mất đồng bộ khi server crash
-        cartService.clear(auth, session);
+            product.setStock(product.getStock() - row.getQuantity());
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setProduct(product);
+            item.setQuantity(row.getQuantity());
+            item.setPrice(product.getPrice());
+            order.getItems().add(item);
+        }
 
+        BigDecimal total = order.getItems().stream()
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (total.compareTo(MAX_ORDER_TOTAL) > 0) {
+            throw new BusinessException("Tong gia tri don hang vuot gioi han cho phep.", "total_limit");
+        }
+        order.setTotal(total);
+
+        Order saved = orders.saveAndFlush(order);
+        savedCartItems.deleteAll(cartRows);
+        savedCartItems.flush();
         return saved;
     }
 
-    /**
-     * Cập nhật trạng thái đơn hàng với state machine và hoàn stock khi hủy.
-     */
     @Transactional
     public void updateStatus(Long orderId, OrderStatus newStatus) {
-        // Serialize status changes so two concurrent cancellations cannot restore stock twice.
-        Order o = orders.findByIdWithLock(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng id=" + orderId));
-
-        if (newStatus == null) {
-            throw new IllegalArgumentException("Trạng thái đơn hàng không hợp lệ.");
-        }
-        if (o.getStatus() == newStatus) {
-            return;
+        Order order = orders.findByIdWithLock(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn hàng"));
+        if (newStatus == null) throw new BusinessException("Trạng thái đơn hàng không hợp lệ.");
+        if (order.getStatus() == newStatus) return;
+        if (!order.getStatus().canTransitionTo(newStatus)) {
+            throw new BusinessException("Không thể chuyển trạng thái đơn hàng theo yêu cầu.", "invalid_status");
         }
 
-        // Fix #4: state machine — không cho phép chuyển từ trạng thái cuối
-        if (!o.getStatus().canTransitionTo(newStatus)) {
-            throw new IllegalStateException(
-                    "Không thể chuyển đơn hàng từ \"" + o.getStatus().getDisplayName()
-                    + "\" sang \"" + newStatus.getDisplayName() + "\".");
-        }
-
-        // Fix #3: hoàn stock khi hủy đơn
         if (newStatus == OrderStatus.DA_HUY) {
-            for (OrderItem item : o.getItems()) {
-                Product p = products.findByIdWithLock(item.getProduct().getId()).orElse(null);
-                if (p != null) {
-                    p.setStock(p.getStock() + item.getQuantity());
-                }
+            for (OrderItem item : order.getItems()) {
+                products.findByIdWithLock(item.getProduct().getId())
+                        .ifPresent(product -> product.setStock(product.getStock() + item.getQuantity()));
             }
         }
 
-        o.setStatus(newStatus);
-
-        // Fix #7: tự động set completedAt khi hoàn thành
-        if (newStatus == OrderStatus.HOAN_THANH && o.getCompletedAt() == null) {
-            o.setCompletedAt(LocalDateTime.now());
+        order.setStatus(newStatus);
+        if (newStatus == OrderStatus.HOAN_THANH && order.getCompletedAt() == null) {
+            order.setCompletedAt(LocalDateTime.now());
         }
-
-        orders.save(o);
     }
 }

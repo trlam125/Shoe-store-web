@@ -6,46 +6,64 @@ import com.example.lshoestore.model.User;
 import com.example.lshoestore.repository.CategoryRepository;
 import com.example.lshoestore.repository.ProductRepository;
 import com.example.lshoestore.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Configuration
 public class DataSeeder {
+    private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
+    private static final String[] DEMO_SHOE_IMAGES = {
+            "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=900&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=900&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1608231387042-66d1773070a5?q=80&w=900&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?q=80&w=900&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=900&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=900&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=900&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1605408499391-6368c628ef42?q=80&w=900&auto=format&fit=crop"
+    };
+
 
     @Bean
     CommandLineRunner seed(UserRepository users,
                            CategoryRepository categories,
                            ProductRepository products,
-                           PasswordEncoder encoder) {
+                           PasswordEncoder encoder,
+                           @Value("${app.bootstrap-admin.email:}") String adminEmail,
+                           @Value("${app.bootstrap-admin.password:}") String adminPassword,
+                           @Value("${app.seed-demo-data:false}") boolean seedDemoData) {
         return args -> {
-            users.findByEmailIgnoreCase("admin@lshoe.vn").ifPresent(legacyAdmin -> {
-                if (!users.existsByEmailIgnoreCase("lam@gmail.com")) {
-                    legacyAdmin.setEmail("lam@gmail.com");
-                    users.save(legacyAdmin);
-                }
-            });
+            users.findByEmailIgnoreCase("lam@gmail.com")
+                    .filter(user -> encoder.matches("admin123", user.getPassword()))
+                    .ifPresent(user -> {
+                        String replacementPassword = isUsableBootstrapPassword(adminPassword)
+                                ? adminPassword
+                                : UUID.randomUUID().toString();
+                        user.setPassword(encoder.encode(replacementPassword));
+                        user.revokeSessions();
+                        users.save(user);
+                        log.warn("Disabled the legacy default password for account {}. Configure BOOTSTRAP_ADMIN_PASSWORD or use password reset.", user.getEmail());
+                    });
 
-            if (!users.existsByEmailIgnoreCase("lam@gmail.com")) {
+            if (users.count() == 0 && adminEmail != null && !adminEmail.isBlank()
+                    && adminPassword != null && adminPassword.length() >= 8) {
                 User admin = new User();
-                admin.setFullName("Quản trị viên LSHOE");
-                admin.setEmail("lam@gmail.com");
-                admin.setPassword(encoder.encode("admin123"));
+                admin.setFullName("LSHOE Administrator");
+                admin.setEmail(adminEmail.trim().toLowerCase(java.util.Locale.ROOT));
+                admin.setPassword(encoder.encode(adminPassword));
                 admin.setRole("ROLE_ADMIN");
                 users.save(admin);
             }
-
-            users.findByEmailIgnoreCase("lam@gmail.com").ifPresent(admin -> {
-                if (!"ROLE_ADMIN".equals(admin.getRole())) {
-                    admin.setRole("ROLE_ADMIN");
-                    users.save(admin);
-                }
-            });
 
             String[][] categoryData = {
                     {"Giày Nike", "Sneaker Nike nam nữ, dễ phối đồ và phù hợp sử dụng hằng ngày"},
@@ -58,8 +76,14 @@ public class DataSeeder {
                     {"Giày Asics", "Giày chạy bộ và sneaker retro êm chân"}
             };
 
+            // Danh mục là dữ liệu nền bắt buộc vì giao diện hiện chưa có trang tạo danh mục.
+            // Sản phẩm minh họa vẫn chỉ được thêm khi SEED_DEMO_DATA=true.
             for (String[] item : categoryData) {
                 categories.findByName(item[0]).orElseGet(() -> categories.save(new Category(item[0], item[1])));
+            }
+
+            if (!seedDemoData) {
+                return;
             }
 
             if (products.count() == 0) {
@@ -131,6 +155,11 @@ public class DataSeeder {
         };
     }
 
+
+    private boolean isUsableBootstrapPassword(String value) {
+        return value != null && value.length() >= 8 && !value.startsWith("CHANGE_ME");
+    }
+
     private void add(ProductRepository repo,
                      Map<String, Category> categoryMap,
                      String name,
@@ -149,7 +178,7 @@ public class DataSeeder {
         product.setCategory(categoryMap.get(categoryName));
         product.setStock(stock);
         product.setSizeText("36, 37, 38, 39, 40, 41, 42, 43");
-        product.setImageUrl("https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=900&auto=format&fit=crop");
+        product.setImageUrl(DEMO_SHOE_IMAGES[Math.floorMod(name.hashCode(), DEMO_SHOE_IMAGES.length)]);
         repo.save(product);
     }
 }

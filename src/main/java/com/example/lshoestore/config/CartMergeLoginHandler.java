@@ -16,17 +16,11 @@ import org.springframework.web.servlet.FlashMapManager;
 import org.springframework.web.servlet.support.SessionFlashMapManager;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 
-/**
- * Sau khi đăng nhập thành công:
- * 1. Merge giỏ hàng guest vào DB cart của user.
- * 2. Fix #19: redirect về URL trước khi login (saved request) nếu có,
- *    ngược lại về trang chủ.
- */
 @Component
 public class CartMergeLoginHandler extends SimpleUrlAuthenticationSuccessHandler {
-
     private final CartService cartService;
     private final RequestCache requestCache = new HttpSessionRequestCache();
 
@@ -43,23 +37,33 @@ public class CartMergeLoginHandler extends SimpleUrlAuthenticationSuccessHandler
         if (session != null) {
             List<String> skipped = cartService.mergeGuestCart(authentication, session);
             if (!skipped.isEmpty()) {
-                String msg = "Một số sản phẩm không còn khả dụng đã bị xóa khỏi giỏ hàng: "
+                String message = "Một số sản phẩm không còn khả dụng đã bị xóa khỏi giỏ hàng: "
                         + String.join(", ", skipped);
                 FlashMap flashMap = new FlashMap();
-                flashMap.put("warning", msg);
+                flashMap.put("warning", message);
                 FlashMapManager flashMapManager = new SessionFlashMapManager();
                 flashMapManager.saveOutputFlashMap(flashMap, request, response);
             }
         }
 
-        // Fix #19: ưu tiên redirect về URL đã được lưu (vd: /checkout), nếu không thì về "/"
         SavedRequest savedRequest = requestCache.getRequest(request, response);
-        if (savedRequest != null) {
-            String targetUrl = savedRequest.getRedirectUrl();
-            requestCache.removeRequest(request, response);
-            getRedirectStrategy().sendRedirect(request, response, targetUrl);
-        } else {
+        if (savedRequest == null) {
             super.onAuthenticationSuccess(request, response, authentication);
+            return;
+        }
+
+        requestCache.removeRequest(request, response);
+        getRedirectStrategy().sendRedirect(request, response, safeRelativeTarget(savedRequest));
+    }
+
+    private String safeRelativeTarget(SavedRequest savedRequest) {
+        try {
+            URI uri = URI.create(savedRequest.getRedirectUrl());
+            String path = uri.getRawPath();
+            if (path == null || !path.startsWith("/") || path.startsWith("//")) return "/";
+            return uri.getRawQuery() == null ? path : path + "?" + uri.getRawQuery();
+        } catch (IllegalArgumentException exception) {
+            return "/";
         }
     }
 }

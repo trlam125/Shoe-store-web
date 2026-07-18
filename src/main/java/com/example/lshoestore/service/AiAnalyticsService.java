@@ -22,36 +22,32 @@ public class AiAnalyticsService {
             .connectTimeout(Duration.ofSeconds(2)).build();
     private final ObjectMapper objectMapper;
     private final String aiServiceUrl;
+    private final String apiKey;
 
     public AiAnalyticsService(ObjectMapper objectMapper,
-                              @Value("${ai.service.url:http://localhost:8001}") String aiServiceUrl) {
+                              @Value("${ai.service.url:http://127.0.0.1:8001}") String aiServiceUrl,
+                              @Value("${ai.service.api-key:}") String apiKey) {
         this.objectMapper = objectMapper;
-        this.aiServiceUrl = aiServiceUrl;
+        this.aiServiceUrl = aiServiceUrl.replaceAll("/+$", "");
+        this.apiKey = apiKey == null ? "" : apiKey.trim();
     }
 
-    public Map<String, Object> getCustomerSegments() {
-        return getJson("/ml/customer-segments");
-    }
-
-    public Map<String, Object> getSalesForecast() {
-        return getJson("/ml/sales-forecast?days=7");
-    }
+    public Map<String, Object> getCustomerSegments() { return getJson("/ml/customer-segments"); }
+    public Map<String, Object> getSalesForecast() { return getJson("/ml/sales-forecast?days=7"); }
 
     private Map<String, Object> getJson(String path) {
         try {
-            HttpRequest request = HttpRequest.newBuilder(URI.create(aiServiceUrl + path))
-                    .timeout(Duration.ofSeconds(8)).GET().build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                return Collections.emptyMap();
-            }
+            HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(aiServiceUrl + path))
+                    .timeout(Duration.ofSeconds(8)).GET();
+            if (!apiKey.isBlank()) builder.header("X-Internal-API-Key", apiKey);
+            HttpResponse<String> response = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) return Collections.emptyMap();
             return objectMapper.readValue(response.body(), new TypeReference<>() {});
-        } catch (InterruptedException e) {
+        } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            log.warn("AI service request was interrupted: {}", path);
             return Collections.emptyMap();
-        } catch (Exception e) {
-            log.warn("AI service request failed for {}: {}", path, e.getMessage());
+        } catch (Exception exception) {
+            log.warn("AI service request failed for {}: {}", path, exception.getMessage());
             return Collections.emptyMap();
         }
     }

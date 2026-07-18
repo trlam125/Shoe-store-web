@@ -1,13 +1,14 @@
 # Operating system files
 .DS_Store
 Thumbs.db
+Thumbs.db:encryptable
 Desktop.ini
 $RECYCLE.BIN/
 ehthumbs.db
 *.lnk
 *~
 
-# Editor and IDE files
+# IntelliJ IDEA and editors
 .idea/
 *.iml
 *.ipr
@@ -15,49 +16,60 @@ ehthumbs.db
 out/
 .vscode/
 *.code-workspace
+*.swp
+*.swo
 
-# Java and Maven build output
+# Java, Maven and JVM output
 target/
 build/
 dist/
 dependency-reduced-pom.xml
+*.class
 hs_err_pid*
 replay_pid*
+.attach_pid*
 
-# Logs and runtime output
+# Logs and runtime files
 *.log
 logs/
-spring-shell.log
 *.pid
+*.pid.lock
+spring-shell.log
 
-# Environment and local secrets
+# Environment files and secrets
 .env
-.env.local
-.env.*.local
+.env.*
 *.env
 !.env.example
 !**/.env.example
 application-local.properties
 application-prod.properties
+application-secrets.properties
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Cloudflare local files
 cloudflared*.exe
 .cloudflared/
 cloudflare-tunnel-token.txt
+cert.pem
 
 # Python virtual environments
-venv/
 .venv/
+venv/
 env/
 ENV/
-**/venv/
 **/.venv/
+**/venv/
 **/env/
 **/ENV/
 
-# Python cache and tooling
+# Python caches and tooling
 __pycache__/
-**/__pycache__/
 *.py[cod]
-*.pyo
 *.pyd
 .Python
 .python-version
@@ -72,13 +84,12 @@ __pycache__/
 .coverage.*
 htmlcov/
 .ipynb_checkpoints/
-
-# Python packaging artifacts
+.uv/
 *.egg
 *.egg-info/
 pip-wheel-metadata/
 
-# Machine learning artifacts and local datasets
+# AI/ML models, datasets and generated files
 *.pt
 *.pth
 *.ckpt
@@ -89,6 +100,8 @@ pip-wheel-metadata/
 *.hdf5
 data/
 datasets/
+models/
+checkpoints/
 uploads/
 tmp/
 temp/
@@ -96,14 +109,13 @@ temp/
 *.temp
 *.cache
 
-# Archives and local database files
-*.zip
-*.tar
-*.gz
-*.7z
+# Local databases and PostgreSQL volumes
 *.db
 *.sqlite
 *.sqlite3
+pgdata/
+postgres-data/
+.pgdata/
 
 # Node and frontend caches
 node_modules/
@@ -115,3 +127,10 @@ node_modules/
 .nuxt/
 .svelte-kit/
 coverage/
+
+# Generated archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z

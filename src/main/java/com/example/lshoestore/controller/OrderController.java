@@ -1,25 +1,29 @@
 package com.example.lshoestore.controller;
 
-import com.example.lshoestore.model.CartItem;
+import com.example.lshoestore.dto.CheckoutForm;
+import com.example.lshoestore.exception.BusinessException;
+import com.example.lshoestore.exception.ResourceNotFoundException;
 import com.example.lshoestore.model.User;
 import com.example.lshoestore.repository.OrderRepository;
 import com.example.lshoestore.repository.UserRepository;
 import com.example.lshoestore.service.CartService;
 import com.example.lshoestore.service.OrderService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.Collection;
+import java.util.UUID;
 
 @Controller
 public class OrderController {
-
     private final CartService cart;
     private final UserRepository users;
     private final OrderRepository orders;
@@ -33,81 +37,74 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    private boolean isLoggedIn(Authentication auth) {
-        return auth != null && auth.isAuthenticated()
-                && !"anonymousUser".equals(auth.getPrincipal());
-    }
-
     @GetMapping("/checkout")
     public String checkout(Model model, Authentication auth, HttpSession session) {
-        if (!isLoggedIn(auth)) return "redirect:/login";
+        User user = currentUser(auth);
         if (cart.isEmpty(auth, session)) return "redirect:/cart";
 
-        User user = users.findByEmailIgnoreCase(auth.getName()).orElseThrow();
-        model.addAttribute("user", user);
-        model.addAttribute("items", cart.getItems(auth, session));
-        model.addAttribute("total", cart.total(auth, session));
-        model.addAttribute("cartCount", cart.count(auth, session));
+        CheckoutForm form = new CheckoutForm();
+        form.setReceiverName(user.getFullName());
+        form.setPhone(user.getPhone());
+        form.setAddress(user.getAddress());
+        form.setCheckoutToken(UUID.randomUUID().toString());
+        model.addAttribute("checkoutForm", form);
+        addCheckoutData(model, auth, session);
         return "order/checkout";
     }
 
     @PostMapping("/checkout")
-    public String place(Authentication auth, HttpSession session,
-                        @RequestParam String receiverName,
-                        @RequestParam String phone,
-                        @RequestParam String address,
-                        RedirectAttributes redirectAttrs) {
-        if (!isLoggedIn(auth)) return "redirect:/login";
-
-        if (cart.isEmpty(auth, session)) {
-            redirectAttrs.addFlashAttribute("error", "Giỏ hàng của bạn đang trống.");
-            return "redirect:/cart";
+    public String place(@Valid @ModelAttribute("checkoutForm") CheckoutForm form,
+                        BindingResult bindingResult,
+                        Authentication auth,
+                        HttpSession session,
+                        Model model,
+                        RedirectAttributes redirectAttributes) {
+        User user = currentUser(auth);
+        if (bindingResult.hasErrors()) {
+            addCheckoutData(model, auth, session);
+            return "order/checkout";
         }
-        if (receiverName == null || receiverName.isBlank()) {
-            redirectAttrs.addFlashAttribute("error", "Vui lòng nhập họ tên người nhận.");
-            return "redirect:/checkout";
-        }
-        if (phone == null || !phone.matches("^(0|\\+84)[0-9]{8,10}$")) {
-            redirectAttrs.addFlashAttribute("error", "Số điện thoại không hợp lệ (VD: 0901234567).");
-            return "redirect:/checkout";
-        }
-        if (address == null || address.isBlank()) {
-            redirectAttrs.addFlashAttribute("error", "Vui lòng nhập địa chỉ nhận hàng.");
-            return "redirect:/checkout";
-        }
-
-        User user = users.findByEmailIgnoreCase(auth.getName()).orElseThrow();
-        Collection<CartItem> items = cart.getItems(auth, session);
 
         try {
-            orderService.placeOrder(
-                    user,
-                    receiverName.trim(),
-                    phone.trim(),
-                    address.trim(),
-                    items,
-                    auth,
-                    session
-            );
-        } catch (IllegalStateException e) {
-            String message = e.getMessage();
-            if (message != null && message.contains("|")) {
-                message = message.split("\\|")[0];
+            orderService.placeOrder(user, form);
+            redirectAttributes.addFlashAttribute("success", "Đơn hàng đã được tạo thành công.");
+            return "redirect:/orders";
+        } catch (BusinessException exception) {
+            if ("duplicate_checkout".equals(exception.getCode())) {
+                redirectAttributes.addFlashAttribute("warning", "Đơn hàng này đã được ghi nhận trước đó.");
+                return "redirect:/orders";
             }
-            redirectAttrs.addFlashAttribute("error", message != null ? message : "Không thể tạo đơn hàng.");
+            redirectAttributes.addFlashAttribute("error", exception.getMessage());
+            return "redirect:/cart";
+        } catch (DataIntegrityViolationException exception) {
+            if (orders.existsByCheckoutToken(form.getCheckoutToken())) {
+                redirectAttributes.addFlashAttribute("warning", "Đơn hàng đã được ghi nhận trước đó.");
+                return "redirect:/orders";
+            }
+            redirectAttributes.addFlashAttribute("error", "Không thể tạo đơn hàng. Vui lòng kiểm tra lại thông tin và thử lại.");
             return "redirect:/cart";
         }
-
-        return "redirect:/orders";
     }
 
     @GetMapping("/orders")
     public String myOrders(Authentication auth, Model model, HttpSession session) {
-        if (!isLoggedIn(auth)) return "redirect:/login";
-
-        User user = users.findByEmailIgnoreCase(auth.getName()).orElseThrow();
+        User user = currentUser(auth);
         model.addAttribute("orders", orders.findByUserOrderByCreatedAtDesc(user));
         model.addAttribute("cartCount", cart.count(auth, session));
         return "order/list";
+    }
+
+    private User currentUser(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            throw new ResourceNotFoundException("Không tìm thấy tài khoản người dùng");
+        }
+        return users.findByEmailIgnoreCase(auth.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản người dùng"));
+    }
+
+    private void addCheckoutData(Model model, Authentication auth, HttpSession session) {
+        model.addAttribute("items", cart.getItems(auth, session));
+        model.addAttribute("total", cart.total(auth, session));
+        model.addAttribute("cartCount", cart.count(auth, session));
     }
 }

@@ -27,7 +27,6 @@ import java.util.Optional;
 
 @Service
 public class PasswordResetService {
-
     private static final Logger log = LoggerFactory.getLogger(PasswordResetService.class);
 
     private final UserRepository users;
@@ -37,44 +36,42 @@ public class PasswordResetService {
     private final SecureRandom secureRandom = new SecureRandom();
     private final String mailUsername;
     private final int expiryMinutes;
-    private final boolean logResetLink;
+    private final boolean allowLocalLinkLogging;
 
-    public PasswordResetService(
-            UserRepository users,
-            PasswordResetTokenRepository tokens,
-            PasswordEncoder passwordEncoder,
-            ObjectProvider<JavaMailSender> mailSenderProvider,
-            @Value("${spring.mail.username:}") String mailUsername,
-            @Value("${app.password-reset.expiry-minutes:30}") int expiryMinutes,
-            @Value("${app.password-reset.log-link:true}") boolean logResetLink) {
+    public PasswordResetService(UserRepository users,
+                                PasswordResetTokenRepository tokens,
+                                PasswordEncoder passwordEncoder,
+                                ObjectProvider<JavaMailSender> mailSenderProvider,
+                                @Value("${spring.mail.username:}") String mailUsername,
+                                @Value("${app.password-reset.expiry-minutes:30}") int expiryMinutes,
+                                @Value("${app.password-reset.log-link:false}") boolean logResetLink,
+                                @Value("${app.environment:production}") String environment) {
         this.users = users;
         this.tokens = tokens;
         this.passwordEncoder = passwordEncoder;
         this.mailSender = mailSenderProvider.getIfAvailable();
-        this.mailUsername = mailUsername;
+        this.mailUsername = mailUsername == null ? "" : mailUsername.trim();
         this.expiryMinutes = Math.max(expiryMinutes, 5);
-        this.logResetLink = logResetLink;
+        this.allowLocalLinkLogging = logResetLink && "development".equalsIgnoreCase(environment);
     }
 
     @Transactional
     public void requestReset(String email, String baseUrl) {
-        if (email == null || email.isBlank()) {
-            return;
-        }
+        if (email == null || email.isBlank() || email.length() > 190 || baseUrl == null || baseUrl.isBlank()) return;
         Optional<User> optionalUser = users.findByEmailIgnoreCase(email.trim().toLowerCase(Locale.ROOT));
-        if (optionalUser.isEmpty()) {
-            return;
-        }
+        if (optionalUser.isEmpty()) return;
 
-        User user = optionalUser.get();
+        User user = users.findByIdWithLock(optionalUser.get().getId()).orElse(null);
+        if (user == null) return;
         tokens.deleteByUser(user);
+        tokens.flush();
 
         String rawToken = generateToken();
-        PasswordResetToken resetToken = new PasswordResetToken();
-        resetToken.setUser(user);
-        resetToken.setTokenHash(hash(rawToken));
-        resetToken.setExpiresAt(LocalDateTime.now().plusMinutes(expiryMinutes));
-        tokens.save(resetToken);
+        PasswordResetToken token = new PasswordResetToken();
+        token.setUser(user);
+        token.setTokenHash(hash(rawToken));
+        token.setExpiresAt(LocalDateTime.now().plusMinutes(expiryMinutes));
+        tokens.save(token);
 
         String resetUrl = baseUrl.replaceAll("/+$", "") + "/reset-password?token=" + rawToken;
         sendResetEmail(user, resetUrl);
@@ -82,29 +79,32 @@ public class PasswordResetService {
 
     @Transactional(readOnly = true)
     public boolean isValid(String rawToken) {
-        return findValid(rawToken).isPresent();
+        if (rawToken == null || rawToken.isBlank()) return false;
+        return tokens.findByTokenHash(hash(rawToken))
+                .filter(token -> token.getUsedAt() == null)
+                .filter(token -> token.getExpiresAt().isAfter(LocalDateTime.now()))
+                .isPresent();
     }
 
     @Transactional
     public boolean resetPassword(String rawToken, String newPassword) {
-        Optional<PasswordResetToken> optionalToken = findValid(rawToken);
-        if (optionalToken.isEmpty()) {
-            return false;
-        }
+        if (rawToken == null || rawToken.isBlank()) return false;
+        Optional<PasswordResetToken> optional = tokens.findByTokenHashWithLock(hash(rawToken));
+        if (optional.isEmpty()) return false;
 
-        User user = optionalToken.get().getUser();
+        PasswordResetToken token = optional.get();
+        LocalDateTime now = LocalDateTime.now();
+        if (token.getUsedAt() != null || !token.getExpiresAt().isAfter(now)) return false;
+
+        token.setUsedAt(now);
+        tokens.saveAndFlush(token);
+
+        User user = token.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.revokeSessions();
         users.save(user);
         tokens.deleteByUser(user);
         return true;
-    }
-
-    private Optional<PasswordResetToken> findValid(String rawToken) {
-        if (rawToken == null || rawToken.isBlank()) {
-            return Optional.empty();
-        }
-        return tokens.findByTokenHash(hash(rawToken))
-                .filter(token -> token.getExpiresAt().isAfter(LocalDateTime.now()));
     }
 
     private String generateToken() {
@@ -118,13 +118,13 @@ public class PasswordResetService {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is not available", exception);
+            throw new IllegalStateException("SHA-256 unavailable", exception);
         }
     }
 
     private void sendResetEmail(User user, String resetUrl) {
         if (mailSender == null || mailUsername.isBlank()) {
-            logLink(resetUrl);
+            logLocalLink(resetUrl);
             return;
         }
 
@@ -139,14 +139,16 @@ public class PasswordResetService {
         try {
             mailSender.send(message);
         } catch (MailException exception) {
-            log.error("Không thể gửi email đặt lại mật khẩu tới {}", user.getEmail(), exception);
-            logLink(resetUrl);
+            log.error("Password reset email could not be sent to {}", user.getEmail());
+            logLocalLink(resetUrl);
         }
     }
 
-    private void logLink(String resetUrl) {
-        if (logResetLink) {
-            log.warn("SMTP chưa được cấu hình. Liên kết đặt lại mật khẩu dùng cho local: {}", resetUrl);
+    private void logLocalLink(String resetUrl) {
+        if (allowLocalLinkLogging) {
+            log.warn("LOCAL DEVELOPMENT reset link: {}", resetUrl);
+        } else {
+            log.info("Password reset email was not sent because SMTP is unavailable.");
         }
     }
 }

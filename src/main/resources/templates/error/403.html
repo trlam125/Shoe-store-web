@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Không có quyền truy cập - LSHOE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=2}">
+</head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<main class="not-found">
+    <div class="not-found-code">403</div>
+    <p class="eyebrow">Quyền truy cập bị giới hạn</p>
+    <h1>Bạn không có quyền truy cập trang này</h1>
+    <p>Tài khoản hiện tại không có quyền quản trị. Hãy quay lại khu vực dành cho khách hàng hoặc đăng nhập bằng tài khoản phù hợp.</p>
+    <div>
+        <a class="btn" th:href="@{/}">Về trang chủ</a>
+        <a class="btn secondary" th:href="@{/orders}">Xem đơn hàng</a>
+    </div>
+</main>
+<div th:replace="~{fragments :: footer}"></div>
+</body>
+</html>

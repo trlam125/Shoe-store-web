@@ -1,17 +1,21 @@
 package com.example.lshoestore.controller;
 
+import com.example.lshoestore.dto.RegistrationForm;
 import com.example.lshoestore.model.User;
 import com.example.lshoestore.repository.UserRepository;
 import com.example.lshoestore.service.CartService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import org.springframework.security.core.Authentication;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.SecureRandom;
 import java.util.Locale;
@@ -39,49 +43,58 @@ public class AuthController {
 
     @GetMapping("/register")
     public String register(Model model, Authentication auth, HttpSession session) {
-        model.addAttribute("user", new User());
+        model.addAttribute("form", new RegistrationForm());
         model.addAttribute("cartCount", cart.count(auth, session));
         prepareCaptcha(model, session);
         return "auth/register";
     }
 
     @PostMapping("/register")
-    public String doRegister(@Valid @ModelAttribute User user, BindingResult bindingResult, Model model,
+    public String doRegister(@Valid @ModelAttribute("form") RegistrationForm form,
+                             BindingResult bindingResult,
+                             Model model,
                              @RequestParam(required = false) String captchaAnswer,
-                             Authentication auth, HttpSession session) {
+                             Authentication auth,
+                             HttpSession session) {
         model.addAttribute("cartCount", cart.count(auth, session));
         boolean captchaValid = verifyCaptcha(captchaAnswer, session);
-        if (!captchaValid) {
-            model.addAttribute("captchaError", "Kết quả xác minh không đúng. Vui lòng thử câu mới.");
-        }
+        if (!captchaValid) model.addAttribute("captchaError", "Kết quả xác minh không đúng.");
         if (bindingResult.hasErrors() || !captchaValid) {
-            user.setPassword("");
+            form.setPassword("");
             prepareCaptcha(model, session);
             return "auth/register";
         }
 
-        // Registration must always create a new regular user, regardless of extra request fields.
-        user.setId(null);
-        user.setFullName(user.getFullName().trim());
-        user.setEmail(user.getEmail().trim().toLowerCase(Locale.ROOT));
-
-        if (users.existsByEmailIgnoreCase(user.getEmail())) {
-            user.setPassword("");
+        String email = form.getEmail().trim().toLowerCase(Locale.ROOT);
+        if (users.existsByEmailIgnoreCase(email)) {
+            form.setPassword("");
             model.addAttribute("error", "Email đã được sử dụng.");
             prepareCaptcha(model, session);
             return "auth/register";
         }
-        user.setPassword(encoder.encode(user.getPassword()));
+
+        User user = new User();
+        user.setFullName(form.getFullName().trim());
+        user.setEmail(email);
+        user.setPhone(blankToNull(form.getPhone()));
+        user.setAddress(blankToNull(form.getAddress()));
+        user.setPassword(encoder.encode(form.getPassword()));
         user.setRole("ROLE_USER");
         try {
             users.saveAndFlush(user);
-        } catch (DataIntegrityViolationException e) {
-            user.setPassword("");
-            model.addAttribute("error", "Email đã được sử dụng.");
+        } catch (DataIntegrityViolationException exception) {
+            form.setPassword("");
+            model.addAttribute("error", users.existsByEmailIgnoreCase(email)
+                    ? "Email đã được sử dụng."
+                    : "Không thể tạo tài khoản. Vui lòng kiểm tra lại thông tin.");
             prepareCaptcha(model, session);
             return "auth/register";
         }
         return "redirect:/login?registered";
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private void prepareCaptcha(Model model, HttpSession session) {
@@ -94,9 +107,6 @@ public class AuthController {
     private boolean verifyCaptcha(String answer, HttpSession session) {
         Object expected = session.getAttribute(CAPTCHA_ANSWER);
         session.removeAttribute(CAPTCHA_ANSWER);
-        if (expected == null || answer == null) {
-            return false;
-        }
-        return String.valueOf(expected).equals(answer.trim());
+        return expected != null && answer != null && String.valueOf(expected).equals(answer.trim());
     }
 }

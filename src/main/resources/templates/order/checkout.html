@@ -2,30 +2,46 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Thanh toán - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=2}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
-<section class="form-box">
-    <h1>Thông tin giao hàng</h1>
-    <p class="error" th:if="${error}" th:text="${error}"></p>
-    <form th:action="@{/checkout}" method="post">
-        <label>Họ tên người nhận</label>
-        <input name="receiverName" th:value="${user.fullName}" required maxlength="100">
+<main class="checkout-layout">
+    <section class="form-box checkout-form-box">
+        <p class="eyebrow">Thanh toán an toàn</p>
+        <h1>Thông tin giao hàng</h1>
+        <form th:action="@{/checkout}" method="post" th:object="${checkoutForm}">
+            <input type="hidden" th:field="*{checkoutToken}">
+            <label>Họ tên người nhận</label>
+            <input th:field="*{receiverName}" required maxlength="100" autocomplete="name">
+            <p class="field-error" th:if="${#fields.hasErrors('receiverName')}" th:errors="*{receiverName}"></p>
 
-        <label>Số điện thoại</label>
-        <input name="phone" th:value="${user.phone}" required
-               pattern="^(0|\+84)[0-9]{8,10}$"
-               title="Số điện thoại hợp lệ (VD: 0901234567)">
+            <label>Số điện thoại</label>
+            <input th:field="*{phone}" required maxlength="20" autocomplete="tel" placeholder="0901234567">
+            <p class="field-error" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></p>
 
-        <label>Địa chỉ nhận hàng</label>
-        <textarea name="address" required th:text="${user.address}"></textarea>
+            <label>Địa chỉ nhận hàng</label>
+            <textarea th:field="*{address}" required maxlength="500" autocomplete="street-address"></textarea>
+            <p class="field-error" th:if="${#fields.hasErrors('address')}" th:errors="*{address}"></p>
 
-        <h3>Tổng tiền: <span th:text="${#numbers.formatDecimal(total,0,'COMMA',0,'POINT')} + 'đ'"></span></h3>
-        <button class="btn">Đặt hàng COD</button>
-    </form>
-</section>
+            <div class="checkout-note">Thanh toán khi nhận hàng (COD). Hệ thống chỉ trừ tồn kho khi đơn được tạo thành công.</div>
+            <button class="btn" type="submit">Xác nhận đặt hàng</button>
+        </form>
+    </section>
+
+    <aside class="order-summary-card">
+        <p class="eyebrow">Đơn hàng của bạn</p>
+        <h2>Tóm tắt thanh toán</h2>
+        <div class="summary-product" th:each="i : ${items}">
+            <img th:src="${i.product.imageUrl}" th:alt="${i.product.name}">
+            <div><b th:text="${i.product.name}">Tên giày</b><span th:text="${'Số lượng: ' + i.quantity}">Số lượng</span></div>
+            <strong th:text="${#numbers.formatDecimal(i.subtotal,0,'COMMA',0,'POINT')} + 'đ'">0đ</strong>
+        </div>
+        <div class="summary-total"><span>Tổng thanh toán</span><strong th:text="${#numbers.formatDecimal(total,0,'COMMA',0,'POINT')} + 'đ'">0đ</strong></div>
+    </aside>
+</main>
 <div th:replace="~{fragments :: footer}"></div>
 </body>
 </html>

@@ -2,59 +2,81 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Form sản phẩm - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thông tin sản phẩm - LSHOE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=2}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
-<section class="form-box">
-    <h1>Thông tin sản phẩm</h1>
-    <form th:action="@{/admin/products/save}" method="post" th:object="${product}">
+<section class="form-box form-box-wide">
+    <div class="title-row">
+        <div>
+            <p class="eyebrow">Quản trị kho hàng</p>
+            <h1 th:text="${productForm.id == null ? 'Thêm sản phẩm' : 'Chỉnh sửa sản phẩm'}">Thông tin sản phẩm</h1>
+        </div>
+        <a class="btn secondary small" th:href="@{/admin/products}">Quay lại</a>
+    </div>
+    <p class="error" th:if="${error}" th:text="${error}"></p>
+    <form th:action="@{/admin/products/save}" method="post" th:object="${productForm}">
         <input type="hidden" th:field="*{id}">
+        <input type="hidden" th:field="*{version}">
 
-        <label>Tên giày</label>
-        <input th:field="*{name}" required>
-        <p class="error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
-
-        <label>Hãng</label>
-        <input th:field="*{brand}" required>
-        <p class="error" th:if="${#fields.hasErrors('brand')}" th:errors="*{brand}"></p>
-
-        <label>Danh mục</label>
-        <select name="categoryId">
-            <option th:each="c:${categories}"
-                    th:value="${c.id}"
-                    th:selected="${product.category != null and product.category.id == c.id}"
-                    th:text="${c.name}"></option>
-        </select>
-
-        <label>Mô tả</label>
-        <textarea th:field="*{description}"></textarea>
-
-        <label>Giá bán (đ)</label>
-        <input th:field="*{price}" type="number" min="1000" required>
-        <p class="error" th:if="${#fields.hasErrors('price')}" th:errors="*{price}"></p>
-
-        <label>Giá gốc (đ)</label>
-        <input th:field="*{oldPrice}" type="number" min="0">
-
-        <label>Link ảnh</label>
-        <input th:field="*{imageUrl}">
-
-        <label>Kích cỡ</label>
-        <input th:field="*{sizeText}" placeholder="VD: 36, 37, 38, 39, 40">
-
-        <label>Tồn kho</label>
-        <input th:field="*{stock}" type="number" min="0" required>
-        <p class="error" th:if="${#fields.hasErrors('stock')}" th:errors="*{stock}"></p>
-
-        <!-- Fix #17: cho phép admin bật/tắt hiển thị sản phẩm khi chỉnh sửa -->
-        <div th:if="${product.id != null}" style="margin: 12px 0; display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="activeCheck" th:field="*{active}">
-            <label for="activeCheck" style="font-weight:normal; margin:0;">Đang bán (bỏ chọn để ẩn sản phẩm)</label>
+        <div class="form-grid">
+            <div>
+                <label>Tên giày</label>
+                <input th:field="*{name}" required maxlength="160">
+                <p class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
+            </div>
+            <div>
+                <label>Hãng</label>
+                <input th:field="*{brand}" required maxlength="100">
+                <p class="field-error" th:if="${#fields.hasErrors('brand')}" th:errors="*{brand}"></p>
+            </div>
+            <div>
+                <label>Danh mục</label>
+                <select th:field="*{categoryId}" required>
+                    <option value="">-- Chọn danh mục --</option>
+                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"></option>
+                </select>
+                <p class="field-error" th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}"></p>
+            </div>
+            <div>
+                <label>Kích cỡ</label>
+                <input th:field="*{sizeText}" maxlength="120" placeholder="Ví dụ: 36, 37, 38, 39, 40">
+                <p class="field-error" th:if="${#fields.hasErrors('sizeText')}" th:errors="*{sizeText}"></p>
+            </div>
+            <div>
+                <label>Giá bán (đ)</label>
+                <input th:field="*{price}" type="number" min="1000" step="1000" required>
+                <p class="field-error" th:if="${#fields.hasErrors('price')}" th:errors="*{price}"></p>
+            </div>
+            <div>
+                <label>Giá gốc (đ)</label>
+                <input th:field="*{oldPrice}" type="number" min="0" step="1000">
+                <p class="field-error" th:if="${#fields.hasErrors('oldPrice')}" th:errors="*{oldPrice}"></p>
+            </div>
+            <div>
+                <label>Tồn kho</label>
+                <input th:field="*{stock}" type="number" min="0" required>
+                <p class="field-error" th:if="${#fields.hasErrors('stock')}" th:errors="*{stock}"></p>
+            </div>
+            <div>
+                <label>Link ảnh</label>
+                <input th:field="*{imageUrl}" type="url" maxlength="1000" placeholder="https://...">
+                <p class="field-error" th:if="${#fields.hasErrors('imageUrl')}" th:errors="*{imageUrl}"></p>
+            </div>
         </div>
 
-        <button class="btn">Lưu sản phẩm</button>
+        <label>Mô tả</label>
+        <textarea th:field="*{description}" maxlength="2000"></textarea>
+        <p class="field-error" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></p>
+
+        <label class="checkbox-row" th:if="${productForm.id != null}">
+            <input type="checkbox" th:field="*{active}">
+            <span>Đang bán và hiển thị trên cửa hàng</span>
+        </label>
+
+        <button class="btn" type="submit">Lưu sản phẩm</button>
     </form>
 </section>
 <div th:replace="~{fragments :: footer}"></div>

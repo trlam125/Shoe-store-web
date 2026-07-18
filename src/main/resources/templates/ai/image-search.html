@@ -2,68 +2,55 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Tìm giày bằng ảnh - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=3}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
-<section class="section">
-    <h1>Deep Learning: tìm giày tương tự bằng ảnh</h1>
-    <p>Tải ảnh một đôi giày. Mô hình ResNet18 pretrained sẽ trích xuất vector đặc trưng và xếp hạng sản phẩm tương tự.</p>
-    <form id="image-form" class="image-ai-form">
-        <input id="shoe-image" type="file" accept="image/jpeg,image/png,image/webp" required>
-        <button class="btn" type="submit">Phân tích ảnh</button>
-    </form>
-    <p id="ai-status"></p>
+<section class="section ai-page">
+    <div class="ai-upload-card"><p class="eyebrow">Deep Learning · ResNet18 có kiểm tra chất lượng</p><h1>Tìm giày tương tự bằng ảnh</h1><p>Tải ảnh rõ toàn bộ đôi giày. Hệ thống kiểm tra ảnh có phải giày, loại ảnh sản phẩm bị trùng và chỉ hiển thị kết quả vượt ngưỡng tương đồng.</p><form id="image-form" class="image-ai-form"><label class="file-drop" for="shoe-image"><span>📷</span><b>Chọn ảnh đôi giày</b><small>Dung lượng tối đa 10MB</small></label><input id="shoe-image" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" required><button class="btn" type="submit">Phân tích ảnh</button></form><p id="selected-file" class="selected-file"></p><p id="ai-status" class="ai-status"></p></div>
     <div id="ai-results" class="grid"></div>
 </section>
 <div th:replace="~{fragments :: footer}"></div>
 <script th:inline="javascript">
 const form = document.getElementById('image-form');
+const input = document.getElementById('shoe-image');
+const selectedFile = document.getElementById('selected-file');
 const statusText = document.getElementById('ai-status');
 const results = document.getElementById('ai-results');
+input.addEventListener('change', () => selectedFile.textContent = input.files[0] ? `Đã chọn: ${input.files[0].name}` : '');
 form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const file = document.getElementById('shoe-image').files[0];
+    const file = input.files[0];
     if (!file) return;
+    statusText.classList.remove('error');
     statusText.textContent = 'Đang trích xuất đặc trưng ảnh và so sánh sản phẩm...';
     results.innerHTML = '';
     const data = new FormData();
     data.append('file', file);
     try {
         const csrf = document.getElementById('chat-csrf');
-        const response = await fetch('/ai/image-search/analyze?limit=6', {
-            method: 'POST',
-            headers: {'X-CSRF-TOKEN': csrf.value},
-            body: data
-        });
+        const response = await fetch('/ai/image-search/analyze?limit=6', {method: 'POST', headers: {'X-CSRF-TOKEN': csrf.value}, body: data});
         const payload = await response.json();
-        if (!response.ok) throw new Error(payload.detail || 'AI service không thể xử lý ảnh.');
-        statusText.textContent = `Mô hình: ${payload.model}. Tìm thấy ${payload.matches.length} kết quả.`;
+        if (response.status === 401) { window.location.href = '/login?expired'; return; }
+        if (!response.ok) throw new Error(payload.detail || payload.error || 'Dịch vụ AI không thể xử lý ảnh.');
+        const confidence = ((payload.queryShoeConfidence || 0) * 100).toFixed(1);
+        const warningText = (payload.warnings || []).join(' ');
+        const baseMessage = payload.message || `Mô hình: ${payload.model}. Độ tin cậy ảnh giày ${confidence}%. Tìm thấy ${payload.matches.length} kết quả.`;
+        statusText.textContent = `${baseMessage}${warningText ? ' ' + warningText : ''}`;
+        if (!payload.matches.length) return;
         payload.matches.forEach(item => {
-            const card = document.createElement('a');
-            card.className = 'card';
-            card.href = `/products/${item.productId}`;
-
-            const image = document.createElement('img');
-            image.src = item.imageUrl;
-            image.alt = item.name;
-            const body = document.createElement('div');
-            body.className = 'card-body';
-            const brand = document.createElement('p');
-            brand.className = 'brand';
-            brand.textContent = item.brand;
-            const name = document.createElement('h3');
-            name.textContent = item.name;
-            const similarity = document.createElement('p');
-            similarity.textContent = `Độ tương đồng: ${(item.similarity * 100).toFixed(1)}%`;
-            body.append(brand, name, similarity);
-            card.append(image, body);
-            results.appendChild(card);
+            const card = document.createElement('a'); card.className = 'card'; card.href = `/products/${item.productId}`;
+            const wrap = document.createElement('div'); wrap.className = 'card-image-wrap';
+            const image = document.createElement('img'); image.src = item.imageUrl; image.alt = item.name; image.loading = 'lazy'; wrap.appendChild(image);
+            const body = document.createElement('div'); body.className = 'card-body';
+            const brand = document.createElement('p'); brand.className = 'brand'; brand.textContent = item.brand;
+            const name = document.createElement('h3'); name.textContent = item.name;
+            const similarity = document.createElement('span'); similarity.className = 'stock-pill'; similarity.textContent = `Tương đồng ${(item.similarity * 100).toFixed(1)}%`;
+            body.append(brand, name, similarity); card.append(wrap, body); results.appendChild(card);
         });
-    } catch (error) {
-        statusText.textContent = error.message;
-    }
+    } catch (error) { statusText.textContent = error.message; statusText.classList.add('error'); }
 });
 </script>
 </body>

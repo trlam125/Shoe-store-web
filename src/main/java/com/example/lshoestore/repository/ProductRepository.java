@@ -13,16 +13,18 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
-
+    List<Product> findTop12ByActiveTrueOrderByIdDesc();
     List<Product> findByActiveTrueOrderByIdDesc();
-
     List<Product> findByActiveTrueAndNameContainingIgnoreCaseOrderByIdDesc(String keyword);
-
     List<Product> findByActiveTrueAndCategory_IdOrderByIdDesc(Long categoryId);
 
-    Page<Product> findAllByOrderByIdDesc(Pageable pageable);
+    Page<Product> findByActiveTrueOrderByIdDesc(Pageable pageable);
+    Page<Product> findByActiveTrueAndNameContainingIgnoreCaseOrderByIdDesc(String keyword, Pageable pageable);
+    Page<Product> findByActiveTrueAndCategory_IdOrderByIdDesc(Long categoryId, Pageable pageable);
 
-    /** Pessimistic write lock — dùng khi checkout để tránh race condition stock */
+    Page<Product> findAllByOrderByIdDesc(Pageable pageable);
+    long countByActiveTrue();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdWithLock(@Param("id") Long id);

@@ -10,9 +10,9 @@
     </parent>
     <groupId>com.example</groupId>
     <artifactId>lshoe-store</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <name>LSHOE Store</name>
-    <description>Website bán giày LSHOE dùng Spring Boot, PostgreSQL, Thymeleaf và ML/DL</description>
+    <description>LSHOE shoe store with Spring Boot, PostgreSQL and AI features</description>
     <properties>
         <java.version>21</java.version>
     </properties>

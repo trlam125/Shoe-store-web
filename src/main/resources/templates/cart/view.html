@@ -2,45 +2,33 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Giỏ hàng - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=2}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
-<section class="section"><h1>Giỏ hàng của bạn</h1>
-    <p class="error" th:if="${error}" th:text="${error}"></p>
-    <p class="warning" th:if="${warning}" th:text="${warning}" style="color:#e67e00;background:#fff3cd;padding:10px;border-radius:6px;"></p>
-    <p th:if="${#lists.isEmpty(items)}">Giỏ hàng đang trống.</p>
-    <table th:if="${!#lists.isEmpty(items)}">
-        <tr>
-            <th>Sản phẩm</th>
-            <th>Giá</th>
-            <th>Số lượng</th>
-            <th>Thao tác</th>
-        </tr>
-        <tr th:each="i:${items}">
-            <td th:text="${i.product.name}"></td>
-            <td th:text="${#numbers.formatDecimal(i.product.price,0,'COMMA',0,'POINT')} + 'đ'"></td>
-            <td>
-                <form th:action="@{/cart/update/{id}(id=${i.product.id})}" method="post"><input type="number"
-                                                                                                name="quantity" min="0"
-                                                                                                th:max="${i.product.stock}"
-                                                                                                th:value="${i.quantity}">
-                    <button>Cập nhật</button>
-                </form>
-            </td>
-            <td>
-                <form th:action="@{/cart/remove/{id}(id=${i.product.id})}" method="post">
-                    <button>Xóa</button>
-                </form>
-            </td>
-        </tr>
-    </table>
-    <h2 th:if="${!#lists.isEmpty(items)}">Tổng tiền: <span
-            th:text="${#numbers.formatDecimal(total,0,'COMMA',0,'POINT')} + 'đ'"></span></h2><a class="btn"
-                                                                                                th:if="${!#lists.isEmpty(items)}"
-                                                                                                th:href="@{/checkout}">Thanh
-        toán</a></section>
+<section class="section">
+    <div class="title-row"><div><p class="eyebrow">Sẵn sàng thanh toán</p><h1>Giỏ hàng của bạn</h1></div><a class="btn secondary small" th:href="@{/products}">Tiếp tục mua sắm</a></div>
+
+    <div class="empty-state" th:if="${#lists.isEmpty(items)}"><div class="empty-icon">🛒</div><h3>Giỏ hàng đang trống</h3><p>Hãy khám phá những mẫu giày mới nhất tại LSHOE.</p><a class="btn" th:href="@{/products}">Khám phá sản phẩm</a></div>
+
+    <div class="table-wrap" th:if="${!#lists.isEmpty(items)}">
+        <table>
+            <thead><tr><th>Sản phẩm</th><th>Đơn giá</th><th>Số lượng</th><th>Thành tiền</th><th>Thao tác</th></tr></thead>
+            <tbody>
+            <tr th:each="i : ${items}">
+                <td><a class="cart-product" th:href="@{/products/{id}(id=${i.product.id})}"><img th:src="${i.product.imageUrl}" th:alt="${i.product.name}"><div><b th:text="${i.product.name}"></b><span th:text="${i.product.brand}"></span></div></a></td>
+                <td th:text="${#numbers.formatDecimal(i.product.price,0,'COMMA',0,'POINT')} + 'đ'"></td>
+                <td><form class="quantity-form" th:action="@{/cart/update/{id}(id=${i.product.id})}" method="post"><input type="number" name="quantity" min="0" th:max="${i.product.stock}" th:value="${i.quantity}"><button type="submit">Cập nhật</button></form></td>
+                <td><b th:text="${#numbers.formatDecimal(i.subtotal,0,'COMMA',0,'POINT')} + 'đ'"></b></td>
+                <td><form th:action="@{/cart/remove/{id}(id=${i.product.id})}" method="post"><button class="danger-button" type="submit">Xóa</button></form></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="cart-summary" th:if="${!#lists.isEmpty(items)}"><div><span>Tổng thanh toán</span><strong th:text="${#numbers.formatDecimal(total,0,'COMMA',0,'POINT')} + 'đ'"></strong></div><a class="btn" th:href="@{/checkout}">Tiến hành thanh toán</a></div>
+</section>
 <div th:replace="~{fragments :: footer}"></div>
 </body>
 </html>

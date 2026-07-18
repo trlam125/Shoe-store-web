@@ -2,11 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="https://www.thymeleaf.org/extras/spring-security">
 <body>
 <header th:fragment="header" class="site-header">
-    <!-- Fix #16: hiển thị flash warning (vd: sản phẩm bị xóa khi merge cart) toàn site -->
-    <div th:if="${warning}" class="global-warning"
-         th:text="${warning}"
-         style="background:#fff3cd;color:#856404;padding:10px 20px;text-align:center;font-size:14px;border-bottom:1px solid #ffc107;">
-    </div>
+    <p th:if="${success}" class="global-alert success" th:text="${success}"></p>
+    <p th:if="${warning}" class="global-alert warning" th:text="${warning}"></p>
+    <p th:if="${error}" class="global-alert error" th:text="${error}"></p>
     <div class="topbar">
         <div class="topbar-track">
             <span class="topbar-text">🚚 Miễn phí giao hàng cho đơn từ 1.000.000đ&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔄 Đổi trả miễn phí trong 30 ngày&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;💳 Thanh toán khi nhận hàng (COD)&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;✅ 100% giày chính hãng&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔥 Sale lên đến 50% - Số lượng có hạn&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;📞 Hotline: 0900 000 000&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;</span>
@@ -17,7 +15,7 @@
         <form th:action="@{/products}" class="search"><input name="q" placeholder="Tìm kiếm giày..." th:value="${q}">
             <button>Tìm</button>
         </form>
-        <div class="navlinks"><a th:href="@{/products}">Sản phẩm</a><a th:href="@{/cart}">Giỏ hàng <span
+        <div class="navlinks"><a th:href="@{/products}">Sản phẩm</a><a th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a th:href="@{/cart}">Giỏ hàng <span
                 th:text="${cartCount != null ? cartCount : 0}">0</span></a><a sec:authorize="isAnonymous()"
                                                                               th:href="@{/login}">Đăng nhập</a><a
                 sec:authorize="isAuthenticated()" th:href="@{/orders}">Đơn hàng</a><a sec:authorize="hasRole('ADMIN')"
@@ -29,8 +27,12 @@
     </nav>
 </header>
 <footer th:fragment="footer" class="footer">
-    <div><b>LSHOE</b> - Website bán giày sneaker nam nữ.</div>
-    <div>Địa chỉ: Hà Nội | Hotline: 0900 000 000 | Email: support@lshoe.vn</div>
+    <div class="footer-grid">
+        <div><b>LSHOE</b><p>Không gian sneaker dành cho mọi phong cách, từ thiết kế kinh điển đến xu hướng mới.</p></div>
+        <div><strong>Khám phá</strong><a th:href="@{/products}">Sản phẩm</a><a th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a th:href="@{/cart}">Giỏ hàng</a><a th:href="@{/orders}">Đơn hàng</a></div>
+        <div><strong>Hỗ trợ</strong><span>Đổi trả trong 30 ngày</span><span>Thanh toán khi nhận hàng</span><span>Hotline: 0900 000 000</span></div>
+    </div>
+    <div class="footer-bottom">© LSHOE · Email: support@lshoe.vn · Hà Nội</div>
 
     <!-- ========== CHAT BUBBLE ========== -->
 <div id="chat-bubble-btn" onclick="toggleChat()" title="Chat với trợ lý LSHOE">
@@ -264,7 +266,8 @@
             });
             const data = await res.json();
             typingEl.remove();
-            const reply = data.reply || 'Xin lỗi, tôi không hiểu yêu cầu.';
+            if (res.status === 401) { window.location.href = '/login?expired'; return; }
+            const reply = data.reply || data.error || 'Xin lỗi, tôi không hiểu yêu cầu.';
             appendMsg(reply, 'bot', true);  // parse markdown
             if (res.ok) {
                 chatHistory.push({ role: 'assistant', content: reply });

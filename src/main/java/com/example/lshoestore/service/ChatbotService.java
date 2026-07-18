@@ -16,11 +16,11 @@ import java.util.Map;
 
 @Service
 public class ChatbotService {
-
     private static final String SYSTEM_PROMPT = "Bạn là trợ lý tư vấn giày của LSHOE. "
-            + "Hãy giúp khách hàng chọn giày, tư vấn size và phối đồ. "
+            + "Hãy giúp khách hàng chọn giày, tư vấn kích cỡ và phối đồ. "
             + "Trả lời ngắn gọn, thân thiện bằng tiếng Việt.";
     private static final int MAX_HISTORY_MESSAGES = 10;
+    private static final int MAX_CONTENT_LENGTH = 2_000;
 
     private final RestTemplate restTemplate;
     private final String apiUrl;
@@ -34,7 +34,6 @@ public class ChatbotService {
         this.apiUrl = apiUrl;
         this.apiKey = apiKey;
         this.model = model;
-
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(timeoutMs);
         factory.setReadTimeout(timeoutMs);
@@ -43,14 +42,12 @@ public class ChatbotService {
 
     public String chat(String message, List<ChatMessage> history) {
         if (apiKey == null || apiKey.isBlank()) {
-            throw new IllegalStateException(
-                    "Chatbot chưa được cấu hình. Hãy đặt NVIDIA_API_KEY trong Chatbot/.env rồi chạy lại ứng dụng.");
+            throw new IllegalStateException("Chatbot chưa được cấu hình NVIDIA_API_KEY.");
         }
-
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(Map.of("role", "system", "content", SYSTEM_PROMPT));
         appendValidHistory(messages, history);
-        messages.add(Map.of("role", "user", "content", message));
+        messages.add(Map.of("role", "user", "content", truncate(message)));
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
@@ -62,26 +59,29 @@ public class ChatbotService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
-
         try {
             Map<?, ?> response = restTemplate.postForObject(apiUrl, new HttpEntity<>(body, headers), Map.class);
             return extractReply(response);
-        } catch (RestClientException e) {
-            throw new IllegalStateException(
-                    "Trợ lý AI hiện không kết nối được. Vui lòng kiểm tra mạng và NVIDIA_API_KEY.", e);
+        } catch (RestClientException exception) {
+            throw new IllegalStateException("Trợ lý AI hiện không kết nối được.", exception);
         }
     }
 
     private void appendValidHistory(List<Map<String, String>> messages, List<ChatMessage> history) {
         if (history == null || history.isEmpty()) return;
-
         int start = Math.max(0, history.size() - MAX_HISTORY_MESSAGES);
-        for (int i = start; i < history.size(); i++) {
-            ChatMessage item = history.get(i);
+        for (int index = start; index < history.size(); index++) {
+            ChatMessage item = history.get(index);
             if (item == null || item.content() == null || item.content().isBlank()) continue;
             if (!"user".equals(item.role()) && !"assistant".equals(item.role())) continue;
-            messages.add(Map.of("role", item.role(), "content", item.content()));
+            messages.add(Map.of("role", item.role(), "content", truncate(item.content())));
         }
+    }
+
+    private String truncate(String value) {
+        String cleaned = value == null ? "" : value.trim();
+        return cleaned.length() <= MAX_CONTENT_LENGTH
+                ? cleaned : cleaned.substring(0, MAX_CONTENT_LENGTH);
     }
 
     private String extractReply(Map<?, ?> response) {
@@ -92,9 +92,8 @@ public class ChatbotService {
                 && !content.isBlank()) {
             return content;
         }
-        throw new IllegalStateException("Trợ lý AI trả về dữ liệu không hợp lệ. Vui lòng thử lại.");
+        throw new IllegalStateException("Trợ lý AI trả về dữ liệu không hợp lệ.");
     }
 
-    public record ChatMessage(String role, String content) {
-    }
+    public record ChatMessage(String role, String content) {}
 }

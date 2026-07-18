@@ -2,31 +2,34 @@
 setlocal
 cd /d "%~dp0"
 
-set "CLOUDFLARED=cloudflared.exe"
-if exist "%CLOUDFLARED%" goto executable_ready
-
-set "CLOUDFLARED=cloudflared-windows-amd64.exe"
-if exist "%CLOUDFLARED%" goto executable_ready
-
-echo [ERROR] Khong tim thay cloudflared.exe trong thu muc project.
-echo Tai cloudflared Windows AMD64 va dat file canh run-cloudflare.bat.
-exit /b 1
-
-:executable_ready
-powershell -NoProfile -Command "try { $response = Invoke-WebRequest -UseBasicParsing -Uri 'http://localhost:8081/' -TimeoutSec 2; if ($response.StatusCode -eq 200) { exit 0 } } catch {}; exit 1"
-if errorlevel 1 (
-    echo [WARNING] Website chua phan hoi tai http://localhost:8081/.
-    echo Hay Run LshoeStoreApplication truoc khi mo URL Cloudflare.
+set "CLOUDFLARED="
+if exist "cloudflared.exe" set "CLOUDFLARED=cloudflared.exe"
+if not defined CLOUDFLARED if exist "cloudflared-windows-amd64.exe" set "CLOUDFLARED=cloudflared-windows-amd64.exe"
+if not defined CLOUDFLARED (
+    where cloudflared >nul 2>&1
+    if not errorlevel 1 set "CLOUDFLARED=cloudflared"
 )
 
-if defined TUNNEL_TOKEN goto named_tunnel
+if not defined CLOUDFLARED (
+    echo [ERROR] Khong tim thay cloudflared.exe trong project hoac PATH.
+    pause
+    exit /b 1
+)
 
-echo [INFO] Dang tao Quick Tunnel cho http://localhost:8081 ...
-echo [INFO] URL cong khai se co dang https://...trycloudflare.com
-"%CLOUDFLARED%" tunnel --url http://localhost:8081
-exit /b %errorlevel%
+powershell -NoProfile -Command "try { $r=Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8081/' -TimeoutSec 3; if ($r.StatusCode -lt 500) { exit 0 } } catch {}; exit 1"
+if errorlevel 1 (
+    echo [ERROR] Website chua chay tai http://127.0.0.1:8081/
+    echo Hay chay LshoeStoreApplication truoc.
+    pause
+    exit /b 1
+)
 
-:named_tunnel
-echo [INFO] Dang chay Cloudflare Named Tunnel bang bien TUNNEL_TOKEN ...
-"%CLOUDFLARED%" tunnel run
+if defined TUNNEL_TOKEN (
+    echo [INFO] Dang chay Cloudflare Named Tunnel...
+    "%CLOUDFLARED%" tunnel run --token "%TUNNEL_TOKEN%"
+) else (
+    echo [INFO] Dang tao Quick Tunnel cho http://127.0.0.1:8081 ...
+    echo [INFO] Hay dat APP_PUBLIC_BASE_URL theo URL trycloudflare neu can gui link reset mat khau.
+    "%CLOUDFLARED%" tunnel --url http://127.0.0.1:8081
+)
 exit /b %errorlevel%

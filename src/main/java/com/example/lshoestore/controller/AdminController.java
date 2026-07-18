@@ -1,132 +1,133 @@
 package com.example.lshoestore.controller;
 
-import com.example.lshoestore.model.*;
-import com.example.lshoestore.repository.*;
-import com.example.lshoestore.service.OrderService;
+import com.example.lshoestore.dto.ProductForm;
+import com.example.lshoestore.exception.BusinessException;
+import com.example.lshoestore.model.OrderStatus;
+import com.example.lshoestore.repository.CategoryRepository;
+import com.example.lshoestore.repository.OrderRepository;
+import com.example.lshoestore.repository.ProductRepository;
 import com.example.lshoestore.service.AiAnalyticsService;
+import com.example.lshoestore.service.OrderService;
+import com.example.lshoestore.service.ProductAdminService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/admin")
-
 public class AdminController {
     private final ProductRepository products;
     private final CategoryRepository categories;
     private final OrderRepository orders;
     private final OrderService orderService;
+    private final ProductAdminService productAdminService;
     private final AiAnalyticsService aiAnalyticsService;
 
     public AdminController(ProductRepository products, CategoryRepository categories,
                            OrderRepository orders, OrderService orderService,
+                           ProductAdminService productAdminService,
                            AiAnalyticsService aiAnalyticsService) {
         this.products = products;
         this.categories = categories;
         this.orders = orders;
         this.orderService = orderService;
+        this.productAdminService = productAdminService;
         this.aiAnalyticsService = aiAnalyticsService;
     }
 
     @GetMapping
-    public String dashboard(Model m) {
-        // Fix #18: chỉ đếm sản phẩm đang bán (active=true)
-        m.addAttribute("productCount", products.findByActiveTrueOrderByIdDesc().size());
-        m.addAttribute("orderCount", orders.count());
+    public String dashboard(Model model) {
+        model.addAttribute("productCount", products.countByActiveTrue());
+        model.addAttribute("orderCount", orders.count());
         var segments = aiAnalyticsService.getCustomerSegments();
         var forecast = aiAnalyticsService.getSalesForecast();
-        m.addAttribute("aiAvailable", !segments.isEmpty() || !forecast.isEmpty());
-        m.addAttribute("segments", segments.getOrDefault("segments", java.util.List.of()));
-        m.addAttribute("forecast", forecast.getOrDefault("predictions", java.util.List.of()));
+        model.addAttribute("aiAvailable", !segments.isEmpty() || !forecast.isEmpty());
+        model.addAttribute("segments", segments.getOrDefault("segments", java.util.List.of()));
+        model.addAttribute("forecast", forecast.getOrDefault("predictions", java.util.List.of()));
         return "admin/dashboard";
     }
 
     @GetMapping("/products")
-    public String productList(@RequestParam(defaultValue = "0") int page, Model m) {
+    public String productList(@RequestParam(defaultValue = "0") int page, Model model) {
         page = Math.max(page, 0);
         Pageable pageable = PageRequest.of(page, 20);
         var productPage = products.findAllByOrderByIdDesc(pageable);
-        m.addAttribute("products", productPage.getContent());
-        m.addAttribute("currentPage", page);
-        m.addAttribute("totalPages", productPage.getTotalPages());
+        model.addAttribute("products", productPage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", productPage.getTotalPages());
         return "admin/products";
     }
 
     @GetMapping("/products/new")
-    public String newProduct(Model m) {
-        m.addAttribute("product", new Product());
-        m.addAttribute("categories", categories.findAll());
+    public String newProduct(Model model) {
+        model.addAttribute("productForm", new ProductForm());
+        model.addAttribute("categories", categories.findAll());
         return "admin/product-form";
     }
 
     @GetMapping("/products/edit/{id}")
-    public String edit(@PathVariable Long id, Model m) {
-        m.addAttribute("product", products.findById(id).orElseThrow());
-        m.addAttribute("categories", categories.findAll());
+    public String edit(@PathVariable Long id, Model model) {
+        model.addAttribute("productForm", productAdminService.getForm(id));
+        model.addAttribute("categories", categories.findAll());
         return "admin/product-form";
     }
 
     @PostMapping("/products/save")
-    public String save(@Valid @ModelAttribute Product product,
+    public String save(@Valid @ModelAttribute("productForm") ProductForm form,
                        BindingResult bindingResult,
-                       @RequestParam Long categoryId,
-                       Model m) {
+                       Model model,
+                       RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
-            m.addAttribute("categories", categories.findAll());
+            model.addAttribute("categories", categories.findAll());
             return "admin/product-form";
         }
-
-        product.setCategory(categories.findById(categoryId).orElseThrow());
-
-        if (product.getId() != null) {
-            // Fix #2: load từ DB trước để đảm bảo ID hợp lệ, giữ ảnh cũ
-            // active đã được bind từ form checkbox — không cần override
-            Product existing = products.findById(product.getId()).orElseThrow();
-            if (product.getImageUrl() == null || product.getImageUrl().isBlank()) {
-                product.setImageUrl(existing.getImageUrl());
-            }
-        } else {
-            product.setActive(true);
+        try {
+            productAdminService.save(form);
+            redirectAttributes.addFlashAttribute("success", "Đã lưu sản phẩm.");
+            return "redirect:/admin/products";
+        } catch (BusinessException exception) {
+            model.addAttribute("error", exception.getMessage());
+            model.addAttribute("categories", categories.findAll());
+            return "admin/product-form";
         }
-
-        products.save(product);
-        return "redirect:/admin/products";
     }
 
-    // Fix #17: toggle active/inactive thay vì chỉ soft-delete một chiều
     @PostMapping("/products/toggle/{id}")
-    public String toggleActive(@PathVariable Long id) {
-        Product p = products.findById(id).orElseThrow();
-        p.setActive(!p.isActive());
-        products.save(p);
+    public String toggleActive(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        productAdminService.toggleActive(id);
+        redirectAttributes.addFlashAttribute("success", "Đã cập nhật trạng thái sản phẩm.");
         return "redirect:/admin/products";
     }
 
     @GetMapping("/orders")
-    public String orderList(@RequestParam(defaultValue = "0") int page, Model m) {
+    public String orderList(@RequestParam(defaultValue = "0") int page, Model model) {
         page = Math.max(page, 0);
-        Pageable pageable = PageRequest.of(page, 20);
-        var orderPage = orders.findAllByOrderByCreatedAtDesc(pageable);
-        m.addAttribute("orders", orderPage.getContent());
-        m.addAttribute("statuses", OrderStatus.values());
-        m.addAttribute("currentPage", page);
-        m.addAttribute("totalPages", orderPage.getTotalPages());
+        var orderPage = orders.findAllByOrderByCreatedAtDesc(PageRequest.of(page, 20));
+        model.addAttribute("orders", orderPage.getContent());
+        model.addAttribute("statuses", OrderStatus.values());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", orderPage.getTotalPages());
         return "admin/orders";
     }
 
     @PostMapping("/orders/{id}/status")
     public String status(@PathVariable Long id, @RequestParam OrderStatus status,
-                         RedirectAttributes redirectAttrs) {
+                         RedirectAttributes redirectAttributes) {
         try {
-            // Fix #3 #4: stock rollback + state machine trong OrderService
             orderService.updateStatus(id, status);
-        } catch (IllegalStateException | IllegalArgumentException e) {
-            redirectAttrs.addFlashAttribute("error", e.getMessage());
+            redirectAttributes.addFlashAttribute("success", "Đã cập nhật trạng thái đơn hàng.");
+        } catch (BusinessException exception) {
+            redirectAttributes.addFlashAttribute("error", exception.getMessage());
         }
         return "redirect:/admin/orders";
     }

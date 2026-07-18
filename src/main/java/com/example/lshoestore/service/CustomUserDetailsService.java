@@ -1,7 +1,10 @@
 package com.example.lshoestore.service;
 
 import com.example.lshoestore.repository.UserRepository;
-import org.springframework.security.core.userdetails.*;
+import com.example.lshoestore.security.StoreUserPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,9 +15,10 @@ public class CustomUserDetailsService implements UserDetailsService {
         this.userRepository = userRepository;
     }
 
+    @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        var u = userRepository.findByEmailIgnoreCase(email.trim())
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy tài khoản"));
-        return org.springframework.security.core.userdetails.User.withUsername(u.getEmail()).password(u.getPassword()).roles(u.getRole().replace("ROLE_", "")).build();
+        return userRepository.findByEmailIgnoreCase(email.trim())
+                .map(StoreUserPrincipal::new)
+                .orElseThrow(() -> new UsernameNotFoundException("Account not found"));
     }
 }

@@ -1,52 +1,70 @@
-# Normalize text files to LF in the repository by default.
+# Detect text automatically and store normalized LF line endings in Git.
 * text=auto eol=lf
 
-# Keep Windows scripts in CRLF so they run cleanly in cmd/PowerShell.
+# Windows launch scripts use CRLF.
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 
-# Source files
+# Source code and configuration.
 *.java text eol=lf diff=java
 *.kt text eol=lf
+*.py text eol=lf diff=python
+*.sh text eol=lf
 *.xml text eol=lf
 *.properties text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 *.sql text eol=lf
-*.py text eol=lf diff=python
-*.sh text eol=lf
 *.html text eol=lf
 *.css text eol=lf
+*.scss text eol=lf
 *.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
 *.ts text eol=lf
 *.tsx text eol=lf
 *.json text eol=lf
 *.md text eol=lf diff=markdown
-*.gitignore text eol=lf
-*.gitattributes text eol=lf
+*.txt text eol=lf
+*.csv text eol=lf
+*.toml text eol=lf
+Dockerfile text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.env.example text eol=lf
 
-# Binary assets
-*.jar binary
-*.war binary
-*.ear binary
-*.class binary
+# Images, fonts, documents, executables and archives are binary.
 *.png binary
 *.jpg binary
 *.jpeg binary
 *.gif binary
+*.webp binary
 *.ico binary
-*.pdf binary
+*.bmp binary
 *.woff binary
 *.woff2 binary
 *.ttf binary
 *.otf binary
 *.eot binary
+*.pdf binary
+*.exe binary
+*.dll binary
+*.jar binary
+*.war binary
+*.ear binary
 *.zip binary
-*.tar binary
 *.gz binary
+*.tgz binary
+*.tar binary
 *.7z binary
+
+# Machine-learning artifacts are binary when explicitly committed.
 *.pt binary
 *.pth binary
 *.ckpt binary
 *.onnx binary
+*.joblib binary
+*.pkl binary
+*.h5 binary
+*.hdf5 binary
