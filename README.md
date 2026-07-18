@@ -108,36 +108,3 @@ AI_SERVICE_AUTOSTART=true
 ```
 
 Lần đầu chạy ResNet18 có thể cần tải trọng số mô hình và mất nhiều thời gian.
-
-## Cấu trúc chính
-
-```text
-src/main/java/com/example/lshoestore/
-├── config/       # Security, seed, migration và AI autostart
-├── controller/   # Web/API controllers
-├── dto/          # Form DTO, chống overposting
-├── exception/    # Exception nghiệp vụ và 404
-├── model/        # JPA entities
-├── repository/   # Repository và truy vấn khóa
-├── security/     # Principal và kiểm tra phiên
-└── service/      # Giỏ hàng, đơn hàng, reset mật khẩu, AI
-
-src/main/resources/
-├── static/css/style.css
-├── templates/
-└── application.properties
-
-ai-service/
-├── app/main.py
-├── run.py
-├── run.bat
-└── .env.example
-```
-
-## Lưu ý triển khai
-
-- Không đưa `.env`, API key, App Password hoặc file log lên GitHub.
-- Sao lưu PostgreSQL trước khi chạy bản mới trên database đang sử dụng.
-- Hibernate sẽ tự bổ sung các cột/index mới bằng `ddl-auto=update`; production lâu dài nên chuyển sang Flyway hoặc Liquibase.
-- Rate limit hiện lưu trong bộ nhớ từng tiến trình. Khi chạy nhiều server, nên chuyển sang Redis.
-- Để tránh lỗi đồng thời giữa nhiều instance, nên bổ sung transaction isolation/project-level locking ở tầng database khi hệ thống mở rộng.
