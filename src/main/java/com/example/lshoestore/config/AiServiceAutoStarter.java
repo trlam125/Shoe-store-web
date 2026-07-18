@@ -53,8 +53,12 @@ public class AiServiceAutoStarter implements DisposableBean {
             log.info("AI service uses a remote URL; auto-start skipped: {}", aiServiceUri);
             return;
         }
-        if (isServiceReachable()) {
-            log.info("AI service is already running at {}", aiServiceUri);
+        if (isServiceLive()) {
+            if (isServiceReady()) {
+                log.info("AI service is already running and ready at {}", aiServiceUri);
+            } else {
+                log.warn("AI service process is running at {} but its database is not ready", aiServiceUri);
+            }
             return;
         }
 
@@ -115,7 +119,7 @@ public class AiServiceAutoStarter implements DisposableBean {
                 log.error("AI service stopped before it became ready");
                 return;
             }
-            if (isServiceReachable()) {
+            if (isServiceReady()) {
                 log.info("AI service is ready at {}", aiServiceUri);
                 return;
             }
@@ -129,10 +133,18 @@ public class AiServiceAutoStarter implements DisposableBean {
         log.warn("AI service has not become ready after {} seconds; check the IntelliJ console", startupTimeoutSeconds);
     }
 
-    private boolean isServiceReachable() {
+    private boolean isServiceLive() {
+        return endpointReturnsSuccess("/live");
+    }
+
+    private boolean isServiceReady() {
+        return endpointReturnsSuccess("/ready");
+    }
+
+    private boolean endpointReturnsSuccess(String endpoint) {
         try {
             String baseUrl = aiServiceUri.toString().replaceAll("/+$", "");
-            HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/openapi.json"))
+            HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + endpoint))
                     .timeout(Duration.ofSeconds(2))
                     .GET()
                     .build();

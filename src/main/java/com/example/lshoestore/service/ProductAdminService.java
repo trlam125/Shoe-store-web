@@ -58,10 +58,7 @@ public class ProductAdminService {
         product.setStock(form.getStock());
         product.setCategory(category);
 
-        String incomingImage = cleanNullable(form.getImageUrl());
-        if (product.getId() == null || incomingImage != null) {
-            product.setImageUrl(incomingImage);
-        }
+        product.setImageUrl(cleanNullable(form.getImageUrl()));
         return products.saveAndFlush(product);
     }
 

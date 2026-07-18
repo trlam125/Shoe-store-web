@@ -43,7 +43,7 @@ public class OrderService {
     }
 
     @Transactional
-    public Order placeOrder(User user, CheckoutForm form) {
+    public Order placeOrder(User user, CheckoutForm form, String expectedCartFingerprint) {
         User lockedUser = users.findByIdWithLock(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản người dùng"));
 
@@ -74,6 +74,14 @@ public class OrderService {
             row.setSelectedSize(selectedSize);
             quantityByProduct.merge(product.getId(), (long) row.getQuantity(), Long::sum);
         }
+        String actualCartFingerprint = CheckoutFingerprint.fromSavedCartItems(cartRows, lockedProducts);
+        if (expectedCartFingerprint == null || expectedCartFingerprint.isBlank()
+                || !expectedCartFingerprint.equals(actualCartFingerprint)) {
+            throw new BusinessException(
+                    "Giỏ hàng hoặc thông tin sản phẩm đã thay đổi. Vui lòng kiểm tra và xác nhận lại.",
+                    "cart_changed");
+        }
+
 
         for (Map.Entry<Long, Long> entry : quantityByProduct.entrySet()) {
             Product product = lockedProducts.get(entry.getKey());
@@ -98,6 +106,8 @@ public class OrderService {
             OrderItem item = new OrderItem();
             item.setOrder(order);
             item.setProduct(product);
+            item.setProductName(product.getName());
+            item.setProductBrand(product.getBrand());
             item.setSelectedSize(row.getSelectedSize());
             item.setQuantity(row.getQuantity());
             item.setPrice(product.getPrice());

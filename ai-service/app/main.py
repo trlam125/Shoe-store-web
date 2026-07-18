@@ -110,8 +110,12 @@ def query_df(sql: str, params: tuple[Any, ...] = ()) -> pd.DataFrame:
             return pd.DataFrame(cursor.fetchall(), columns=columns)
 
 
-@app.get("/health")
-def health():
+@app.get("/live")
+def live():
+    return {"status": "ok", "service": "running", "version": app.version}
+
+
+def database_readiness_response():
     try:
         with psycopg.connect(DATABASE_URL) as conn:
             conn.execute("SELECT 1")
@@ -121,6 +125,17 @@ def health():
             status_code=503,
             content={"status": "degraded", "database": "unavailable", "version": app.version},
         )
+
+
+@app.get("/ready")
+def ready():
+    return database_readiness_response()
+
+
+@app.get("/health")
+def health():
+    # Giữ endpoint cũ để tương thích; /live dùng kiểm tra process, /ready dùng kiểm tra sẵn sàng.
+    return database_readiness_response()
 
 
 # ---------------------------------------------------------------------------
@@ -300,16 +315,45 @@ def prepare_daily_history(
     quantities: pd.Series,
     today: pd.Timestamp | None = None,
     max_days: int = MAX_FORECAST_HISTORY_DAYS,
+    available_from: Any | None = None,
 ) -> pd.Series:
-    if len(sale_dates) == 0:
+    reference_day = (today or pd.Timestamp.now()).normalize()
+    history_end = reference_day - pd.Timedelta(days=1)
+    max_days = max(1, int(max_days))
+
+    sales_frame = pd.DataFrame(
+        {
+            "sale_date": pd.to_datetime(pd.Series(sale_dates).reset_index(drop=True), errors="coerce"),
+            "quantity": pd.to_numeric(pd.Series(quantities).reset_index(drop=True), errors="coerce").fillna(0),
+        }
+    ).dropna(subset=["sale_date"])
+    sales_frame["sale_date"] = sales_frame["sale_date"].dt.normalize()
+
+    start_candidates: list[pd.Timestamp] = []
+    if not sales_frame.empty:
+        start_candidates.append(sales_frame["sale_date"].min())
+
+    if available_from is not None and not pd.isna(available_from):
+        available_date = pd.to_datetime(available_from, errors="coerce")
+        if not pd.isna(available_date):
+            start_candidates.append(pd.Timestamp(available_date).normalize())
+
+    if not start_candidates:
         return pd.Series(dtype=float)
-    normalized_dates = pd.to_datetime(sale_dates).dt.normalize()
-    today_value = (today or pd.Timestamp.now()).normalize()
-    start = max(normalized_dates.min(), today_value - pd.Timedelta(days=max_days - 1))
-    index = pd.date_range(start, today_value, freq="D")
+
+    earliest_available = min(start_candidates)
+    history_cutoff = history_end - pd.Timedelta(days=max_days - 1)
+    start = max(earliest_available, history_cutoff)
+    if start > history_end:
+        return pd.Series(dtype=float)
+    index = pd.date_range(start, history_end, freq="D")
+
+    if sales_frame.empty:
+        return pd.Series(0.0, index=index, dtype=float)
+
     grouped = pd.Series(
-        pd.to_numeric(quantities, errors="coerce").fillna(0).to_numpy(),
-        index=normalized_dates,
+        sales_frame["quantity"].to_numpy(dtype=float),
+        index=sales_frame["sale_date"],
         dtype=float,
     ).groupby(level=0).sum()
     return grouped.reindex(index, fill_value=0.0).clip(lower=0)
@@ -407,17 +451,20 @@ def candidate_forecasts(history: pd.Series) -> dict[str, ForecastFunction]:
     return candidates
 
 
-def choose_forecast_model(history: pd.Series) -> tuple[str, ForecastFunction, float | None]:
+def choose_forecast_model(
+    history: pd.Series,
+) -> tuple[str, ForecastFunction, float | None, float | None]:
     candidates = candidate_forecasts(history)
     if len(history) < 14:
         preferred = "croston-sba" if "croston-sba" in candidates else "trung-binh-gan"
-        return preferred, candidates[preferred], None
+        return preferred, candidates[preferred], None, None
 
     validation_days = min(14, max(3, len(history) // 5))
     train = history.iloc[:-validation_days]
     actual = history.iloc[-validation_days:].to_numpy(dtype=float)
     best_name = "trung-binh-gan"
     best_function = candidates[best_name]
+    best_mae = float("inf")
     best_score = float("inf")
 
     for name, function in candidates.items():
@@ -428,12 +475,14 @@ def choose_forecast_model(history: pd.Series) -> tuple[str, ForecastFunction, fl
         predicted = train_function(train, validation_days)
         absolute_error = np.abs(actual - predicted)
         underforecast_penalty = np.maximum(actual - predicted, 0.0)
-        score = float(np.mean(absolute_error) + 0.15 * np.mean(underforecast_penalty))
+        mae = float(np.mean(absolute_error))
+        score = float(mae + 0.15 * np.mean(underforecast_penalty))
         if score < best_score:
             best_name = name
             best_function = function
+            best_mae = mae
             best_score = score
-    return best_name, best_function, best_score
+    return best_name, best_function, best_mae, best_score
 
 
 def forecast_product(
@@ -455,7 +504,7 @@ def forecast_product(
             "salesDays": 0,
         }
 
-    method, function, validation_error = choose_forecast_model(history)
+    method, function, validation_mae, validation_score = choose_forecast_model(history)
     daily_prediction = np.clip(function(history, days), 0.0, None)
     predicted_units = float(np.sum(daily_prediction))
     recent = history.tail(min(28, len(history))).to_numpy(dtype=float)
@@ -465,9 +514,9 @@ def forecast_product(
     restock = max(0, target_stock - max(0, int(current_stock)))
     sales_days = int((history > 0).sum())
 
-    if len(history) >= 90 and sales_days >= 12 and validation_error is not None:
+    if len(history) >= 90 and sales_days >= 12 and validation_mae is not None:
         scale = max(1.0, float(history.mean()))
-        confidence = "cao" if validation_error / scale <= 0.75 else "trung bình"
+        confidence = "cao" if validation_mae / scale <= 0.75 else "trung bình"
     elif len(history) >= 30 and sales_days >= 5:
         confidence = "trung bình"
     else:
@@ -484,15 +533,17 @@ def forecast_product(
         "salesDays": sales_days,
         "safetyStock": round(safety_stock, 1),
     }
-    if validation_error is not None:
-        result["validationMae"] = round(float(validation_error), 3)
+    if validation_mae is not None:
+        result["validationMae"] = round(float(validation_mae), 3)
+    if validation_score is not None:
+        result["validationScore"] = round(float(validation_score), 3)
     return result
 
 
 @app.get("/ml/sales-forecast", dependencies=[Depends(verify_internal_request)])
 def sales_forecast(days: int = Query(default=7, ge=1, le=30)) -> dict[str, Any]:
     products = query_df(
-        "SELECT id AS product_id, name, stock "
+        "SELECT id AS product_id, name, stock, created_at "
         "FROM product WHERE active = true ORDER BY id"
     )
     if products.empty:
@@ -504,15 +555,14 @@ def sales_forecast(days: int = Query(default=7, ge=1, le=30)) -> dict[str, Any]:
 
     sales = query_df(
         """
-        SELECT p.id AS product_id, DATE(o.completed_at) AS sale_date,
+        SELECT p.id AS product_id, DATE(o.created_at) AS sale_date,
                SUM(oi.quantity) AS quantity
         FROM order_item oi
         JOIN orders o ON o.id = oi.order_id
         JOIN product p ON p.id = oi.product_id
         WHERE o.status = 'HOAN_THANH'
-          AND o.completed_at IS NOT NULL
           AND p.active = true
-        GROUP BY p.id, DATE(o.completed_at)
+        GROUP BY p.id, DATE(o.created_at)
         ORDER BY p.id, sale_date
         """
     )
@@ -527,10 +577,13 @@ def sales_forecast(days: int = Query(default=7, ge=1, le=30)) -> dict[str, Any]:
             if not sales.empty
             else pd.DataFrame()
         )
-        history = (
-            prepare_daily_history(group["sale_date"], group["quantity"], today=today)
-            if not group.empty
-            else pd.Series(dtype=float)
+        sale_dates = group["sale_date"] if not group.empty else pd.Series(dtype="datetime64[ns]")
+        quantities = group["quantity"] if not group.empty else pd.Series(dtype=float)
+        history = prepare_daily_history(
+            sale_dates,
+            quantities,
+            today=today,
+            available_from=product.created_at,
         )
         results.append(
             forecast_product(
@@ -753,30 +806,49 @@ async def image_search(
         "AND BTRIM(image_url) <> '' ORDER BY id"
     )
     raw_product_count = int(len(products))
-    unique_products: dict[str, Any] = {}
+    products_by_image: dict[str, list[Any]] = {}
+    invalid_image_urls = 0
     for row in products.itertuples():
         try:
             normalized_url = normalize_image_url(str(row.image_url))
         except ValueError:
+            invalid_image_urls += 1
             continue
-        unique_products.setdefault(normalized_url, row)
+        products_by_image.setdefault(normalized_url, []).append(row)
 
     warnings: list[str] = []
-    if raw_product_count > len(unique_products):
+    duplicate_product_count = sum(
+        max(0, len(rows) - 1) for rows in products_by_image.values()
+    )
+    if duplicate_product_count:
         warnings.append(
-            f"Danh mục có {raw_product_count - len(unique_products)} sản phẩm dùng ảnh trùng; "
-            "mỗi ảnh chỉ được so sánh một lần."
+            f"Danh mục có {duplicate_product_count} sản phẩm dùng chung ảnh; "
+            "hệ thống tái sử dụng vector ảnh nhưng vẫn xếp hạng từng sản phẩm."
         )
-    if raw_product_count > 1 and len(unique_products) < 2:
+    if invalid_image_urls:
+        warnings.append(
+            f"Có {invalid_image_urls} sản phẩm có URL ảnh không hợp lệ và không thể so sánh."
+        )
+    if raw_product_count > 1 and len(products_by_image) < 2:
         warnings.append(
             "Danh mục chưa có đủ ảnh sản phẩm khác nhau để xếp hạng đáng tin cậy."
         )
 
     scored = []
     failed_images = 0
-    for normalized_url, row in unique_products.items():
+    failed_products = 0
+    for normalized_url, rows in products_by_image.items():
+        version_token = ";".join(
+            f"{int(row.id)}:{row.version}" for row in rows
+        )
         try:
-            product_vector = product_embedding(normalized_url, str(row.version))
+            product_vector = product_embedding(normalized_url, version_token)
+        except Exception:
+            failed_images += 1
+            failed_products += len(rows)
+            continue
+
+        for row in rows:
             score = float(np.dot(query_vector, product_vector))
             scored.append(
                 {
@@ -787,10 +859,11 @@ async def image_search(
                     "similarity": round(score, 4),
                 }
             )
-        except Exception:
-            failed_images += 1
     if failed_images:
-        warnings.append(f"Không tải hoặc phân tích được {failed_images} ảnh sản phẩm.")
+        warnings.append(
+            f"Không tải hoặc phân tích được {failed_images} ảnh đại diện, "
+            f"ảnh hưởng đến {failed_products} sản phẩm."
+        )
 
     matches = filter_similarity_matches(scored, limit)
     message = None
@@ -802,7 +875,7 @@ async def image_search(
         "topImageLabels": top_labels,
         "minimumSimilarity": MIN_IMAGE_SIMILARITY,
         "catalogProducts": raw_product_count,
-        "catalogUniqueImages": len(unique_products),
+        "catalogUniqueImages": len(products_by_image),
         "matches": matches,
         "warnings": warnings,
         "message": message,

@@ -13,6 +13,8 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -302,15 +304,23 @@ public class CartService {
 
     @Transactional
     public CartMergeResult mergeGuestCart(Authentication auth, HttpSession session) {
-        List<CartItem> guestItems;
+        List<GuestCartLineSnapshot> guestItems;
         synchronized (session) {
             Map<String, CartItem> guest = getGuestCart(session);
             if (guest.isEmpty()) return new CartMergeResult(List.of());
-            guestItems = guest.values().stream()
-                    .filter(item -> item != null && item.getProduct() != null
-                            && item.getProduct().getId() != null && item.getQuantity() > 0)
-                    .sorted(Comparator.comparing((CartItem item) -> item.getProduct().getId())
-                            .thenComparing(CartItem::getSelectedSize,
+            guestItems = guest.entrySet().stream()
+                    .filter(entry -> entry.getValue() != null
+                            && entry.getValue().getProduct() != null
+                            && entry.getValue().getProduct().getId() != null
+                            && entry.getValue().getQuantity() > 0)
+                    .map(entry -> new GuestCartLineSnapshot(
+                            entry.getKey(),
+                            entry.getValue().getProduct().getId(),
+                            entry.getValue().getProduct().getName(),
+                            entry.getValue().getSelectedSize(),
+                            entry.getValue().getQuantity()))
+                    .sorted(Comparator.comparing(GuestCartLineSnapshot::productId)
+                            .thenComparing(GuestCartLineSnapshot::selectedSize,
                                     Comparator.nullsFirst(String::compareToIgnoreCase)))
                     .toList();
         }
@@ -319,16 +329,16 @@ public class CartService {
         User user = getUserForUpdate(auth);
         int index = 0;
         while (index < guestItems.size()) {
-            Long productId = guestItems.get(index).getProduct().getId();
+            Long productId = guestItems.get(index).productId();
             int end = index + 1;
             while (end < guestItems.size()
-                    && productId.equals(guestItems.get(end).getProduct().getId())) end++;
+                    && productId.equals(guestItems.get(end).productId())) end++;
 
-            List<CartItem> sameProductGuestItems = guestItems.subList(index, end);
+            List<GuestCartLineSnapshot> sameProductGuestItems = guestItems.subList(index, end);
             Product product = productRepository.findByIdWithLock(productId).orElse(null);
             if (product == null || !product.isActive() || product.getStock() <= 0) {
-                for (CartItem item : sameProductGuestItems) {
-                    warnings.add(item.getProduct().getName() + " (size " + item.getSelectedSize()
+                for (GuestCartLineSnapshot item : sameProductGuestItems) {
+                    warnings.add(item.productName() + " (size " + item.selectedSize()
                             + ") không còn khả dụng và không được gộp vào giỏ hàng.");
                 }
                 index = end;
@@ -337,11 +347,11 @@ public class CartService {
 
             List<SavedCartItem> existingRows = savedCartRepo.findAllByUserAndProductIdWithLock(user, productId);
             long currentTotal = existingRows.stream().mapToLong(SavedCartItem::getQuantity).sum();
-            for (CartItem guestItem : sameProductGuestItems) {
-                String selectedSize = normalizeStoredSize(product, guestItem.getSelectedSize());
-                int requested = Math.max(guestItem.getQuantity(), 0);
+            for (GuestCartLineSnapshot guestItem : sameProductGuestItems) {
+                String selectedSize = normalizeStoredSize(product, guestItem.selectedSize());
+                int requested = Math.max(guestItem.quantity(), 0);
                 if (selectedSize == null) {
-                    warnings.add(product.getName() + " (size " + guestItem.getSelectedSize()
+                    warnings.add(product.getName() + " (size " + guestItem.selectedSize()
                             + ") không còn hỗ trợ kích cỡ này và không được gộp vào giỏ hàng.");
                     continue;
                 }
@@ -370,12 +380,54 @@ public class CartService {
             index = end;
         }
 
-        synchronized (session) {
-            getGuestCart(session).clear();
-        }
+        clearMergedGuestCartAfterCommit(session, guestItems);
         return new CartMergeResult(warnings);
     }
 
+
+    private void clearMergedGuestCartAfterCommit(HttpSession session,
+                                                  List<GuestCartLineSnapshot> mergedItems) {
+        Runnable clearMergedLines = () -> {
+            try {
+                synchronized (session) {
+                    Map<String, CartItem> guest = getGuestCart(session);
+                    for (GuestCartLineSnapshot item : mergedItems) {
+                        CartItem current = guest.get(item.key());
+                        if (current == null) continue;
+
+                        // Remove only the quantity that belonged to the captured guest-cart
+                        // snapshot. A concurrent request may have added more of the same line
+                        // while the database merge was running; that newer quantity must remain.
+                        long remaining = (long) current.getQuantity() - item.quantity();
+                        if (remaining <= 0) {
+                            guest.remove(item.key());
+                        } else {
+                            guest.put(item.key(), new CartItem(
+                                    current.getProduct(),
+                                    (int) Math.min(remaining, Integer.MAX_VALUE),
+                                    current.getSelectedSize()));
+                        }
+                    }
+                }
+            } catch (IllegalStateException ignored) {
+                // The HTTP session may already have expired after the database commit.
+            }
+        };
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            clearMergedLines.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                clearMergedLines.run();
+            }
+        });
+    }
+
+    private record GuestCartLineSnapshot(String key, Long productId, String productName,
+                                         String selectedSize, int quantity) {}
 
     private Product lockAvailableProduct(Long productId) {
         Product product = productRepository.findByIdWithLock(productId)

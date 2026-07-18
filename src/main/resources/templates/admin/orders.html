@@ -15,7 +15,7 @@
         <tbody><tr th:each="o : ${orders}">
             <td><b th:text="${'#' + o.id}"></b></td>
             <td th:text="${o.receiverName}"></td>
-            <td><div class="order-items-compact" th:each="item : ${o.items}"><b th:text="${item.product.name}"></b><span th:text="${'Size ' + item.selectedSize + ' · SL ' + item.quantity}"></span></div></td>
+            <td><div class="order-items-compact" th:each="item : ${o.items}"><b th:text="${item.productName}"></b><span th:if="${item.productBrand != null and !item.productBrand.isBlank()}" th:text="${item.productBrand}"></span><span th:text="${'Size ' + item.selectedSize + ' · SL ' + item.quantity}"></span></div></td>
             <td th:text="${o.phone}"></td>
             <td class="address-cell" th:text="${o.address}"></td>
             <td><b th:text="${#numbers.formatDecimal(o.total,0,'COMMA',0,'POINT')} + 'đ'"></b></td>

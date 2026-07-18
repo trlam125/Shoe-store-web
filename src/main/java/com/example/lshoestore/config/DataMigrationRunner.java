@@ -47,6 +47,7 @@ public class DataMigrationRunner implements CommandLineRunner {
                     "SELECT pg_advisory_xact_lock(" + MIGRATION_LOCK_ID + ")");
 
             migrateSelectedSizes();
+            migrateOrderItemSnapshots();
             runRequiredUpdate("user session versions",
                     "UPDATE users SET session_version = 0 WHERE session_version IS NULL");
             runRequiredUpdate("product versions",
@@ -72,6 +73,37 @@ public class DataMigrationRunner implements CommandLineRunner {
         // Cosmetic migration is intentionally outside the required transaction: a bad demo
         // image must not roll back or block the schema/data-integrity migrations above.
         migrateLegacyDemoImages();
+    }
+
+    private void migrateOrderItemSnapshots() {
+        runRequiredStatement("order item product-name snapshot column",
+                "ALTER TABLE order_item ADD COLUMN IF NOT EXISTS product_name VARCHAR(160)");
+        runRequiredStatement("order item product-brand snapshot column",
+                "ALTER TABLE order_item ADD COLUMN IF NOT EXISTS product_brand VARCHAR(100)");
+
+        runRequiredUpdate("historical order product names",
+                "UPDATE order_item oi SET product_name = "
+                        + "COALESCE(NULLIF(BTRIM(oi.product_name), ''), "
+                        + "NULLIF(BTRIM(p.name), ''), 'Sản phẩm') "
+                        + "FROM product p WHERE oi.product_id = p.id "
+                        + "AND (oi.product_name IS NULL OR BTRIM(oi.product_name) = '')");
+        runRequiredUpdate("historical order product brands",
+                "UPDATE order_item oi SET product_brand = "
+                        + "COALESCE(NULLIF(BTRIM(oi.product_brand), ''), "
+                        + "NULLIF(BTRIM(p.brand), ''), 'Không rõ') "
+                        + "FROM product p WHERE oi.product_id = p.id "
+                        + "AND (oi.product_brand IS NULL OR BTRIM(oi.product_brand) = '')");
+        runRequiredUpdate("trimmed historical order product names",
+                "UPDATE order_item SET product_name = BTRIM(product_name) "
+                        + "WHERE product_name IS NOT NULL AND product_name <> BTRIM(product_name)");
+        runRequiredUpdate("trimmed historical order product brands",
+                "UPDATE order_item SET product_brand = BTRIM(product_brand) "
+                        + "WHERE product_brand IS NOT NULL AND product_brand <> BTRIM(product_brand)");
+
+        runRequiredStatement("order item product name not-null",
+                "ALTER TABLE order_item ALTER COLUMN product_name SET NOT NULL");
+        runRequiredStatement("order item product brand not-null",
+                "ALTER TABLE order_item ALTER COLUMN product_brand SET NOT NULL");
     }
 
     private void migrateSelectedSizes() {
@@ -223,6 +255,10 @@ public class DataMigrationRunner implements CommandLineRunner {
                 "CHECK (BTRIM(selected_size) <> '')");
         addConstraintIfMissing("order_item", "chk_order_item_price_nonnegative",
                 "CHECK (price >= 0)");
+        addConstraintIfMissing("order_item", "chk_order_item_product_name_nonblank",
+                "CHECK (BTRIM(product_name) <> '')");
+        addConstraintIfMissing("order_item", "chk_order_item_product_brand_nonblank",
+                "CHECK (BTRIM(product_brand) <> '')");
         addConstraintIfMissing("orders", "chk_order_total_nonnegative",
                 "CHECK (total >= 0)");
     }

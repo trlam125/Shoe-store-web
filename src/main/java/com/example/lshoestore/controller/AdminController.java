@@ -13,7 +13,6 @@ import com.example.lshoestore.service.ProductAdminService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -71,11 +70,16 @@ public class AdminController {
 
     @GetMapping("/products")
     public String productList(@RequestParam(defaultValue = "0") int page, Model model) {
-        page = Math.max(page, 0);
-        Pageable pageable = PageRequest.of(page, 20);
-        var productPage = products.findAllByOrderByIdDesc(pageable);
+        int requestedPage = Math.max(page, 0);
+        var productPage = products.findAllByOrderByIdDesc(PageRequest.of(requestedPage, 20));
+        if (productPage.getTotalPages() == 0) {
+            requestedPage = 0;
+        } else if (requestedPage >= productPage.getTotalPages()) {
+            requestedPage = productPage.getTotalPages() - 1;
+            productPage = products.findAllByOrderByIdDesc(PageRequest.of(requestedPage, 20));
+        }
         model.addAttribute("products", productPage.getContent());
-        model.addAttribute("currentPage", page);
+        model.addAttribute("currentPage", requestedPage);
         model.addAttribute("totalPages", productPage.getTotalPages());
         return "admin/products";
     }
@@ -123,11 +127,17 @@ public class AdminController {
 
     @GetMapping("/orders")
     public String orderList(@RequestParam(defaultValue = "0") int page, Model model) {
-        page = Math.max(page, 0);
-        var orderPage = orders.findAllByOrderByCreatedAtDesc(PageRequest.of(page, 20));
+        int requestedPage = Math.max(page, 0);
+        var orderPage = orders.findAllByOrderByCreatedAtDesc(PageRequest.of(requestedPage, 20));
+        if (orderPage.getTotalPages() == 0) {
+            requestedPage = 0;
+        } else if (requestedPage >= orderPage.getTotalPages()) {
+            requestedPage = orderPage.getTotalPages() - 1;
+            orderPage = orders.findAllByOrderByCreatedAtDesc(PageRequest.of(requestedPage, 20));
+        }
         model.addAttribute("orders", orderPage.getContent());
         model.addAttribute("statuses", OrderStatus.values());
-        model.addAttribute("currentPage", page);
+        model.addAttribute("currentPage", requestedPage);
         model.addAttribute("totalPages", orderPage.getTotalPages());
         return "admin/orders";
     }

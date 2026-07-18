@@ -6,7 +6,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.util.HexFormat;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -25,21 +30,46 @@ public class RequestRateLimiter {
                 && !"anonymousUser".equals(authentication.getPrincipal())
                 ? "user:" + authentication.getName().toLowerCase()
                 : "ip:" + resolveClientIp(request);
-        String key = scope + ":" + identity;
+        return allowKey(scope + ":" + identity, limit, duration);
+    }
+
+    public boolean allowIp(String scope, HttpServletRequest request, int limit, Duration duration) {
+        return allowKey(scope + ":ip:" + resolveClientIp(request), limit, duration);
+    }
+
+    public boolean allowIdentity(String scope, String identity, int limit, Duration duration) {
+        if (identity == null || identity.isBlank()) return true;
+        String normalized = identity.trim().toLowerCase(Locale.ROOT);
+        return allowKey(scope + ":identity:" + hash(normalized), limit, duration);
+    }
+
+    private boolean allowKey(String key, int limit, Duration duration) {
         long now = System.currentTimeMillis();
         long windowMillis = Math.max(duration.toMillis(), 1000);
 
         Window result = windows.compute(key, (ignored, existing) -> {
-            if (existing == null || now - existing.startedAt >= windowMillis) {
-                return new Window(now, 1);
+            if (existing == null || existing.windowMillis != windowMillis
+                    || now - existing.startedAt >= windowMillis) {
+                return new Window(now, 1, windowMillis);
             }
-            return new Window(existing.startedAt, existing.count + 1);
+            return new Window(existing.startedAt, existing.count + 1, windowMillis);
         });
 
         if (windows.size() > 10_000) {
-            windows.entrySet().removeIf(entry -> now - entry.getValue().startedAt > windowMillis * 2);
+            windows.entrySet().removeIf(entry ->
+                    now - entry.getValue().startedAt > entry.getValue().windowMillis * 2);
         }
         return result.count <= Math.max(limit, 1);
+    }
+
+    private String hash(String value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
     }
 
     private String resolveClientIp(HttpServletRequest request) {
@@ -85,5 +115,5 @@ public class RequestRateLimiter {
         }
     }
 
-    private record Window(long startedAt, int count) {}
+    private record Window(long startedAt, int count, long windowMillis) {}
 }

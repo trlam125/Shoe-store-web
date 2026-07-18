@@ -18,6 +18,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findAllByOrderByCreatedAtDesc();
     Page<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);
     boolean existsByCheckoutToken(String checkoutToken);
+    boolean existsByCheckoutTokenAndUser(String checkoutToken, User user);
     Optional<Order> findByCheckoutToken(String checkoutToken);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

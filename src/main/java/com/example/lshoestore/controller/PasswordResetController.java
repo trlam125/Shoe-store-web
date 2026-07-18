@@ -2,6 +2,7 @@ package com.example.lshoestore.controller;
 
 import com.example.lshoestore.service.CartService;
 import com.example.lshoestore.service.PasswordResetService;
+import com.example.lshoestore.service.RequestRateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,21 +14,31 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.time.Duration;
+import java.util.Locale;
+
 @Controller
 public class PasswordResetController {
     private final PasswordResetService passwordResetService;
     private final CartService cart;
+    private final RequestRateLimiter rateLimiter;
     private final String publicBaseUrl;
     private final boolean development;
+    private final int resetRequestsPerWindow;
 
     public PasswordResetController(PasswordResetService passwordResetService,
                                    CartService cart,
+                                   RequestRateLimiter rateLimiter,
                                    @Value("${app.public-base-url:}") String publicBaseUrl,
-                                   @Value("${app.environment:production}") String environment) {
+                                   @Value("${app.environment:production}") String environment,
+                                   @Value("${app.rate-limit.password-reset-per-15-minutes:3}")
+                                   int resetRequestsPerWindow) {
         this.passwordResetService = passwordResetService;
         this.cart = cart;
+        this.rateLimiter = rateLimiter;
         this.publicBaseUrl = publicBaseUrl == null ? "" : publicBaseUrl.trim();
         this.development = "development".equalsIgnoreCase(environment);
+        this.resetRequestsPerWindow = Math.max(resetRequestsPerWindow, 1);
     }
 
     @GetMapping("/forgot-password")
@@ -41,7 +52,13 @@ public class PasswordResetController {
                                HttpServletRequest request,
                                Model model, Authentication auth, HttpSession session) {
         String baseUrl = resolveBaseUrl(request);
-        if (baseUrl != null) {
+        String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+        boolean ipAllowed = rateLimiter.allowIp(
+                "password-reset", request, resetRequestsPerWindow, Duration.ofMinutes(15));
+        boolean emailAllowed = normalizedEmail.isBlank() || rateLimiter.allowIdentity(
+                "password-reset-email", normalizedEmail,
+                resetRequestsPerWindow, Duration.ofMinutes(15));
+        if (baseUrl != null && ipAllowed && emailAllowed) {
             passwordResetService.requestReset(email, baseUrl);
         }
         addCartCount(model, auth, session);
