@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Đăng ký - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=5}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=6}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
 <section class="form-box">
     <p class="badge badge-dark">Thành viên mới</p>
     <h1>Tạo tài khoản LSHOE</h1>
-    <p class="form-intro">Đăng ký để lưu giỏ hàng, theo dõi đơn và nhận trải nghiệm mua sắm thuận tiện hơn.</p>
+    <p class="form-intro">Sau khi gửi thông tin, bạn cần nhập mã 6 chữ số được gửi tới email để hoàn tất đăng ký.</p>
     <p class="error" th:if="${error}" th:text="${error}"></p>
     <form th:action="@{/register}" method="post" th:object="${form}">
         <div class="form-grid">
@@ -46,7 +46,7 @@
             <input name="captchaAnswer" type="number" required autocomplete="off" inputmode="numeric" placeholder="Nhập kết quả">
         </div>
         <p class="field-error" th:if="${captchaError}" th:text="${captchaError}"></p>
-        <button class="btn" type="submit">Tạo tài khoản</button>
+        <button class="btn" type="submit">Gửi mã xác thực</button>
     </form>
     <p class="form-foot">Đã có tài khoản? <a th:href="@{/login}">Đăng nhập</a></p>
 </section>

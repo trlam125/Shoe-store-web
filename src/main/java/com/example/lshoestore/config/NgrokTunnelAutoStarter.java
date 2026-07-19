@@ -1,6 +1,5 @@
 package com.example.lshoestore.config;
 
-import com.example.lshoestore.service.CloudflarePublicUrlProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
@@ -29,18 +28,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Starts Cloudflare Tunnel after the local Spring Boot web server is reachable.
+ * Starts an ngrok HTTP endpoint after the local Spring Boot application is ready.
  *
- * Supported modes:
- * - quick: creates a temporary *.trycloudflare.com URL.
- * - named: runs a locally managed named tunnel using cloudflared-config.yml.
+ * The ngrok authtoken is intentionally not read from the project. Configure it once
+ * with: ngrok config add-authtoken YOUR_TOKEN
  */
 @Component
-public class CloudflareTunnelAutoStarter implements DisposableBean {
+public class NgrokTunnelAutoStarter implements DisposableBean {
 
-    private static final Logger log = LoggerFactory.getLogger(CloudflareTunnelAutoStarter.class);
-    private static final Pattern QUICK_TUNNEL_URL = Pattern.compile(
-            "https://[a-zA-Z0-9-]+\\.trycloudflare\\.com"
+    private static final Logger log = LoggerFactory.getLogger(NgrokTunnelAutoStarter.class);
+    private static final Pattern NGROK_PUBLIC_URL = Pattern.compile(
+            "https://[a-zA-Z0-9][a-zA-Z0-9.-]*\\.(?:ngrok-free\\.app|ngrok\\.app|ngrok\\.dev)"
     );
     private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(2);
     private static final Duration RETRY_DELAY = Duration.ofSeconds(1);
@@ -51,58 +49,52 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
             .build();
 
     private final boolean enabled;
-    private final String mode;
     private final String configuredProjectRoot;
     private final String executableName;
     private final String configuredLocalUrl;
+    private final String configuredPublicUrl;
+    private final boolean inspectTraffic;
     private final int serverPort;
-    private final String configFileName;
-    private final String tunnelName;
     private final int startupTimeoutSeconds;
-    private final CloudflarePublicUrlProvider publicUrlProvider;
 
-    private volatile Process cloudflaredProcess;
-    private volatile String publishedQuickTunnelUrl = "";
+    private volatile Process ngrokProcess;
     private volatile boolean shuttingDown;
 
-    public CloudflareTunnelAutoStarter(
-            CloudflarePublicUrlProvider publicUrlProvider,
-            @Value("${CLOUDFLARE_TUNNEL_AUTOSTART:${cloudflare.tunnel.autostart:false}}") boolean enabled,
-            @Value("${CLOUDFLARE_TUNNEL_MODE:${cloudflare.tunnel.mode:quick}}") String mode,
+    public NgrokTunnelAutoStarter(
+            @Value("${NGROK_TUNNEL_AUTOSTART:${ngrok.tunnel.autostart:false}}") boolean enabled,
             @Value("${LSHOE_PROJECT_ROOT:${ai.service.project-root:}}") String configuredProjectRoot,
-            @Value("${CLOUDFLARE_TUNNEL_EXECUTABLE:${cloudflare.tunnel.executable:cloudflared-windows-amd64.exe}}") String executableName,
-            @Value("${CLOUDFLARE_TUNNEL_LOCAL_URL:${cloudflare.tunnel.local-url:}}") String configuredLocalUrl,
+            @Value("${NGROK_TUNNEL_EXECUTABLE:${ngrok.tunnel.executable:ngrok.exe}}") String executableName,
+            @Value("${NGROK_TUNNEL_LOCAL_URL:${ngrok.tunnel.local-url:}}") String configuredLocalUrl,
+            @Value("${NGROK_PUBLIC_URL:${ngrok.tunnel.public-url:}}") String configuredPublicUrl,
+            @Value("${NGROK_INSPECT:${ngrok.tunnel.inspect:false}}") boolean inspectTraffic,
             @Value("${SERVER_PORT:${server.port:8081}}") int serverPort,
-            @Value("${CLOUDFLARE_TUNNEL_CONFIG:${cloudflare.tunnel.config:cloudflared-config.yml}}") String configFileName,
-            @Value("${CLOUDFLARE_TUNNEL_NAME:${cloudflare.tunnel.name:lshoe-store}}") String tunnelName,
-            @Value("${CLOUDFLARE_TUNNEL_STARTUP_TIMEOUT_SECONDS:${cloudflare.tunnel.startup-timeout-seconds:45}}") int startupTimeoutSeconds) {
-        this.publicUrlProvider = publicUrlProvider;
+            @Value("${NGROK_TUNNEL_STARTUP_TIMEOUT_SECONDS:${ngrok.tunnel.startup-timeout-seconds:45}}")
+            int startupTimeoutSeconds) {
         this.enabled = enabled;
-        this.mode = normalize(mode, "quick");
         this.configuredProjectRoot = normalize(configuredProjectRoot, "");
-        this.executableName = normalize(executableName, "cloudflared-windows-amd64.exe");
+        this.executableName = normalize(executableName, "ngrok.exe");
         this.configuredLocalUrl = normalize(configuredLocalUrl, "");
+        this.configuredPublicUrl = normalize(configuredPublicUrl, "");
+        this.inspectTraffic = inspectTraffic;
         this.serverPort = serverPort;
-        this.configFileName = normalize(configFileName, "cloudflared-config.yml");
-        this.tunnelName = normalize(tunnelName, "lshoe-store");
         this.startupTimeoutSeconds = Math.max(startupTimeoutSeconds, 1);
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void startTunnelAfterApplicationReady() {
         if (!enabled) {
-            log.info("Cloudflare Tunnel auto-start is disabled");
+            log.info("ngrok Tunnel auto-start is disabled");
             return;
         }
 
         if (!isWindows()) {
-            log.warn("This Cloudflare auto-starter is configured for cloudflared-windows-amd64.exe; skipping on {}",
+            log.warn("The configured ngrok auto-starter targets Windows; skipping on {}",
                     System.getProperty("os.name"));
             return;
         }
 
         Thread.ofVirtual()
-                .name("cloudflare-tunnel-startup")
+                .name("ngrok-tunnel-startup")
                 .start(this::startSafely);
     }
 
@@ -110,10 +102,11 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
         try {
             Path projectRoot = resolveProjectRoot();
             URI localUri = resolveLocalUri();
+            URI publicUri = resolvePublicUri();
 
             if (!waitForLocalApplication(localUri)) {
-                log.error("Cloudflare Tunnel was not started because the local web application did not become "
-                                + "reachable at {} after {} seconds",
+                log.error("ngrok was not started because the local web application did not become reachable at {} "
+                                + "after {} seconds",
                         localUri, startupTimeoutSeconds);
                 return;
             }
@@ -122,18 +115,15 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
                 return;
             }
 
-            if ("quick".equals(mode)) {
-                publicUrlProvider.clearAll();
-            }
-            startCloudflared(projectRoot, localUri);
+            startNgrok(projectRoot, localUri, publicUri);
         } catch (RuntimeException exception) {
-            log.error("Failed to initialize Cloudflare Tunnel", exception);
+            log.error("Failed to initialize ngrok", exception);
         }
     }
 
     private boolean waitForLocalApplication(URI localUri) {
         long deadline = System.nanoTime() + Duration.ofSeconds(startupTimeoutSeconds).toNanos();
-        log.info("Waiting for local web application at {} before starting Cloudflare Tunnel", localUri);
+        log.info("Waiting for local web application at {} before starting ngrok", localUri);
 
         while (!shuttingDown && System.nanoTime() < deadline) {
             if (isHttpEndpointReachable(localUri)) {
@@ -158,9 +148,6 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
                     .GET()
                     .build();
             HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
-
-            // A redirect, unauthorized, forbidden, or not-found response still proves that
-            // the local HTTP server is alive. Only 5xx is treated as not ready.
             return response.statusCode() >= 100 && response.statusCode() < 500;
         } catch (IOException exception) {
             return false;
@@ -170,16 +157,16 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
         }
     }
 
-    private void startCloudflared(Path projectRoot, URI localUri) {
-        Path executable = resolvePath(projectRoot, executableName);
-        if (!Files.isRegularFile(executable)) {
-            log.error("cloudflared executable not found at {}", executable);
-            return;
-        }
+    private void startNgrok(Path projectRoot, URI localUri, URI publicUri) {
+        List<String> command = new ArrayList<>();
+        command.add(resolveExecutable(projectRoot));
+        command.add("http");
+        command.add(toNgrokLocalTarget(localUri));
+        command.add("--inspect=" + inspectTraffic);
 
-        List<String> command = buildCommand(projectRoot, executable, localUri);
-        if (command.isEmpty()) {
-            return;
+        if (publicUri != null) {
+            command.add("--url");
+            command.add(publicUri.toString());
         }
 
         ProcessBuilder builder = new ProcessBuilder(command);
@@ -187,51 +174,53 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
         builder.redirectErrorStream(true);
 
         try {
-            cloudflaredProcess = builder.start();
-            log.info("Starting Cloudflare Tunnel in '{}' mode", mode);
+            ngrokProcess = builder.start();
+            if (publicUri == null) {
+                log.warn("NGROK_PUBLIC_URL is empty. ngrok will use an endpoint assigned by the account, but "
+                        + "password-reset links need NGROK_PUBLIC_URL or APP_PUBLIC_BASE_URL to be fixed.");
+                log.info("Starting ngrok with the account's assigned endpoint");
+            } else {
+                log.info("Starting ngrok at {}", publicUri);
+            }
+            log.info("ngrok forwards public HTTPS traffic to {}", localUri);
+
+            Process startedProcess = ngrokProcess;
             Thread.ofVirtual()
-                    .name("cloudflare-tunnel-output")
-                    .start(() -> relayOutput(cloudflaredProcess));
+                    .name("ngrok-tunnel-output")
+                    .start(() -> relayOutput(startedProcess));
             Thread.ofVirtual()
-                    .name("cloudflare-tunnel-monitor")
-                    .start(() -> monitorProcess(cloudflaredProcess));
+                    .name("ngrok-tunnel-monitor")
+                    .start(() -> monitorProcess(startedProcess));
         } catch (IOException exception) {
-            log.error("Failed to start cloudflared", exception);
+            log.error("Failed to start ngrok. Install ngrok or set NGROK_TUNNEL_EXECUTABLE to ngrok.exe's "
+                    + "absolute path.", exception);
         }
     }
 
-    private List<String> buildCommand(Path projectRoot, Path executable, URI localUri) {
-        List<String> command = new ArrayList<>();
-        command.add(executable.toString());
-        command.add("tunnel");
-
-        switch (mode) {
-            case "quick" -> {
-                command.add("--url");
-                command.add(localUri.toString());
+    private String resolveExecutable(Path projectRoot) {
+        Path configuredPath = Path.of(executableName);
+        if (configuredPath.isAbsolute()) {
+            if (!Files.isRegularFile(configuredPath)) {
+                throw new IllegalStateException("ngrok executable not found at " + configuredPath);
             }
-            case "named" -> {
-                Path configFile = resolvePath(projectRoot, configFileName);
-                if (!Files.isRegularFile(configFile)) {
-                    log.error("Named tunnel config file not found at {}", configFile);
-                    return List.of();
-                }
-                if (tunnelName.isBlank()) {
-                    log.error("CLOUDFLARE_TUNNEL_NAME must be set when using named mode");
-                    return List.of();
-                }
-
-                command.add("--config");
-                command.add(configFile.toString());
-                command.add("run");
-                command.add(tunnelName);
-            }
-            default -> {
-                log.error("Unsupported CLOUDFLARE_TUNNEL_MODE='{}'. Use 'quick' or 'named'.", mode);
-                return List.of();
-            }
+            return configuredPath.normalize().toString();
         }
-        return command;
+
+        Path projectExecutable = projectRoot.resolve(configuredPath).normalize();
+        if (Files.isRegularFile(projectExecutable)) {
+            return projectExecutable.toString();
+        }
+
+        // Let Windows resolve ngrok.exe from PATH when installed with the official setup.
+        return executableName;
+    }
+
+    private String toNgrokLocalTarget(URI localUri) {
+        int port = localUri.getPort();
+        if (port < 0) {
+            port = "https".equalsIgnoreCase(localUri.getScheme()) ? 443 : 80;
+        }
+        return localUri.getHost() + ":" + port;
     }
 
     private void relayOutput(Process process) {
@@ -239,18 +228,16 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
                 process.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                log.info("[cloudflared] {}", line);
+                log.info("[ngrok] {}", line);
 
-                Matcher matcher = QUICK_TUNNEL_URL.matcher(line);
+                Matcher matcher = NGROK_PUBLIC_URL.matcher(line);
                 if (matcher.find()) {
-                    publishedQuickTunnelUrl = matcher.group();
-                    publicUrlProvider.publish(publishedQuickTunnelUrl);
-                    log.info("Cloudflare public URL: {}", publishedQuickTunnelUrl);
+                    log.info("ngrok public URL: {}", matcher.group());
                 }
             }
         } catch (IOException exception) {
             if (!shuttingDown) {
-                log.warn("Stopped reading cloudflared output", exception);
+                log.warn("Stopped reading ngrok output", exception);
             }
         }
     }
@@ -258,9 +245,9 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
     private void monitorProcess(Process process) {
         try {
             int exitCode = process.waitFor();
-            publicUrlProvider.clear(publishedQuickTunnelUrl);
             if (!shuttingDown) {
-                log.warn("cloudflared stopped with exit code {}", exitCode);
+                log.warn("ngrok stopped with exit code {}. Check whether the authtoken is configured and the "
+                        + "NGROK_PUBLIC_URL belongs to this account.", exitCode);
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
@@ -271,7 +258,34 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
         String url = configuredLocalUrl.isBlank()
                 ? "http://127.0.0.1:" + serverPort
                 : configuredLocalUrl;
-        return URI.create(url.replaceAll("/+$", ""));
+        URI uri = URI.create(url.replaceAll("/+$", ""));
+        if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
+                || uri.getHost() == null || !isRootPath(uri)) {
+            throw new IllegalStateException("Invalid NGROK_TUNNEL_LOCAL_URL: " + url);
+        }
+        return uri;
+    }
+
+    private URI resolvePublicUri() {
+        if (configuredPublicUrl.isBlank()) {
+            return null;
+        }
+
+        URI uri = URI.create(configuredPublicUrl.replaceAll("/+$", ""));
+        if (!"https".equalsIgnoreCase(uri.getScheme())
+                || uri.getHost() == null
+                || uri.getUserInfo() != null
+                || uri.getQuery() != null
+                || uri.getFragment() != null
+                || !isRootPath(uri)) {
+            throw new IllegalStateException("NGROK_PUBLIC_URL must be a root HTTPS URL, for example "
+                    + "https://example.ngrok-free.app");
+        }
+        return uri;
+    }
+
+    private boolean isRootPath(URI uri) {
+        return uri.getPath() == null || uri.getPath().isBlank() || "/".equals(uri.getPath());
     }
 
     private Path resolveProjectRoot() {
@@ -300,13 +314,6 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
                 && Files.isDirectory(path.resolve("src"));
     }
 
-    private Path resolvePath(Path projectRoot, String value) {
-        Path path = Path.of(value);
-        return path.isAbsolute()
-                ? path.normalize()
-                : projectRoot.resolve(path).normalize();
-    }
-
     private String normalize(String value, String fallback) {
         if (value == null || value.isBlank()) {
             return fallback;
@@ -323,8 +330,7 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
     @Override
     public void destroy() {
         shuttingDown = true;
-        stopProcess(cloudflaredProcess);
-        publicUrlProvider.clear(publishedQuickTunnelUrl);
+        stopProcess(ngrokProcess);
     }
 
     private void stopProcess(Process process) {
@@ -354,6 +360,6 @@ public class CloudflareTunnelAutoStarter implements DisposableBean {
             process.destroyForcibly();
         }
 
-        log.info("Cloudflare Tunnel process stopped");
+        log.info("ngrok process stopped");
     }
 }

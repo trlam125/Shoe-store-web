@@ -13,9 +13,9 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -35,48 +35,77 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokens;
     private final PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender;
+    private final TransactionTemplate transactionTemplate;
     private final SecureRandom secureRandom = new SecureRandom();
     private final String mailUsername;
     private final int expiryMinutes;
+    private final int maxSendAttempts;
     private final boolean allowLocalLinkLogging;
 
     public PasswordResetService(UserRepository users,
                                 PasswordResetTokenRepository tokens,
                                 PasswordEncoder passwordEncoder,
                                 ObjectProvider<JavaMailSender> mailSenderProvider,
+                                PlatformTransactionManager transactionManager,
                                 @Value("${spring.mail.username:}") String mailUsername,
                                 @Value("${app.password-reset.expiry-minutes:30}") int expiryMinutes,
+                                @Value("${app.mail.max-send-attempts:3}") int maxSendAttempts,
                                 @Value("${app.password-reset.log-link:false}") boolean logResetLink,
                                 @Value("${app.environment:production}") String environment) {
         this.users = users;
         this.tokens = tokens;
         this.passwordEncoder = passwordEncoder;
         this.mailSender = mailSenderProvider.getIfAvailable();
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.mailUsername = mailUsername == null ? "" : mailUsername.trim();
         this.expiryMinutes = Math.max(expiryMinutes, 5);
+        this.maxSendAttempts = Math.max(maxSendAttempts, 1);
         this.allowLocalLinkLogging = logResetLink && "development".equalsIgnoreCase(environment);
     }
 
-    @Transactional
-    public void requestReset(String email, String baseUrl) {
-        if (email == null || email.isBlank() || email.length() > 190 || baseUrl == null || baseUrl.isBlank()) return;
-        Optional<User> optionalUser = users.findByEmailIgnoreCase(email.trim().toLowerCase(Locale.ROOT));
-        if (optionalUser.isEmpty()) return;
+    public RequestResult requestReset(String email, String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) return RequestResult.PUBLIC_URL_UNAVAILABLE;
+        if (email == null || email.isBlank() || email.length() > 190) return RequestResult.NOT_FOUND;
+        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
 
-        User user = users.findByIdWithLock(optionalUser.get().getId()).orElse(null);
-        if (user == null) return;
-        tokens.deleteByUser(user);
-        tokens.flush();
+        ResetPreparation preparation = transactionTemplate.execute(status -> {
+            Optional<User> optionalUser = users.findByEmailIgnoreCase(normalizedEmail);
+            if (optionalUser.isEmpty()) {
+                return new ResetPreparation(RequestResult.NOT_FOUND, null, null);
+            }
 
-        String rawToken = generateToken();
-        PasswordResetToken token = new PasswordResetToken();
-        token.setUser(user);
-        token.setTokenHash(hash(rawToken));
-        token.setExpiresAt(LocalDateTime.now().plusMinutes(expiryMinutes));
-        tokens.save(token);
+            User user = users.findByIdWithLock(optionalUser.get().getId()).orElse(null);
+            if (user == null) {
+                return new ResetPreparation(RequestResult.NOT_FOUND, null, null);
+            }
 
-        String resetUrl = baseUrl.replaceAll("/+$", "") + "/reset-password?token=" + rawToken;
-        sendResetEmailAfterCommit(user.getEmail(), user.getFullName(), resetUrl);
+            // Keep existing valid reset links until one is used; only remove expired rows.
+            tokens.deleteByExpiresAtBefore(LocalDateTime.now());
+            String rawToken = generateToken();
+            PasswordResetToken token = new PasswordResetToken();
+            token.setUser(user);
+            token.setTokenHash(hash(rawToken));
+            token.setExpiresAt(LocalDateTime.now().plusMinutes(expiryMinutes));
+            tokens.saveAndFlush(token);
+
+            String resetUrl = baseUrl.replaceAll("/+$", "") + "/reset-password?token=" + rawToken;
+            return new ResetPreparation(
+                    RequestResult.SENT,
+                    token.getId(),
+                    new ResetMailRequest(user.getEmail(), user.getFullName(), resetUrl));
+        });
+
+        if (preparation == null) return RequestResult.DELIVERY_FAILED;
+        if (preparation.result() != RequestResult.SENT) return preparation.result();
+
+        if (!sendResetEmail(preparation.mail())) {
+            deleteCandidateToken(preparation.tokenId());
+            return RequestResult.DELIVERY_FAILED;
+        }
+
+        // Multiple successfully delivered links may coexist. Using any one of them
+        // changes the password and deletes every reset token for that user.
+        return RequestResult.SENT;
     }
 
     @Transactional(readOnly = true)
@@ -109,6 +138,15 @@ public class PasswordResetService {
         return true;
     }
 
+    private void deleteCandidateToken(Long tokenId) {
+        if (tokenId == null) return;
+        transactionTemplate.executeWithoutResult(status -> {
+            if (tokens.existsById(tokenId)) {
+                tokens.deleteById(tokenId);
+            }
+        });
+    }
+
     private String generateToken() {
         byte[] bytes = new byte[32];
         secureRandom.nextBytes(bytes);
@@ -124,48 +162,52 @@ public class PasswordResetService {
         }
     }
 
-    private void sendResetEmailAfterCommit(String recipientEmail, String recipientName, String resetUrl) {
-        Runnable sendAction = () -> sendResetEmail(recipientEmail, recipientName, resetUrl);
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            sendAction.run();
-            return;
-        }
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                sendAction.run();
-            }
-        });
-    }
-
-    private void sendResetEmail(String recipientEmail, String recipientName, String resetUrl) {
+    private boolean sendResetEmail(ResetMailRequest request) {
+        if (request == null) return false;
         if (mailSender == null || mailUsername.isBlank()) {
-            logLocalLink(resetUrl);
-            return;
+            return logLocalLink(request);
         }
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(mailUsername);
-        message.setTo(recipientEmail);
+        message.setTo(request.recipientEmail());
         message.setSubject("Đặt lại mật khẩu LSHOE");
-        message.setText("Xin chào " + recipientName + ",\n\n"
+        message.setText("Xin chào " + request.recipientName() + ",\n\n"
                 + "Mở liên kết sau để đặt lại mật khẩu. Liên kết hết hạn sau "
-                + expiryMinutes + " phút:\n" + resetUrl
+                + expiryMinutes + " phút:\n" + request.resetUrl()
                 + "\n\nNếu bạn không yêu cầu thao tác này, hãy bỏ qua email.");
-        try {
-            mailSender.send(message);
-        } catch (MailException exception) {
-            log.error("Password reset email could not be sent to {}", recipientEmail);
-            logLocalLink(resetUrl);
+
+        for (int attempt = 1; attempt <= maxSendAttempts; attempt++) {
+            try {
+                mailSender.send(message);
+                return true;
+            } catch (MailException exception) {
+                log.warn("Password-reset email attempt {}/{} failed for {}",
+                        attempt, maxSendAttempts, request.recipientEmail(), exception);
+            }
         }
+        return logLocalLink(request);
     }
 
-    private void logLocalLink(String resetUrl) {
+    private boolean logLocalLink(ResetMailRequest request) {
         if (allowLocalLinkLogging) {
-            log.warn("LOCAL DEVELOPMENT reset link: {}", resetUrl);
-        } else {
-            log.info("Password reset email was not sent because SMTP is unavailable.");
+            log.warn("LOCAL DEVELOPMENT reset link for {}: {}",
+                    request.recipientEmail(), request.resetUrl());
+            return true;
         }
+        log.error("Password-reset email was not delivered to {}", request.recipientEmail());
+        return false;
+    }
+
+    private record ResetMailRequest(String recipientEmail, String recipientName, String resetUrl) {}
+
+    private record ResetPreparation(RequestResult result,
+                                    Long tokenId, ResetMailRequest mail) {}
+
+    public enum RequestResult {
+        SENT,
+        NOT_FOUND,
+        PUBLIC_URL_UNAVAILABLE,
+        DELIVERY_FAILED
     }
 }

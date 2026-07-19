@@ -61,7 +61,7 @@ public class OrderController {
         form.setCheckoutToken(checkoutToken);
         issueCheckoutToken(session, checkoutToken, CheckoutFingerprint.fromCartItems(items));
         model.addAttribute("checkoutForm", form);
-        addCheckoutData(model, items);
+        addCheckoutData(model, items, auth, session);
         return "order/checkout";
     }
 
@@ -98,7 +98,7 @@ public class OrderController {
                         "Giỏ hàng hoặc thông tin sản phẩm đã thay đổi. Vui lòng kiểm tra và xác nhận lại.");
                 return "redirect:/cart";
             }
-            addCheckoutData(model, items);
+            addCheckoutData(model, items, auth, session);
             return "order/checkout";
         }
 
@@ -188,13 +188,13 @@ public class OrderController {
         return tokens;
     }
 
-    private void addCheckoutData(Model model, List<CartItem> items) {
+    private void addCheckoutData(Model model, List<CartItem> items,
+                                 Authentication auth, HttpSession session) {
         BigDecimal total = items.stream()
                 .map(CartItem::getSubtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        int cartCount = items.stream().mapToInt(CartItem::getQuantity).sum();
         model.addAttribute("items", items);
         model.addAttribute("total", total);
-        model.addAttribute("cartCount", cartCount);
+        model.addAttribute("cartCount", cart.count(auth, session));
     }
 }

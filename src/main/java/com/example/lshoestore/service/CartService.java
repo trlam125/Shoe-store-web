@@ -333,11 +333,21 @@ public class CartService {
 
     @Transactional
     public CartMergeResult mergeGuestCart(Authentication auth, HttpSession session) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            throw new IllegalStateException("Guest cart merge requires an active transaction");
+        }
+
+        Map<String, CartItem> detachedGuestCart;
         List<GuestCartLineSnapshot> guestItems;
         synchronized (session) {
             Map<String, CartItem> guest = getGuestCart(session);
             if (guest.isEmpty()) return new CartMergeResult(List.of());
-            guestItems = guest.entrySet().stream()
+
+            // Atomically detach the cart being merged. Requests arriving after this
+            // point write to a new map and therefore cannot be removed by this merge.
+            detachedGuestCart = new LinkedHashMap<>(guest);
+            session.setAttribute(GUEST_CART_KEY, new LinkedHashMap<String, CartItem>());
+            guestItems = detachedGuestCart.entrySet().stream()
                     .filter(entry -> entry.getValue() != null
                             && entry.getValue().getProduct() != null
                             && entry.getValue().getProduct().getId() != null
@@ -354,6 +364,7 @@ public class CartService {
                     .toList();
         }
 
+        restoreDetachedGuestCartOnRollback(session, detachedGuestCart);
         List<String> warnings = new ArrayList<>();
         User user = getUserForUpdate(auth);
         int index = 0;
@@ -409,6 +420,9 @@ public class CartService {
                         matching.setSelectedSize(variant.getSize());
                         matching.setQuantity(currentQuantity + accepted);
                     }
+                    // The whole guest line is considered resolved after this merge.
+                    // Any rejected quantity is surfaced through warnings instead of being
+                    // left hidden in the session after the user becomes authenticated.
                 }
                 if (accepted < requested) {
                     warnings.add(product.getName() + " (size " + variant.getSize() + "): chỉ gộp được "
@@ -419,44 +433,33 @@ public class CartService {
             index = end;
         }
 
-        clearMergedGuestCartAfterCommit(session, guestItems);
         return new CartMergeResult(warnings);
     }
 
-    private void clearMergedGuestCartAfterCommit(HttpSession session,
-                                                  List<GuestCartLineSnapshot> mergedItems) {
-        Runnable clearMergedLines = () -> {
-            try {
-                synchronized (session) {
-                    Map<String, CartItem> guest = getGuestCart(session);
-                    for (GuestCartLineSnapshot item : mergedItems) {
-                        CartItem current = guest.get(item.key());
-                        if (current == null) continue;
-                        long remaining = (long) current.getQuantity() - item.quantity();
-                        if (remaining <= 0) {
-                            guest.remove(item.key());
-                        } else {
-                            guest.put(item.key(), new CartItem(
-                                    current.getProduct(),
-                                    (int) Math.min(remaining, Integer.MAX_VALUE),
-                                    current.getSelectedSize(),
-                                    current.getAvailableStock()));
-                        }
-                    }
-                }
-            } catch (IllegalStateException ignored) {
-                // The HTTP session may already have expired after the database commit.
-            }
-        };
-
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            clearMergedLines.run();
-            return;
-        }
+    private void restoreDetachedGuestCartOnRollback(HttpSession session,
+                                                     Map<String, CartItem> detachedGuestCart) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
-            public void afterCommit() {
-                clearMergedLines.run();
+            public void afterCompletion(int status) {
+                if (status == TransactionSynchronization.STATUS_COMMITTED) return;
+                try {
+                    synchronized (session) {
+                        Map<String, CartItem> current = getGuestCart(session);
+                        detachedGuestCart.forEach((key, detachedItem) -> {
+                            CartItem existing = current.get(key);
+                            long restoredQuantity = detachedItem.getQuantity()
+                                    + (existing == null ? 0L : existing.getQuantity());
+                            current.put(key, new CartItem(
+                                    detachedItem.getProduct(),
+                                    (int) Math.min(restoredQuantity, Integer.MAX_VALUE),
+                                    detachedItem.getSelectedSize(),
+                                    Math.max(detachedItem.getAvailableStock(),
+                                            existing == null ? 0 : existing.getAvailableStock())));
+                        });
+                    }
+                } catch (IllegalStateException ignored) {
+                    // The HTTP session may already have expired while the transaction rolled back.
+                }
             }
         });
     }

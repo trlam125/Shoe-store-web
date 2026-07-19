@@ -4,6 +4,7 @@ import com.example.lshoestore.service.CartService;
 import com.example.lshoestore.service.PasswordResetService;
 import com.example.lshoestore.service.PasswordPolicy;
 import com.example.lshoestore.service.RequestRateLimiter;
+import com.example.lshoestore.service.PublicBaseUrlResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,7 +14,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.time.Duration;
 import java.util.Locale;
@@ -23,22 +23,19 @@ public class PasswordResetController {
     private final PasswordResetService passwordResetService;
     private final CartService cart;
     private final RequestRateLimiter rateLimiter;
-    private final String publicBaseUrl;
-    private final boolean development;
+    private final PublicBaseUrlResolver baseUrlResolver;
     private final int resetRequestsPerWindow;
 
     public PasswordResetController(PasswordResetService passwordResetService,
                                    CartService cart,
                                    RequestRateLimiter rateLimiter,
-                                   @Value("${app.public-base-url:}") String publicBaseUrl,
-                                   @Value("${app.environment:production}") String environment,
+                                   PublicBaseUrlResolver baseUrlResolver,
                                    @Value("${app.rate-limit.password-reset-per-15-minutes:3}")
                                    int resetRequestsPerWindow) {
         this.passwordResetService = passwordResetService;
         this.cart = cart;
         this.rateLimiter = rateLimiter;
-        this.publicBaseUrl = publicBaseUrl == null ? "" : publicBaseUrl.trim();
-        this.development = "development".equalsIgnoreCase(environment);
+        this.baseUrlResolver = baseUrlResolver;
         this.resetRequestsPerWindow = Math.max(resetRequestsPerWindow, 1);
     }
 
@@ -52,7 +49,7 @@ public class PasswordResetController {
     public String requestReset(@RequestParam(required = false) String email,
                                HttpServletRequest request,
                                Model model, Authentication auth, HttpSession session) {
-        String baseUrl = resolveBaseUrl(request);
+        String baseUrl = baseUrlResolver.resolve(request);
         String normalizedEmail = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
         boolean ipAllowed = rateLimiter.allowIp(
                 "password-reset", request, resetRequestsPerWindow, Duration.ofMinutes(15));
@@ -63,7 +60,9 @@ public class PasswordResetController {
             passwordResetService.requestReset(email, baseUrl);
         }
         addCartCount(model, auth, session);
-        model.addAttribute("success", "Nếu email tồn tại, hướng dẫn đặt lại mật khẩu đã được gửi.");
+        model.addAttribute("success",
+                "Yêu cầu đã được ghi nhận. Nếu email tồn tại và hệ thống gửi thư thành công, "
+                        + "bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.");
         return "auth/forgot-password";
     }
 
@@ -99,22 +98,6 @@ public class PasswordResetController {
             return "auth/reset-password";
         }
         return "redirect:/login?reset";
-    }
-
-    private String resolveBaseUrl(HttpServletRequest request) {
-        if (!publicBaseUrl.isBlank()) return publicBaseUrl;
-        if (!development || !isLocalRequest(request)) return null;
-        return ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
-    }
-
-    private boolean isLocalRequest(HttpServletRequest request) {
-        String remoteAddress = request.getRemoteAddr();
-        String serverName = request.getServerName();
-        return "127.0.0.1".equals(remoteAddress)
-                || "0:0:0:0:0:0:0:1".equals(remoteAddress)
-                || "::1".equals(remoteAddress)
-                || "localhost".equalsIgnoreCase(serverName)
-                || "127.0.0.1".equals(serverName);
     }
 
     private void addCartCount(Model model, Authentication auth, HttpSession session) {

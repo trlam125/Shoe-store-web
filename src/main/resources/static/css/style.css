@@ -1168,3 +1168,12 @@ td small { display: block; margin-top: 4px; color: var(--muted); }
     -webkit-text-fill-color: transparent;
     font-weight: 900;
 }
+
+.verification-code-input {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 0.35em;
+    font-variant-numeric: tabular-nums;
+}
+.resend-form { margin-top: 8px; }

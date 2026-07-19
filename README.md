@@ -1,110 +1,98 @@
 # LSHOE Store
 
-LSHOE là website bán giày xây dựng bằng Spring Boot, Thymeleaf và PostgreSQL. Dự án có giỏ hàng cho khách và tài khoản, đặt hàng COD, quản trị sản phẩm/đơn hàng, chatbot tư vấn và dịch vụ AI tìm giày bằng ảnh, phân nhóm khách hàng, dự báo tồn kho.
+LSHOE Store là website bán giày được xây dựng bằng Spring Boot, Thymeleaf và PostgreSQL. Dự án hỗ trợ mua hàng, quản lý đơn hàng, quản trị sản phẩm, chatbot tư vấn và một số tính năng AI.
 
-## Công nghệ
+## Chức năng chính
 
-- Java 21, Spring Boot 3.5, Spring Security, Spring Data JPA
-- Thymeleaf, HTML/CSS/JavaScript thuần
-- PostgreSQL 16
-- Python 3.11 cho dịch vụ AI FastAPI
-- ResNet18, K-Means và Random Forest## Cài đặt nhanh
+- Đăng ký, đăng nhập và xác minh email
+- Xem, tìm kiếm và lọc sản phẩm
+- Giỏ hàng và đặt hàng COD
+- Theo dõi, quản lý và hủy đơn hàng
+- Quản trị sản phẩm, biến thể, tồn kho và đơn hàng
+- Chatbot tư vấn sản phẩm
+- Tìm sản phẩm bằng hình ảnh và hỗ trợ phân tích dữ liệu
 
-### 1. Yêu cầu
+## Công nghệ sử dụng
+
+- Java 21, Spring Boot 3.5
+- Spring Security, Spring Data JPA, Thymeleaf
+- PostgreSQL 16 và Flyway
+- Python, FastAPI cho dịch vụ AI
+- HTML, CSS và JavaScript
+
+## Yêu cầu
 
 - JDK 21
-- Maven 3.9 trở lên hoặc IntelliJ IDEA có Maven tích hợp
-- PostgreSQL 16, hoặc Docker Desktop
-- Python 3.11 nếu dùng tính năng AI
+- Maven 3.9 trở lên
+- PostgreSQL 16 hoặc Docker Desktop
+- Python 3.11 nếu sử dụng dịch vụ AI
 
-### 2. Tạo database
+## Cài đặt và chạy
 
-Dùng Docker:
+### 1. Tạo cơ sở dữ liệu
+
+Có thể khởi động PostgreSQL bằng Docker:
 
 ```powershell
 docker compose up -d postgres
 ```
 
-Hoặc tạo thủ công:
+### 2. Cấu hình ứng dụng
 
-```sql
-CREATE DATABASE lshoe_store;
-```
-
-### 3. Cấu hình ứng dụng
-
-Sao chép file mẫu:
+Sao chép file cấu hình mẫu:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Tối thiểu cần chỉnh:
+Sau đó cập nhật thông tin kết nối PostgreSQL, tài khoản quản trị, email và các API key cần sử dụng trong file `.env`.
+
+Khi triển khai production, đặt:
 
 ```env
-DATABASE_URL=jdbc:postgresql://localhost:5432/lshoe_store
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-
-APP_ENV=production
-APP_PUBLIC_BASE_URL=http://localhost:8081
-BOOTSTRAP_ADMIN_EMAIL=admin@example.com
-BOOTSTRAP_ADMIN_PASSWORD=mat-khau-manh-cua-ban
-SEED_DEMO_DATA=false
+SPRING_PROFILES_ACTIVE=prod
+APP_PUBLIC_BASE_URL=https://ten-mien-cua-ban.example
 ```
 
-`BOOTSTRAP_ADMIN_EMAIL` và `BOOTSTRAP_ADMIN_PASSWORD` chỉ tạo admin khi bảng `users` đang hoàn toàn trống. Không có tài khoản mặc định trong mã nguồn.
-
-Đặt `SEED_DEMO_DATA=true` nếu muốn thêm dữ liệu sản phẩm mẫu. Các danh mục nền vẫn được tạo khi database chưa có danh mục để trang thêm sản phẩm có thể sử dụng.
-
-### 4. Chạy Spring Boot
+### 3. Chạy website
 
 ```powershell
 mvn spring-boot:run
 ```
 
-Hoặc mở project bằng IntelliJ và chạy `LshoeStoreApplication`.
+Hoặc mở project bằng IntelliJ IDEA và chạy lớp `LshoeStoreApplication`.
 
-Truy cập:
+Mặc định website chạy tại:
 
 ```text
 http://localhost:8081
 ```
 
-## Cấu hình email quên mật khẩu
-
-Ví dụ Gmail:
-
-```env
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=email-cua-ban@gmail.com
-MAIL_PASSWORD=mat-khau-ung-dung-16-ky-tu
-MAIL_SMTP_AUTH=true
-MAIL_STARTTLS=true
-APP_PUBLIC_BASE_URL=https://ten-mien-cua-ban.example
-
 ## Dịch vụ AI
 
-### 1. Cấu hình
+Dịch vụ AI sử dụng chung cấu hình trong file `.env` ở thư mục gốc.
 
-```powershell
-Copy-Item ai-service\.env.example ai-service\.env
-```
-
-Giá trị `AI_INTERNAL_API_KEY` trong `ai-service/.env` phải giống giá trị trong `.env` của Spring Boot.
-
-### 2. Chạy thủ công
+Chạy thủ công:
 
 ```powershell
 cd ai-service
 .\run.bat
 ```
 
-Dịch vụ chạy tại `http://127.0.0.1:8001`. Spring Boot cũng có thể tự khởi động dịch vụ nếu:
+Dịch vụ mặc định chạy tại `http://127.0.0.1:8001`. Có thể để Spring Boot tự khởi động dịch vụ bằng cấu hình `AI_SERVICE_AUTOSTART=true`.
 
-```env
-AI_SERVICE_AUTOSTART=true
+## Truy cập qua Cloudflare Tunnel
+
+Khởi động website trước, sau đó chạy:
+
+```powershell
+.\run-cloudflare.bat
 ```
 
-Lần đầu chạy ResNet18 có thể cần tải trọng số mô hình và mất nhiều thời gian.
+Script hỗ trợ Quick Tunnel và Named Tunnel, không yêu cầu file PowerShell. Với Quick Tunnel, URL công khai được lưu tạm trong `.runtime/cloudflare-public-url.txt`.
+
+## Lưu ý
+
+- Không đưa file `.env`, mật khẩu hoặc API key lên Git.
+- Nên sử dụng mật khẩu mạnh cho PostgreSQL và tài khoản quản trị.
+- Database cũ cần được sao lưu trước khi thay đổi migration hoặc cấu trúc dữ liệu.

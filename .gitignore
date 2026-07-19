@@ -213,3 +213,9 @@ $RECYCLE.BIN/
 /*.7z
 /*.rar
 /.logic-tests/
+/.runtime/
+
+# ngrok local executable and project-specific agent files
+/ngrok.exe
+/.ngrok/
+/ngrok.yml

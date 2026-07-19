@@ -33,6 +33,7 @@ import java.util.Set;
 })
 public class Product {
     public static final String DEFAULT_SIZE = "Không áp dụng";
+    private static final int SIZE_TEXT_MAX_LENGTH = 2000;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -63,7 +64,7 @@ public class Product {
      * Legacy inventory summary kept for existing SQL reports and the AI service.
      * The source of truth is {@link #variants}.
      */
-    @Column(length = 160)
+    @Column(length = SIZE_TEXT_MAX_LENGTH)
     private String sizeText;
 
     /** Total enabled variant stock, retained as a query-friendly summary column. */
@@ -178,11 +179,14 @@ public class Product {
             throw new IllegalStateException("Tổng tồn kho vượt giới hạn hệ thống");
         }
         stock = (int) total;
-        sizeText = enabled.stream()
+        String summary = enabled.stream()
                 .map(ProductVariant::getSize)
                 .filter(value -> value != null && !value.isBlank())
                 .reduce((left, right) -> left + ", " + right)
                 .orElse(null);
+        sizeText = summary == null || summary.length() <= SIZE_TEXT_MAX_LENGTH
+                ? summary
+                : summary.substring(0, SIZE_TEXT_MAX_LENGTH);
     }
 
     /**
@@ -218,7 +222,11 @@ public class Product {
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public String getSizeText() { return sizeText; }
-    public void setSizeText(String sizeText) { this.sizeText = sizeText; }
+    public void setSizeText(String sizeText) {
+        this.sizeText = sizeText == null || sizeText.length() <= SIZE_TEXT_MAX_LENGTH
+                ? sizeText
+                : sizeText.substring(0, SIZE_TEXT_MAX_LENGTH);
+    }
     public int getStock() { return stock; }
     public void setStock(int stock) { this.stock = stock; }
     public boolean isActive() { return active; }

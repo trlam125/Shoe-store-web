@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Xác thực email - LSHOE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=6}">
+</head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<section class="form-box auth-card">
+    <p class="badge badge-dark">Bảo vệ tài khoản</p>
+    <h1>Xác thực email</h1>
+    <p class="form-intro" th:if="${email != null and !email.isBlank()}">
+        Nhập mã 6 chữ số đã gửi tới <strong th:text="${email}">email@example.com</strong>.
+    </p>
+    <p class="form-intro" th:unless="${email != null and !email.isBlank()}">
+        Không tìm thấy địa chỉ email cần xác thực.
+    </p>
+
+    <p th:if="${param.sent}" class="ok">Mã xác thực đã được gửi. Vui lòng kiểm tra cả thư mục Spam.</p>
+    <p th:if="${success}" class="ok" th:text="${success}"></p>
+    <p th:if="${error}" class="error" th:text="${error}"></p>
+
+    <form th:if="${pending}" th:action="@{/verify-email}" method="post">
+        <input type="hidden" name="email" th:value="${email}">
+        <input type="hidden" name="request" th:value="${requestToken}">
+        <label for="verification-code">Mã xác thực</label>
+        <input id="verification-code" class="verification-code-input" name="code" type="text"
+               required minlength="6" maxlength="6" pattern="[0-9]{6}" inputmode="numeric"
+               autocomplete="one-time-code" placeholder="000000" th:value="${code}">
+        <button class="btn" type="submit">Xác thực và tạo tài khoản</button>
+    </form>
+
+    <form th:if="${pending}" th:action="@{/verify-email/resend}" method="post" class="resend-form">
+        <input type="hidden" name="email" th:value="${email}">
+        <input type="hidden" name="request" th:value="${requestToken}">
+        <button class="btn secondary small" type="submit">Gửi lại mã mới</button>
+    </form>
+
+    <p class="form-foot" th:if="${pending}">Mã cũ chỉ mất hiệu lực sau khi email chứa mã mới được gửi thành công.</p>
+    <p class="form-foot" th:unless="${pending}"><a th:href="@{/register}">Quay lại trang đăng ký</a></p>
+</section>
+<div th:replace="~{fragments :: footer}"></div>
+</body>
+</html>

@@ -99,7 +99,7 @@ ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 AI_INTERNAL_API_KEY = os.getenv("AI_INTERNAL_API_KEY", "").strip()
 STORE_BASE_URL = os.getenv("AI_STORE_BASE_URL", "http://127.0.0.1:8081").rstrip("/")
 TRUSTED_IMAGE_ORIGINS = {
-    origin.rstrip("/")
+    origin.strip().rstrip("/")
     for origin in os.getenv("AI_TRUSTED_IMAGE_ORIGINS", STORE_BASE_URL).split(",")
     if origin.strip()
 }
@@ -335,7 +335,10 @@ def build_customer_segments(df: pd.DataFrame) -> dict[str, Any]:
 def customer_segments() -> dict[str, Any]:
     sql = """
         SELECT u.id AS user_id, u.full_name,
-               COALESCE(EXTRACT(DAY FROM (CURRENT_TIMESTAMP - MAX(o.completed_at))), 0) AS recency,
+               COALESCE(
+                   EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - MAX(o.completed_at))) / 86400.0,
+                   0
+               ) AS recency,
                COUNT(DISTINCT o.id) AS frequency,
                COALESCE(SUM(o.total), 0) AS monetary
         FROM users u
@@ -531,6 +534,7 @@ def choose_forecast_model(
 def forecast_product(
     product_id: int,
     product_name: str,
+    selected_size: str,
     current_stock: int,
     history: pd.Series,
     days: int,
@@ -539,6 +543,7 @@ def forecast_product(
         return {
             "productId": int(product_id),
             "productName": str(product_name),
+            "selectedSize": str(selected_size),
             "predictedUnits": 0.0,
             "recommendedRestock": 0,
             "method": "chưa có lịch sử bán",
@@ -568,6 +573,7 @@ def forecast_product(
     result: dict[str, Any] = {
         "productId": int(product_id),
         "productName": str(product_name),
+        "selectedSize": str(selected_size),
         "predictedUnits": round(predicted_units, 1),
         "recommendedRestock": restock,
         "method": method,
@@ -586,8 +592,25 @@ def forecast_product(
 @app.get("/ml/sales-forecast", dependencies=[Depends(verify_internal_request)])
 def sales_forecast(days: int = Query(default=7, ge=1, le=30)) -> dict[str, Any]:
     products = query_df(
-        "SELECT id AS product_id, name, stock, created_at "
-        "FROM product WHERE active = true ORDER BY id"
+        """
+        SELECT p.id AS product_id,
+               p.name,
+               COALESCE(pv.size, 'Không áp dụng') AS selected_size,
+               COALESCE(pv.stock, p.stock) AS stock,
+               COALESCE(pv.created_at, p.created_at) AS available_from
+        FROM product p
+        LEFT JOIN product_variant pv
+               ON pv.product_id = p.id AND pv.enabled = true
+        WHERE p.active = true
+          AND (
+              pv.id IS NOT NULL
+              OR NOT EXISTS (
+                  SELECT 1 FROM product_variant existing
+                  WHERE existing.product_id = p.id
+              )
+          )
+        ORDER BY p.id, selected_size
+        """
     )
     if products.empty:
         return {
@@ -598,7 +621,9 @@ def sales_forecast(days: int = Query(default=7, ge=1, le=30)) -> dict[str, Any]:
 
     sales = query_df(
         """
-        SELECT p.id AS product_id, DATE(o.completed_at) AS sale_date,
+        SELECT p.id AS product_id,
+               LOWER(BTRIM(COALESCE(oi.selected_size, 'Không áp dụng'))) AS size_key,
+               DATE(o.completed_at) AS sale_date,
                SUM(oi.quantity) AS quantity
         FROM order_item oi
         JOIN orders o ON o.id = oi.order_id
@@ -606,8 +631,10 @@ def sales_forecast(days: int = Query(default=7, ge=1, le=30)) -> dict[str, Any]:
         WHERE o.status = 'HOAN_THANH'
           AND o.completed_at IS NOT NULL
           AND p.active = true
-        GROUP BY p.id, DATE(o.completed_at)
-        ORDER BY p.id, sale_date
+        GROUP BY p.id,
+                 LOWER(BTRIM(COALESCE(oi.selected_size, 'Không áp dụng'))),
+                 DATE(o.completed_at)
+        ORDER BY p.id, size_key, sale_date
         """
     )
     if not sales.empty:
@@ -616,8 +643,13 @@ def sales_forecast(days: int = Query(default=7, ge=1, le=30)) -> dict[str, Any]:
     today = pd.Timestamp.now().normalize()
     results = []
     for product in products.itertuples():
+        selected_size = str(product.selected_size or "Không áp dụng").strip()
+        size_key = selected_size.lower()
         group = (
-            sales[sales["product_id"] == product.product_id]
+            sales[
+                (sales["product_id"] == product.product_id)
+                & (sales["size_key"] == size_key)
+            ]
             if not sales.empty
             else pd.DataFrame()
         )
@@ -627,12 +659,13 @@ def sales_forecast(days: int = Query(default=7, ge=1, le=30)) -> dict[str, Any]:
             sale_dates,
             quantities,
             today=today,
-            available_from=product.created_at,
+            available_from=product.available_from,
         )
         results.append(
             forecast_product(
                 int(product.product_id),
                 str(product.name),
+                selected_size,
                 int(product.stock),
                 history,
                 days,
@@ -648,7 +681,7 @@ def sales_forecast(days: int = Query(default=7, ge=1, le=30)) -> dict[str, Any]:
         "forecastDays": days,
         "generatedAt": pd.Timestamp.now().isoformat(),
         "predictions": results[:10],
-        "note": "Khuyến nghị nhập = nhu cầu dự báo + tồn kho an toàn - tồn hiện tại.",
+        "note": "Dự báo theo từng kích cỡ. Khuyến nghị nhập = nhu cầu dự báo + tồn kho an toàn - tồn hiện tại của biến thể.",
     }
 
 

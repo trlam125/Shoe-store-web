@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Đăng nhập - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=5}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=6}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
@@ -13,6 +13,7 @@
     <h1>Đăng nhập LSHOE</h1>
     <p class="form-intro">Tiếp tục mua sắm, quản lý giỏ hàng và theo dõi đơn hàng của bạn.</p>
     <p th:if="${param.registered}" class="ok">Đăng ký thành công, vui lòng đăng nhập.</p>
+    <p th:if="${param.verified}" class="ok">Email đã được xác thực và tài khoản đã được tạo. Vui lòng đăng nhập.</p>
     <p th:if="${param.reset}" class="ok">Mật khẩu đã được cập nhật. Vui lòng đăng nhập lại.</p>
     <p th:if="${param.expired}" class="warning">Phiên đăng nhập đã hết hạn hoặc không còn hợp lệ.</p>
     <p th:if="${param.error}" class="error">Email hoặc mật khẩu không đúng.</p>

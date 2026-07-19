@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Configuration
 public class DataSeeder {
@@ -45,33 +44,28 @@ public class DataSeeder {
                            @Value("${app.bootstrap-admin.password:}") String adminPassword,
                            @Value("${app.seed-demo-data:false}") boolean seedDemoData) {
         return args -> {
-            users.findByEmailIgnoreCase("lam@gmail.com")
-                    .filter(user -> encoder.matches("admin123", user.getPassword()))
-                    .ifPresent(user -> {
-                        String replacementPassword = isUsableBootstrapPassword(adminPassword)
-                                ? adminPassword
-                                : UUID.randomUUID().toString();
-                        user.setPassword(encoder.encode(replacementPassword));
-                        user.revokeSessions();
-                        users.save(user);
-                        log.warn("Disabled the legacy default password for account {}. Configure BOOTSTRAP_ADMIN_PASSWORD or use password reset.", user.getEmail());
-                    });
-
-            if (!users.existsByRoleIgnoreCase("ROLE_ADMIN")
-                    && adminEmail != null && !adminEmail.isBlank()
-                    && isUsableBootstrapPassword(adminPassword)) {
-                String normalizedAdminEmail = adminEmail.trim().toLowerCase(java.util.Locale.ROOT);
-                User admin = users.findByEmailIgnoreCase(normalizedAdminEmail).orElseGet(User::new);
-                boolean existingAccount = admin.getId() != null;
-                if (!existingAccount) {
+            if (!users.existsByRoleIgnoreCase("ROLE_ADMIN")) {
+                long userCount = users.count();
+                if (userCount > 0) {
+                    log.warn("No administrator account exists, but the database already contains {} "
+                            + "user account(s). Bootstrap was skipped to avoid overwriting an "
+                            + "existing account. Promote an account explicitly instead.", userCount);
+                } else if (adminEmail != null && !adminEmail.isBlank()
+                        && isUsableBootstrapPassword(adminPassword)) {
+                    String normalizedAdminEmail =
+                            adminEmail.trim().toLowerCase(java.util.Locale.ROOT);
+                    User admin = new User();
                     admin.setFullName("LSHOE Administrator");
                     admin.setEmail(normalizedAdminEmail);
+                    admin.setPassword(encoder.encode(adminPassword));
+                    admin.setRole("ROLE_ADMIN");
+                    users.save(admin);
+                    log.info("Bootstrapped administrator account {}", normalizedAdminEmail);
+                } else {
+                    log.warn("The user table is empty and no administrator account was created. "
+                            + "Set BOOTSTRAP_ADMIN_EMAIL and a strong BOOTSTRAP_ADMIN_PASSWORD, "
+                            + "then restart the application.");
                 }
-                admin.setPassword(encoder.encode(adminPassword));
-                admin.setRole("ROLE_ADMIN");
-                if (existingAccount) admin.revokeSessions();
-                users.save(admin);
-                log.info("Bootstrapped administrator account {}", normalizedAdminEmail);
             }
 
             String[][] categoryData = {
@@ -186,6 +180,7 @@ public class DataSeeder {
         product.setOldPrice(BigDecimal.valueOf(oldPrice));
         product.setCategory(categoryMap.get(categoryName));
         String[] sizes = {"36", "37", "38", "39", "40", "41", "42", "43"};
+        stock = Math.max(stock, 120); // Every demo product starts with more than 100 units.
         int baseStock = stock / sizes.length;
         int remainder = stock % sizes.length;
         for (int index = 0; index < sizes.length; index++) {

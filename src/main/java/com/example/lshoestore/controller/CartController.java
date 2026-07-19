@@ -28,7 +28,7 @@ public class CartController {
                 .map(item -> item.getProduct().getPrice()
                         .multiply(java.math.BigDecimal.valueOf(item.getQuantity())))
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add));
-        model.addAttribute("cartCount", items.stream().mapToInt(item -> item.getQuantity()).sum());
+        model.addAttribute("cartCount", cart.count(auth, session));
         return "cart/view";
     }
 

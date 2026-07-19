@@ -10,6 +10,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "product_variant", indexes = {
@@ -37,6 +40,10 @@ public class ProductVariant {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
     public ProductVariant() {
     }
 
@@ -57,4 +64,5 @@ public class ProductVariant {
     public void setStock(int stock) { this.stock = stock; }
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }
