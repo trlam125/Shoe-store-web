@@ -14,6 +14,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -74,7 +76,7 @@ public class PasswordResetService {
         tokens.save(token);
 
         String resetUrl = baseUrl.replaceAll("/+$", "") + "/reset-password?token=" + rawToken;
-        sendResetEmail(user, resetUrl);
+        sendResetEmailAfterCommit(user.getEmail(), user.getFullName(), resetUrl);
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +90,7 @@ public class PasswordResetService {
 
     @Transactional
     public boolean resetPassword(String rawToken, String newPassword) {
-        if (rawToken == null || rawToken.isBlank()) return false;
+        if (rawToken == null || rawToken.isBlank() || !PasswordPolicy.isValidForBcrypt(newPassword)) return false;
         Optional<PasswordResetToken> optional = tokens.findByTokenHashWithLock(hash(rawToken));
         if (optional.isEmpty()) return false;
 
@@ -122,7 +124,22 @@ public class PasswordResetService {
         }
     }
 
-    private void sendResetEmail(User user, String resetUrl) {
+    private void sendResetEmailAfterCommit(String recipientEmail, String recipientName, String resetUrl) {
+        Runnable sendAction = () -> sendResetEmail(recipientEmail, recipientName, resetUrl);
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            sendAction.run();
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                sendAction.run();
+            }
+        });
+    }
+
+    private void sendResetEmail(String recipientEmail, String recipientName, String resetUrl) {
         if (mailSender == null || mailUsername.isBlank()) {
             logLocalLink(resetUrl);
             return;
@@ -130,16 +147,16 @@ public class PasswordResetService {
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(mailUsername);
-        message.setTo(user.getEmail());
+        message.setTo(recipientEmail);
         message.setSubject("Đặt lại mật khẩu LSHOE");
-        message.setText("Xin chào " + user.getFullName() + ",\n\n"
+        message.setText("Xin chào " + recipientName + ",\n\n"
                 + "Mở liên kết sau để đặt lại mật khẩu. Liên kết hết hạn sau "
                 + expiryMinutes + " phút:\n" + resetUrl
                 + "\n\nNếu bạn không yêu cầu thao tác này, hãy bỏ qua email.");
         try {
             mailSender.send(message);
         } catch (MailException exception) {
-            log.error("Password reset email could not be sent to {}", user.getEmail());
+            log.error("Password reset email could not be sent to {}", recipientEmail);
             logLocalLink(resetUrl);
         }
     }

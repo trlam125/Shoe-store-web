@@ -14,9 +14,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Creates a stable digest of the exact cart state shown on the checkout page.
- * The digest is not a secret; it is used to detect cart or product changes
- * between reviewing checkout and submitting the order.
+ * Creates a stable digest of the commercial terms confirmed at checkout.
+ * Stock, product version and presentation fields are deliberately excluded:
+ * they are validated separately while the order transaction holds database locks.
  */
 public final class CheckoutFingerprint {
     private CheckoutFingerprint() {}
@@ -59,15 +59,9 @@ public final class CheckoutFingerprint {
             throw new IllegalArgumentException("Cart contains an invalid product");
         }
         appendField(target, product.getId());
-        appendField(target, product.getVersion());
-        appendField(target, product.getName());
-        appendField(target, product.getBrand());
-        appendField(target, product.getImageUrl());
-        appendField(target, normalizeMoney(product.getPrice()));
-        appendField(target, product.isActive());
-        appendField(target, product.getStock());
         appendField(target, selectedSize == null ? "" : selectedSize.trim());
         appendField(target, quantity);
+        appendField(target, normalizeMoney(product.getPrice()));
         target.append('\n');
     }
 

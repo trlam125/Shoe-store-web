@@ -112,8 +112,8 @@ public class ChatbotService {
                     + " | " + safe(product.getName())
                     + " | hãng: " + safe(product.getBrand())
                     + " | giá: " + money.format(product.getPrice()) + "đ"
-                    + " | size: " + String.join(", ", product.getAvailableSizes())
-                    + " | tồn: " + product.getStock()
+                    + " | tồn theo size: " + product.getInventorySummary()
+                    + " | tổng tồn: " + product.getStock()
                     + " | danh mục: " + (product.getCategory() == null ? "Khác" : safe(product.getCategory().getName()))
                     + "\n";
             if (context.length() + line.length() > maxCatalogCharacters) break;

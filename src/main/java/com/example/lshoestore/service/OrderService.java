@@ -7,10 +7,12 @@ import com.example.lshoestore.model.Order;
 import com.example.lshoestore.model.OrderItem;
 import com.example.lshoestore.model.OrderStatus;
 import com.example.lshoestore.model.Product;
+import com.example.lshoestore.model.ProductVariant;
 import com.example.lshoestore.model.SavedCartItem;
 import com.example.lshoestore.model.User;
 import com.example.lshoestore.repository.OrderRepository;
 import com.example.lshoestore.repository.ProductRepository;
+import com.example.lshoestore.repository.ProductVariantRepository;
 import com.example.lshoestore.repository.SavedCartItemRepository;
 import com.example.lshoestore.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -29,15 +32,18 @@ public class OrderService {
     private static final BigDecimal MAX_ORDER_TOTAL = new BigDecimal("9999999999999.99");
     private final OrderRepository orders;
     private final ProductRepository products;
+    private final ProductVariantRepository variants;
     private final SavedCartItemRepository savedCartItems;
     private final UserRepository users;
 
     public OrderService(OrderRepository orders,
                         ProductRepository products,
+                        ProductVariantRepository variants,
                         SavedCartItemRepository savedCartItems,
                         UserRepository users) {
         this.orders = orders;
         this.products = products;
+        this.variants = variants;
         this.savedCartItems = savedCartItems;
         this.users = users;
     }
@@ -61,19 +67,38 @@ public class OrderService {
                 .thenComparing(SavedCartItem::getId));
 
         Map<Long, Product> lockedProducts = lockProductsInStableOrder(cartRows);
-        Map<Long, Long> quantityByProduct = new LinkedHashMap<>();
+        Map<VariantKey, ProductVariant> lockedVariants = new LinkedHashMap<>();
+        Map<VariantKey, Long> quantityByVariant = new LinkedHashMap<>();
+
         for (SavedCartItem row : cartRows) {
             Product product = lockedProducts.get(row.getProduct().getId());
             if (!product.isActive()) {
-                throw new BusinessException("Sản phẩm " + product.getName() + " hiện không còn bán.", "inactive");
+                throw new BusinessException("Sản phẩm " + product.getName() + " hiện không còn bán.",
+                        "inactive");
             }
             if (row.getQuantity() <= 0) {
                 throw new BusinessException("Số lượng sản phẩm không hợp lệ.", "quantity");
             }
+
             String selectedSize = normalizeOrderSize(product, row.getSelectedSize());
-            row.setSelectedSize(selectedSize);
-            quantityByProduct.merge(product.getId(), (long) row.getQuantity(), Long::sum);
+            VariantKey key = new VariantKey(product.getId(), normalizeSizeKey(selectedSize));
+            ProductVariant variant = lockedVariants.get(key);
+            if (variant == null) {
+                variant = variants.findByProductIdAndSizeWithLock(product.getId(), selectedSize)
+                        .orElseThrow(() -> new BusinessException(
+                                "Kích cỡ " + selectedSize + " của sản phẩm " + product.getName()
+                                        + " không còn tồn tại.", "invalid_size"));
+                lockedVariants.put(key, variant);
+            }
+            if (!variant.isEnabled()) {
+                throw new BusinessException("Kích cỡ " + variant.getSize() + " của sản phẩm "
+                        + product.getName() + " không còn bán.", "invalid_size");
+            }
+
+            row.setSelectedSize(variant.getSize());
+            quantityByVariant.merge(key, (long) row.getQuantity(), Long::sum);
         }
+
         String actualCartFingerprint = CheckoutFingerprint.fromSavedCartItems(cartRows, lockedProducts);
         if (expectedCartFingerprint == null || expectedCartFingerprint.isBlank()
                 || !expectedCartFingerprint.equals(actualCartFingerprint)) {
@@ -82,14 +107,15 @@ public class OrderService {
                     "cart_changed");
         }
 
-
-        for (Map.Entry<Long, Long> entry : quantityByProduct.entrySet()) {
-            Product product = lockedProducts.get(entry.getKey());
+        for (Map.Entry<VariantKey, Long> entry : quantityByVariant.entrySet()) {
+            ProductVariant variant = lockedVariants.get(entry.getKey());
             long requested = entry.getValue();
-            if (requested <= 0 || product.getStock() < requested) {
+            Product product = lockedProducts.get(entry.getKey().productId());
+            if (requested <= 0 || variant.getStock() < requested) {
                 throw new BusinessException(
-                        "Sản phẩm " + product.getName() + " chỉ còn " + product.getStock()
-                                + " đôi trong kho nhưng giỏ đang có " + requested + " đôi ở các kích cỡ.",
+                        "Sản phẩm " + product.getName() + " size " + variant.getSize()
+                                + " chỉ còn " + variant.getStock() + " đôi nhưng giỏ đang có "
+                                + requested + " đôi.",
                         "stock");
             }
         }
@@ -113,10 +139,12 @@ public class OrderService {
             item.setPrice(product.getPrice());
             order.getItems().add(item);
         }
-        for (Map.Entry<Long, Long> entry : quantityByProduct.entrySet()) {
-            Product product = lockedProducts.get(entry.getKey());
-            product.setStock((int) (product.getStock() - entry.getValue()));
+
+        for (Map.Entry<VariantKey, Long> entry : quantityByVariant.entrySet()) {
+            ProductVariant variant = lockedVariants.get(entry.getKey());
+            variant.setStock((int) (variant.getStock() - entry.getValue()));
         }
+        lockedProducts.values().forEach(Product::syncInventorySummary);
 
         BigDecimal total = order.getItems().stream()
                 .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
@@ -139,7 +167,8 @@ public class OrderService {
         if (newStatus == null) throw new BusinessException("Trạng thái đơn hàng không hợp lệ.");
         if (order.getStatus() == newStatus) return;
         if (!order.getStatus().canTransitionTo(newStatus)) {
-            throw new BusinessException("Không thể chuyển trạng thái đơn hàng theo yêu cầu.", "invalid_status");
+            throw new BusinessException("Không thể chuyển trạng thái đơn hàng theo yêu cầu.",
+                    "invalid_status");
         }
 
         if (newStatus == OrderStatus.DA_HUY) {
@@ -165,30 +194,69 @@ public class OrderService {
     }
 
     private void restoreStockInStableOrder(List<OrderItem> orderItems) {
-        Map<Long, Long> quantityByProduct = new LinkedHashMap<>();
+        Map<VariantKey, Long> quantityByVariant = new LinkedHashMap<>();
+        Map<VariantKey, String> displaySizeByKey = new LinkedHashMap<>();
         orderItems.stream()
                 .sorted(Comparator.comparing((OrderItem item) -> item.getProduct().getId())
                         .thenComparing(OrderItem::getSelectedSize,
                                 Comparator.nullsFirst(String::compareToIgnoreCase)))
-                .forEach(item -> quantityByProduct.merge(
-                        item.getProduct().getId(), (long) item.getQuantity(), Long::sum));
+                .forEach(item -> {
+                    VariantKey key = new VariantKey(item.getProduct().getId(),
+                            normalizeSizeKey(item.getSelectedSize()));
+                    quantityByVariant.merge(key, (long) item.getQuantity(), Long::sum);
+                    displaySizeByKey.putIfAbsent(key, cleanSize(item.getSelectedSize()));
+                });
 
-        quantityByProduct.keySet().stream().sorted().forEach(productId -> {
-            Product product = products.findByIdWithLock(productId)
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Không tìm thấy sản phẩm cần hoàn lại tồn kho"));
-            long restoredStock = (long) product.getStock() + quantityByProduct.get(productId);
-            if (restoredStock > Integer.MAX_VALUE) {
-                throw new BusinessException(
-                        "Không thể hoàn lại tồn kho vì số lượng vượt giới hạn hệ thống.",
-                        "stock_overflow");
-            }
-            product.setStock((int) restoredStock);
-        });
+        Map<Long, Product> lockedProducts = new LinkedHashMap<>();
+        quantityByVariant.keySet().stream().map(VariantKey::productId).distinct().sorted()
+                .forEach(productId -> lockedProducts.put(productId,
+                        products.findByIdWithLock(productId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                        "Không tìm thấy sản phẩm cần hoàn lại tồn kho"))));
+
+        quantityByVariant.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> {
+                    VariantKey key = entry.getKey();
+                    Product product = lockedProducts.get(key.productId());
+                    String size = displaySizeByKey.get(key);
+                    ProductVariant variant = variants.findByProductIdAndSizeWithLock(key.productId(), size)
+                            .orElseGet(() -> {
+                                ProductVariant created = new ProductVariant(product, size, 0);
+                                // A missing historical variant is restored as disabled. Cancelling an
+                                // old order must not make a size visible or purchasable again.
+                                created.setEnabled(false);
+                                product.addVariant(created);
+                                return variants.save(created);
+                            });
+
+                    long restoredVariantStock = (long) variant.getStock() + entry.getValue();
+                    if (restoredVariantStock > Integer.MAX_VALUE) {
+                        throw new BusinessException(
+                                "Không thể hoàn lại tồn kho size " + size
+                                        + " vì số lượng vượt giới hạn hệ thống.",
+                                "stock_overflow");
+                    }
+                    variant.setStock((int) restoredVariantStock);
+                    // Preserve the current enabled flag. A size disabled by an administrator
+                    // stays hidden even when stock from an old cancelled order is restored.
+                });
+
+        lockedProducts.values().forEach(this::syncInventorySummaryOrThrow);
+    }
+
+    private void syncInventorySummaryOrThrow(Product product) {
+        try {
+            product.syncInventorySummary();
+        } catch (IllegalStateException exception) {
+            throw new BusinessException(
+                    "Không thể cập nhật tổng tồn kho vì số lượng vượt giới hạn hệ thống.",
+                    "stock_overflow");
+        }
     }
 
     private String normalizeOrderSize(Product product, String selectedSize) {
-        String cleaned = selectedSize == null ? "" : selectedSize.trim();
+        String cleaned = cleanSize(selectedSize);
         return product.getAvailableSizes().stream()
                 .filter(size -> size.equalsIgnoreCase(cleaned))
                 .findFirst()
@@ -196,5 +264,23 @@ public class OrderService {
                         "Kích cỡ của sản phẩm " + product.getName()
                                 + " không còn hợp lệ. Vui lòng cập nhật lại giỏ hàng.",
                         "invalid_size"));
+    }
+
+    private static String cleanSize(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static String normalizeSizeKey(String value) {
+        return cleanSize(value).toLowerCase(Locale.ROOT);
+    }
+
+    private record VariantKey(Long productId, String normalizedSize)
+            implements Comparable<VariantKey> {
+        @Override
+        public int compareTo(VariantKey other) {
+            int productComparison = productId.compareTo(other.productId);
+            return productComparison != 0 ? productComparison
+                    : normalizedSize.compareTo(other.normalizedSize);
+        }
     }
 }

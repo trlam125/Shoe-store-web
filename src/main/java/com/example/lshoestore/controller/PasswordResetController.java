@@ -2,6 +2,7 @@ package com.example.lshoestore.controller;
 
 import com.example.lshoestore.service.CartService;
 import com.example.lshoestore.service.PasswordResetService;
+import com.example.lshoestore.service.PasswordPolicy;
 import com.example.lshoestore.service.RequestRateLimiter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -82,9 +83,9 @@ public class PasswordResetController {
                                  Model model, Authentication auth, HttpSession session) {
         addCartCount(model, auth, session);
         model.addAttribute("token", token);
-        if (password == null || password.length() < 8 || password.length() > 72) {
+        if (!PasswordPolicy.isValidForBcrypt(password)) {
             model.addAttribute("tokenValid", passwordResetService.isValid(token));
-            model.addAttribute("error", "Mật khẩu phải từ 8 đến 72 ký tự.");
+            model.addAttribute("error", PasswordPolicy.VALIDATION_MESSAGE);
             return "auth/reset-password";
         }
         if (!password.equals(confirmPassword)) {

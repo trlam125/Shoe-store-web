@@ -3,8 +3,6 @@ package com.example.lshoestore.dto;
 import com.example.lshoestore.model.Product;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -38,12 +36,9 @@ public class ProductForm {
     @Size(max = 1000, message = "Liên kết ảnh tối đa 1000 ký tự")
     private String imageUrl;
 
-    @Size(max = 160, message = "Thông tin kích cỡ tối đa 160 ký tự")
-    private String sizeText;
-
-    @Min(value = 0, message = "Tồn kho không được âm")
-    @Max(value = 1000000, message = "Tồn kho quá lớn")
-    private int stock;
+    @NotBlank(message = "Vui lòng nhập tồn kho theo từng kích cỡ")
+    @Size(max = 2000, message = "Danh sách tồn kho kích cỡ tối đa 2000 ký tự")
+    private String variantStockText;
 
     private boolean active = true;
 
@@ -60,8 +55,10 @@ public class ProductForm {
         form.price = product.getPrice();
         form.oldPrice = product.getOldPrice();
         form.imageUrl = product.getImageUrl();
-        form.sizeText = product.getSizeText();
-        form.stock = product.getStock();
+        form.variantStockText = product.getEnabledVariants().stream()
+                .map(variant -> variant.getSize() + ": " + variant.getStock())
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("");
         form.active = product.isActive();
         form.categoryId = product.getCategory() == null ? null : product.getCategory().getId();
         return form;
@@ -83,10 +80,8 @@ public class ProductForm {
     public void setOldPrice(BigDecimal oldPrice) { this.oldPrice = oldPrice; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-    public String getSizeText() { return sizeText; }
-    public void setSizeText(String sizeText) { this.sizeText = sizeText; }
-    public int getStock() { return stock; }
-    public void setStock(int stock) { this.stock = stock; }
+    public String getVariantStockText() { return variantStockText; }
+    public void setVariantStockText(String variantStockText) { this.variantStockText = variantStockText; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
     public Long getCategoryId() { return categoryId; }

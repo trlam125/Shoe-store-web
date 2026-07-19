@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>LSHOE - Cửa hàng giày chính hãng</title>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=8}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=10}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
@@ -42,20 +45,62 @@
     </div>
 </section>
 <section class="feature-strip">
-    <div class="feature-item"><span class="feature-icon">🚚</span><div><b>Miễn phí vận chuyển</b><span>Cho đơn từ 1.000.000đ</span></div></div>
-    <div class="feature-item"><span class="feature-icon">↩️</span><div><b>Đổi trả 30 ngày</b><span>Mua sắm yên tâm hơn</span></div></div>
-    <div class="feature-item"><span class="feature-icon">🛡️</span><div><b>Sản phẩm chính hãng</b><span>Kiểm tra kỹ trước khi giao</span></div></div>
-    <div class="feature-item"><span class="feature-icon">💬</span><div><b>Trợ lý tư vấn AI</b><span>Hỗ trợ chọn giày phù hợp</span></div></div>
+    <div class="feature-item reveal-item"><span class="feature-icon">🚚</span><div><b>Miễn phí vận chuyển</b><span>Cho mọi đơn hàng</span></div></div>
+    <div class="feature-item reveal-item"><span class="feature-icon">↩️</span><div><b>Đổi trả 30 ngày</b><span>Mua sắm yên tâm hơn</span></div></div>
+    <div class="feature-item reveal-item"><span class="feature-icon">🛡️</span><div><b>Sản phẩm chính hãng</b><span>Kiểm tra kỹ trước khi giao</span></div></div>
+    <div class="feature-item reveal-item"><span class="feature-icon">💬</span><div><b>Trợ lý tư vấn AI</b><span>Hỗ trợ chọn giày phù hợp</span></div></div>
 </section>
-<section class="section">
+<section class="brand-marquee reveal-item" aria-label="Thương hiệu đối tác">
+    <div class="brand-marquee-track">
+        <span class="brand-marquee-text">NIKE</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">ADIDAS</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">PUMA</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">NEW BALANCE</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">CONVERSE</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">MLB</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">VANS</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">ASICS</span>
+        <span class="brand-marquee-sep">✦</span>
+        <!-- Duplicated for seamless scroll -->
+        <span class="brand-marquee-text">NIKE</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">ADIDAS</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">PUMA</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">NEW BALANCE</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">CONVERSE</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">MLB</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">VANS</span>
+        <span class="brand-marquee-sep">✦</span>
+        <span class="brand-marquee-text">ASICS</span>
+        <span class="brand-marquee-sep">✦</span>
+    </div>
+</section>
+<section class="section reveal-item">
     <div class="title-row"><div><p class="eyebrow">Chọn theo phong cách</p><h2>Danh mục nổi bật</h2></div></div>
     <div class="chips"><a th:each="c : ${categories}" th:href="@{/products(category=${c.id})}" th:text="${c.name}">Danh mục</a></div>
 </section>
-<section class="section">
+<section class="section reveal-item">
     <div class="title-row"><div><p class="eyebrow">Mới cập nhật</p><h2>Sản phẩm mới tại LSHOE</h2></div><a th:href="@{/products}">Xem tất cả →</a></div>
     <div class="grid">
-        <a class="card" th:each="p : ${products}" th:href="@{/products/{id}(id=${p.id})}">
-            <div class="card-image-wrap"><img th:src="${p.imageUrl}" th:alt="${p.name}" loading="lazy"></div>
+        <a class="card reveal-item" th:each="p : ${products}" th:href="@{/products/{id}(id=${p.id})}">
+            <div class="card-image-wrap">
+                <img th:src="${p.imageUrl}" th:alt="${p.name}" loading="lazy">
+                <div class="card-action-overlay">
+                    <span class="card-action-btn">Xem chi tiết</span>
+                </div>
+            </div>
             <div class="card-body">
                 <p class="brand" th:text="${p.brand}">Nike</p>
                 <h3 th:text="${p.name}">Tên giày</h3>
@@ -235,6 +280,27 @@
     slides.forEach((slide, index) => slide.classList.toggle('is-active', index === current));
     updateControls();
     startAutoplay();
+})();
+
+// Intersection Observer for scroll reveal
+(function () {
+    const items = document.querySelectorAll('.reveal-item');
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.08,
+            rootMargin: '0px 0px -40px 0px'
+        });
+        items.forEach(item => observer.observe(item));
+    } else {
+        items.forEach(item => item.classList.add('visible'));
+    }
 })();
 </script>
 </body>

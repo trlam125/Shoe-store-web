@@ -59,8 +59,22 @@ public class CartController {
                          HttpSession session,
                          RedirectAttributes redirectAttributes) {
         try {
-            cart.update(id, selectedSize, quantity, auth, session);
-            redirectAttributes.addFlashAttribute("success", "Đã cập nhật giỏ hàng.");
+            CartService.CartUpdateResult result = cart.update(id, selectedSize, quantity, auth, session);
+            if (!result.lineFound()) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Sản phẩm này không còn trong giỏ hàng.");
+            } else if (result.removed()) {
+                String message = quantity <= 0
+                        ? "Đã xóa sản phẩm khỏi giỏ hàng."
+                        : "Kích cỡ này đã hết hàng nên sản phẩm đã được xóa khỏi giỏ.";
+                redirectAttributes.addFlashAttribute(quantity <= 0 ? "success" : "error", message);
+            } else if (result.limitedByStock()) {
+                redirectAttributes.addFlashAttribute("warning",
+                        "Size " + selectedSize + " chỉ còn " + result.appliedQuantity()
+                                + " sản phẩm; giỏ hàng đã được điều chỉnh về mức này.");
+            } else {
+                redirectAttributes.addFlashAttribute("success", "Đã cập nhật giỏ hàng.");
+            }
         } catch (BusinessException exception) {
             redirectAttributes.addFlashAttribute("error", exception.getMessage());
         }

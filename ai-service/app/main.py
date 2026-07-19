@@ -7,17 +7,18 @@ import socket
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable
-from urllib.parse import urljoin, urlparse
+from urllib.parse import quote, urljoin, urlparse, urlsplit, urlunsplit
 
 import numpy as np
 import pandas as pd
 import psycopg
 import requests
 import torch
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from PIL import Image
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
@@ -25,19 +26,61 @@ from sklearn.preprocessing import StandardScaler
 from torchvision.models import ResNet18_Weights, resnet18
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
+PROJECT_ROOT = BASE_DIR.parent
+
+# Keep one shared project configuration at the repository root. A service-local
+# ai-service/.env may override the shared file, while explicit process variables
+# (for example AI_RELOAD=false from the Java auto-starter) retain highest priority.
+file_environment = {
+    **dotenv_values(PROJECT_ROOT / ".env"),
+    **dotenv_values(BASE_DIR / ".env"),
+}
+for key, value in file_environment.items():
+    if value is not None:
+        os.environ.setdefault(key, value)
 
 
 def resolve_database_url() -> str:
-    configured = os.getenv("AI_DATABASE_URL") or os.getenv("DATABASE_URL")
-    if configured:
-        return configured.removeprefix("jdbc:")
+    """Build a psycopg URL from the same root .env values used by Spring Boot.
+
+    Spring commonly stores a JDBC URL without credentials in DATABASE_URL and
+    keeps DB_USERNAME/DB_PASSWORD separately. Psycopg expects those credentials
+    in the PostgreSQL URI (or as separate arguments), so inject them only when
+    the configured URI does not already contain a username.
+    """
+    configured = (os.getenv("AI_DATABASE_URL") or os.getenv("DATABASE_URL") or "").strip()
     username = os.getenv("DB_USERNAME", "postgres")
     password = os.getenv("DB_PASSWORD", "postgres")
+
+    if configured:
+        database_url = configured.removeprefix("jdbc:")
+        parsed = urlsplit(database_url)
+        if parsed.scheme not in {"postgresql", "postgres"}:
+            raise RuntimeError(
+                "AI_DATABASE_URL/DATABASE_URL must use the postgresql:// or postgres:// scheme."
+            )
+        if parsed.username is not None:
+            return database_url
+        if not parsed.hostname:
+            raise RuntimeError("Database URL is missing a host name.")
+
+        host = parsed.hostname
+        if ":" in host and not host.startswith("["):
+            host = f"[{host}]"
+        port = f":{parsed.port}" if parsed.port is not None else ""
+        credentials = quote(username, safe="")
+        if password:
+            credentials += f":{quote(password, safe='')}"
+        netloc = f"{credentials}@{host}{port}"
+        return urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+
     host = os.getenv("DB_HOST", "localhost")
     port = os.getenv("DB_PORT", "5432")
     database = os.getenv("DB_NAME", "lshoe_store")
-    return f"postgresql://{username}:{password}@{host}:{port}/{database}"
+    credentials = quote(username, safe="")
+    if password:
+        credentials += f":{quote(password, safe='')}"
+    return f"postgresql://{credentials}@{host}:{port}/{database}"
 
 
 DATABASE_URL = resolve_database_url()
@@ -66,7 +109,7 @@ MAX_FORECAST_HISTORY_DAYS = int(os.getenv("AI_FORECAST_HISTORY_DAYS", "365"))
 FORECAST_SERVICE_Z = float(os.getenv("AI_FORECAST_SERVICE_Z", "1.28"))
 Image.MAX_IMAGE_PIXELS = int(os.getenv("AI_MAX_IMAGE_PIXELS", "25000000"))
 
-app = FastAPI(title="LSHOE ML/DL Service", version="1.2.0")
+app = FastAPI(title="LSHOE ML/DL Service", version="1.2.1")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -555,14 +598,15 @@ def sales_forecast(days: int = Query(default=7, ge=1, le=30)) -> dict[str, Any]:
 
     sales = query_df(
         """
-        SELECT p.id AS product_id, DATE(o.created_at) AS sale_date,
+        SELECT p.id AS product_id, DATE(o.completed_at) AS sale_date,
                SUM(oi.quantity) AS quantity
         FROM order_item oi
         JOIN orders o ON o.id = oi.order_id
         JOIN product p ON p.id = oi.product_id
         WHERE o.status = 'HOAN_THANH'
+          AND o.completed_at IS NOT NULL
           AND p.active = true
-        GROUP BY p.id, DATE(o.created_at)
+        GROUP BY p.id, DATE(o.completed_at)
         ORDER BY p.id, sale_date
         """
     )
@@ -749,8 +793,13 @@ def download_image(url: str) -> Image.Image:
 
 
 @lru_cache(maxsize=512)
-def product_embedding(image_url: str, version_token: str) -> np.ndarray:
-    del version_token
+def product_embedding(image_url: str, image_version: str) -> np.ndarray:
+    """Cache a vector by URL and the latest product update timestamp.
+
+    ``image_version`` is intentionally part of the cache key. When an
+    administrator replaces an image while keeping the same URL, JPA updates the
+    product's ``updated_at`` value and the next search computes a fresh vector.
+    """
     return embedding(download_image(image_url))
 
 
@@ -769,19 +818,8 @@ def filter_similarity_matches(
     ][:limit]
 
 
-@app.post("/dl/image-search", dependencies=[Depends(verify_internal_request)])
-async def image_search(
-    file: UploadFile = File(...), limit: int = Query(default=6, ge=1, le=12)
-) -> dict[str, Any]:
-    if file.content_type not in ALLOWED_IMAGE_TYPES:
-        raise HTTPException(
-            status_code=415,
-            detail="Chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP.",
-        )
-
-    payload = await file.read(MAX_UPLOAD_BYTES + 1)
-    if len(payload) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="Ảnh tải lên vượt quá 10 MB.")
+def perform_image_search(payload: bytes, limit: int) -> dict[str, Any]:
+    """Run CPU-, database- and network-heavy image search off the event loop."""
     try:
         query_vector, shoe_confidence, top_labels = analyze_image(open_image(payload))
     except ValueError as exc:
@@ -791,8 +829,6 @@ async def image_search(
             status_code=503,
             detail="Không tải được mô hình ResNet18. Hãy kiểm tra kết nối mạng.",
         ) from exc
-    finally:
-        await file.close()
 
     if shoe_confidence < MIN_SHOE_CONFIDENCE:
         raise HTTPException(
@@ -801,7 +837,7 @@ async def image_search(
         )
 
     products = query_df(
-        "SELECT id, name, brand, image_url, version "
+        "SELECT id, name, brand, image_url, updated_at "
         "FROM product WHERE active = true AND image_url IS NOT NULL "
         "AND BTRIM(image_url) <> '' ORDER BY id"
     )
@@ -838,11 +874,16 @@ async def image_search(
     failed_images = 0
     failed_products = 0
     for normalized_url, rows in products_by_image.items():
-        version_token = ";".join(
-            f"{int(row.id)}:{row.version}" for row in rows
+        image_version = max(
+            (
+                pd.Timestamp(row.updated_at).isoformat()
+                for row in rows
+                if row.updated_at is not None and not pd.isna(row.updated_at)
+            ),
+            default="",
         )
         try:
-            product_vector = product_embedding(normalized_url, version_token)
+            product_vector = product_embedding(normalized_url, image_version)
         except Exception:
             failed_images += 1
             failed_products += len(rows)
@@ -880,3 +921,24 @@ async def image_search(
         "warnings": warnings,
         "message": message,
     }
+
+
+@app.post("/dl/image-search", dependencies=[Depends(verify_internal_request)])
+async def image_search(
+    file: UploadFile = File(...), limit: int = Query(default=6, ge=1, le=12)
+) -> dict[str, Any]:
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=415,
+            detail="Chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP.",
+        )
+
+    try:
+        payload = await file.read(MAX_UPLOAD_BYTES + 1)
+    finally:
+        await file.close()
+
+    if len(payload) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Ảnh tải lên vượt quá 10 MB.")
+
+    return await run_in_threadpool(perform_image_search, payload, limit)

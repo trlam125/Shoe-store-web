@@ -21,7 +21,7 @@
                 <td><a class="cart-product" th:href="@{/products/{id}(id=${i.product.id})}"><img th:src="${i.product.imageUrl}" th:alt="${i.product.name}"><div><b th:text="${i.product.name}"></b><span th:text="${i.product.brand}"></span></div></a></td>
                 <td><span class="size-pill" th:text="${i.selectedSize}">39</span></td>
                 <td th:text="${#numbers.formatDecimal(i.product.price,0,'COMMA',0,'POINT')} + 'đ'"></td>
-                <td><form class="quantity-form" th:action="@{/cart/update/{id}(id=${i.product.id})}" method="post"><input type="hidden" name="selectedSize" th:value="${i.selectedSize}"><input type="number" name="quantity" min="0" th:max="${i.product.stock}" th:value="${i.quantity}"><button type="submit">Cập nhật</button></form></td>
+                <td><form class="quantity-form" th:action="@{/cart/update/{id}(id=${i.product.id})}" method="post"><input type="hidden" name="selectedSize" th:value="${i.selectedSize}"><input type="number" name="quantity" min="0" th:max="${i.availableStock}" th:value="${i.quantity}"><button type="submit">Cập nhật</button></form></td>
                 <td><b th:text="${#numbers.formatDecimal(i.subtotal,0,'COMMA',0,'POINT')} + 'đ'"></b></td>
                 <td><form th:action="@{/cart/remove/{id}(id=${i.product.id})}" method="post"><input type="hidden" name="selectedSize" th:value="${i.selectedSize}"><button class="danger-button" type="submit">Xóa</button></form></td>
             </tr>

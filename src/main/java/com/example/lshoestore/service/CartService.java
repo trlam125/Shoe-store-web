@@ -4,9 +4,11 @@ import com.example.lshoestore.exception.BusinessException;
 import com.example.lshoestore.exception.ResourceNotFoundException;
 import com.example.lshoestore.model.CartItem;
 import com.example.lshoestore.model.Product;
+import com.example.lshoestore.model.ProductVariant;
 import com.example.lshoestore.model.SavedCartItem;
 import com.example.lshoestore.model.User;
 import com.example.lshoestore.repository.ProductRepository;
+import com.example.lshoestore.repository.ProductVariantRepository;
 import com.example.lshoestore.repository.SavedCartItemRepository;
 import com.example.lshoestore.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
@@ -30,13 +32,16 @@ public class CartService {
     private static final String GUEST_CART_KEY = "guestCart";
 
     private final ProductRepository productRepository;
+    private final ProductVariantRepository variantRepository;
     private final SavedCartItemRepository savedCartRepo;
     private final UserRepository userRepository;
 
     public CartService(ProductRepository productRepository,
+                       ProductVariantRepository variantRepository,
                        SavedCartItemRepository savedCartRepo,
                        UserRepository userRepository) {
         this.productRepository = productRepository;
+        this.variantRepository = variantRepository;
         this.savedCartRepo = savedCartRepo;
         this.userRepository = userRepository;
     }
@@ -70,8 +75,6 @@ public class CartService {
             });
             if (validMap) return (Map<String, CartItem>) existing;
 
-            // Recover valid cart lines from older or malformed session data instead of crashing
-            // or silently discarding the whole guest cart.
             Map<String, CartItem> recovered = new LinkedHashMap<>();
             for (Object value : existing.values()) {
                 if (!(value instanceof CartItem item) || item.getProduct() == null
@@ -83,7 +86,8 @@ public class CartService {
                 recovered.put(key, new CartItem(
                         item.getProduct(),
                         (int) Math.min(mergedQuantity, Integer.MAX_VALUE),
-                        cleanSize(item.getSelectedSize())));
+                        cleanSize(item.getSelectedSize()),
+                        item.getAvailableStock()));
             }
             session.setAttribute(GUEST_CART_KEY, recovered);
             return recovered;
@@ -97,98 +101,101 @@ public class CartService {
     public boolean add(Long productId, String requestedSize, Authentication auth, HttpSession session) {
         if (isLoggedIn(auth)) {
             User user = getUserForUpdate(auth);
-            Product product = lockAvailableProduct(productId);
-            String selectedSize = normalizeRequestedSize(product, requestedSize);
+            InventorySelection selection = lockAvailableSelection(productId, requestedSize);
             List<SavedCartItem> productRows = savedCartRepo.findAllByUserAndProductIdWithLock(user, productId);
-            long totalQuantity = productRows.stream().mapToLong(SavedCartItem::getQuantity).sum();
-            if (totalQuantity >= product.getStock()) return false;
-
             SavedCartItem matching = productRows.stream()
-                    .filter(item -> sameSize(item.getSelectedSize(), selectedSize))
+                    .filter(item -> sameSize(item.getSelectedSize(), selection.size()))
                     .findFirst().orElse(null);
+            int currentQuantity = matching == null ? 0 : matching.getQuantity();
+            if (currentQuantity >= selection.variant().getStock()) return false;
+
             if (matching == null) {
-                savedCartRepo.saveAndFlush(new SavedCartItem(user, product, 1, selectedSize));
+                savedCartRepo.saveAndFlush(new SavedCartItem(user, selection.product(), 1, selection.size()));
             } else {
-                matching.setSelectedSize(selectedSize);
-                matching.setQuantity(matching.getQuantity() + 1);
+                matching.setSelectedSize(selection.size());
+                matching.setQuantity(currentQuantity + 1);
             }
         } else {
-            Product product = lockAvailableProduct(productId);
-            String selectedSize = normalizeRequestedSize(product, requestedSize);
+            InventorySelection selection = lockAvailableSelection(productId, requestedSize);
             synchronized (session) {
                 Map<String, CartItem> guest = getGuestCart(session);
-                long totalQuantity = guest.values().stream()
-                        .filter(item -> item != null && item.getProduct() != null
-                                && productId.equals(item.getProduct().getId()))
-                        .mapToLong(CartItem::getQuantity)
-                        .sum();
-                if (totalQuantity >= product.getStock()) return false;
-                String key = lineKey(productId, selectedSize);
+                String key = lineKey(productId, selection.size());
                 CartItem current = guest.get(key);
                 int currentQuantity = current == null ? 0 : current.getQuantity();
-                guest.put(key, new CartItem(product, currentQuantity + 1, selectedSize));
+                if (currentQuantity >= selection.variant().getStock()) return false;
+                guest.put(key, new CartItem(selection.product(), currentQuantity + 1,
+                        selection.size(), selection.variant().getStock()));
             }
         }
         return true;
     }
 
     @Transactional
-    public void update(Long productId, String requestedSize, int quantity,
-                       Authentication auth, HttpSession session) {
+    public CartUpdateResult update(Long productId, String requestedSize, int quantity,
+                                   Authentication auth, HttpSession session) {
         String selectedSize = cleanSize(requestedSize);
         if (quantity <= 0) {
-            remove(productId, selectedSize, auth, session);
-            return;
+            boolean removed = removeInternal(productId, selectedSize, auth, session);
+            return new CartUpdateResult(quantity, 0, removed, removed, false);
         }
 
         if (isLoggedIn(auth)) {
+            // Keep the same lock order as add/checkout: user -> product -> variant -> cart rows.
             User user = getUserForUpdate(auth);
             Product product = productRepository.findByIdWithLock(productId)
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
             selectedSize = normalizeRequestedSize(product, selectedSize);
+            ProductVariant variant = variantRepository.findByProductIdAndSizeWithLock(productId, selectedSize)
+                    .orElse(null);
+            boolean purchasable = product.isActive() && variant != null && variant.isEnabled()
+                    && variant.getStock() > 0;
+            int available = purchasable ? variant.getStock() : 0;
+            int capped = Math.min(quantity, available);
+
             List<SavedCartItem> productRows = savedCartRepo.findAllByUserAndProductIdWithLock(user, productId);
             String finalSelectedSize = selectedSize;
             SavedCartItem matching = productRows.stream()
                     .filter(item -> sameSize(item.getSelectedSize(), finalSelectedSize))
                     .findFirst().orElse(null);
-            if (matching == null) return;
-
-            long otherQuantity = productRows.stream()
-                    .filter(item -> item != matching)
-                    .mapToLong(SavedCartItem::getQuantity)
-                    .sum();
-            int available = (int) Math.max((long) product.getStock() - otherQuantity, 0L);
-            int capped = Math.min(quantity, available);
-            if (!product.isActive() || capped <= 0) savedCartRepo.delete(matching);
-            else {
-                matching.setSelectedSize(selectedSize);
-                matching.setQuantity(capped);
+            if (matching == null) return CartUpdateResult.notFound(quantity);
+            if (capped <= 0) {
+                savedCartRepo.delete(matching);
+                return new CartUpdateResult(quantity, 0, true, true, quantity > 0);
             }
-        } else {
-            Product product = productRepository.findByIdWithLock(productId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-            selectedSize = normalizeRequestedSize(product, selectedSize);
-            synchronized (session) {
-                Map<String, CartItem> guest = getGuestCart(session);
-                String key = lineKey(productId, selectedSize);
-                if (!guest.containsKey(key)) return;
-                long otherQuantity = guest.entrySet().stream()
-                        .filter(entry -> entry.getValue() != null
-                                && entry.getValue().getProduct() != null
-                                && productId.equals(entry.getValue().getProduct().getId())
-                                && !entry.getKey().equals(key))
-                        .mapToLong(entry -> entry.getValue().getQuantity())
-                        .sum();
-                int available = (int) Math.max((long) product.getStock() - otherQuantity, 0L);
-                int capped = Math.min(quantity, available);
-                if (!product.isActive() || capped <= 0) guest.remove(key);
-                else guest.put(key, new CartItem(product, capped, selectedSize));
-            }
+            matching.setSelectedSize(variant.getSize());
+            matching.setQuantity(capped);
+            return new CartUpdateResult(quantity, capped, true, false, capped < quantity);
         }
+
+        Product product = productRepository.findByIdWithLock(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        selectedSize = normalizeRequestedSize(product, selectedSize);
+        ProductVariant variant = variantRepository.findByProductIdAndSizeWithLock(productId, selectedSize)
+                .orElse(null);
+        boolean purchasable = product.isActive() && variant != null && variant.isEnabled()
+                && variant.getStock() > 0;
+        int available = purchasable ? variant.getStock() : 0;
+        int capped = Math.min(quantity, available);
+        synchronized (session) {
+            Map<String, CartItem> guest = getGuestCart(session);
+            String key = lineKey(productId, selectedSize);
+            if (!guest.containsKey(key)) return CartUpdateResult.notFound(quantity);
+            if (capped <= 0) {
+                guest.remove(key);
+                return new CartUpdateResult(quantity, 0, true, true, quantity > 0);
+            }
+            guest.put(key, new CartItem(product, capped, variant.getSize(), available));
+        }
+        return new CartUpdateResult(quantity, capped, true, false, capped < quantity);
     }
 
     @Transactional
     public void remove(Long productId, String selectedSize, Authentication auth, HttpSession session) {
+        removeInternal(productId, selectedSize, auth, session);
+    }
+
+    private boolean removeInternal(Long productId, String selectedSize,
+                                   Authentication auth, HttpSession session) {
         String normalizedSize = cleanSize(selectedSize);
         if (isLoggedIn(auth)) {
             User user = getUserForUpdate(auth);
@@ -196,11 +203,12 @@ public class CartService {
             List<SavedCartItem> matchingRows = rows.stream()
                     .filter(item -> sameSize(item.getSelectedSize(), normalizedSize))
                     .toList();
-            if (!matchingRows.isEmpty()) savedCartRepo.deleteAll(matchingRows);
-        } else {
-            synchronized (session) {
-                getGuestCart(session).remove(lineKey(productId, normalizedSize));
-            }
+            if (matchingRows.isEmpty()) return false;
+            savedCartRepo.deleteAll(matchingRows);
+            return true;
+        }
+        synchronized (session) {
+            return getGuestCart(session).remove(lineKey(productId, normalizedSize)) != null;
         }
     }
 
@@ -225,11 +233,11 @@ public class CartService {
     private List<CartItem> synchronizeDatabaseCart(User user) {
         List<CartItem> result = new ArrayList<>();
         List<SavedCartItem> rows = savedCartRepo.findByUserOrderByProduct_IdAscSelectedSizeAsc(user);
-        Map<Long, Integer> remainingStock = new HashMap<>();
+        Map<String, Integer> remainingStock = new HashMap<>();
 
         for (SavedCartItem row : rows) {
             Product product = productRepository.findById(row.getProduct().getId()).orElse(null);
-            if (product == null || !product.isActive() || product.getStock() <= 0) {
+            if (product == null || !product.isActive()) {
                 savedCartRepo.delete(row);
                 continue;
             }
@@ -238,16 +246,23 @@ public class CartService {
                 savedCartRepo.delete(row);
                 continue;
             }
-            int remaining = remainingStock.computeIfAbsent(product.getId(), ignored -> product.getStock());
+            ProductVariant variant = variantRepository.findByProductIdAndSize(product.getId(), selectedSize)
+                    .orElse(null);
+            if (variant == null || !variant.isEnabled() || variant.getStock() <= 0) {
+                savedCartRepo.delete(row);
+                continue;
+            }
+            String inventoryKey = lineKey(product.getId(), variant.getSize());
+            int remaining = remainingStock.computeIfAbsent(inventoryKey, ignored -> variant.getStock());
             int quantity = Math.min(Math.max(row.getQuantity(), 0), remaining);
             if (quantity <= 0) {
                 savedCartRepo.delete(row);
                 continue;
             }
             if (row.getQuantity() != quantity) row.setQuantity(quantity);
-            if (!sameSize(row.getSelectedSize(), selectedSize)) row.setSelectedSize(selectedSize);
-            remainingStock.put(product.getId(), remaining - quantity);
-            result.add(new CartItem(product, quantity, selectedSize));
+            if (!sameSize(row.getSelectedSize(), variant.getSize())) row.setSelectedSize(variant.getSize());
+            remainingStock.put(inventoryKey, remaining - quantity);
+            result.add(new CartItem(product, quantity, variant.getSize(), variant.getStock()));
         }
         return result;
     }
@@ -256,7 +271,7 @@ public class CartService {
         synchronized (session) {
             Map<String, CartItem> guest = getGuestCart(session);
             List<CartItem> result = new ArrayList<>();
-            Map<Long, Integer> remainingStock = new HashMap<>();
+            Map<String, Integer> remainingStock = new HashMap<>();
             Map<String, CartItem> refreshedCart = new LinkedHashMap<>();
 
             List<CartItem> sorted = guest.values().stream()
@@ -268,15 +283,19 @@ public class CartService {
                     .toList();
             for (CartItem oldItem : sorted) {
                 Product product = productRepository.findById(oldItem.getProduct().getId()).orElse(null);
-                if (product == null || !product.isActive() || product.getStock() <= 0) continue;
+                if (product == null || !product.isActive()) continue;
                 String selectedSize = normalizeStoredSize(product, oldItem.getSelectedSize());
                 if (selectedSize == null) continue;
-                int remaining = remainingStock.computeIfAbsent(product.getId(), ignored -> product.getStock());
+                ProductVariant variant = variantRepository.findByProductIdAndSize(product.getId(), selectedSize)
+                        .orElse(null);
+                if (variant == null || !variant.isEnabled() || variant.getStock() <= 0) continue;
+                String inventoryKey = lineKey(product.getId(), variant.getSize());
+                int remaining = remainingStock.computeIfAbsent(inventoryKey, ignored -> variant.getStock());
                 int quantity = Math.min(Math.max(oldItem.getQuantity(), 0), remaining);
                 if (quantity <= 0) continue;
-                remainingStock.put(product.getId(), remaining - quantity);
-                CartItem refreshed = new CartItem(product, quantity, selectedSize);
-                refreshedCart.put(lineKey(product.getId(), selectedSize), refreshed);
+                remainingStock.put(inventoryKey, remaining - quantity);
+                CartItem refreshed = new CartItem(product, quantity, variant.getSize(), variant.getStock());
+                refreshedCart.put(inventoryKey, refreshed);
                 result.add(refreshed);
             }
             guest.clear();
@@ -287,7 +306,17 @@ public class CartService {
 
     @Transactional
     public int count(Authentication auth, HttpSession session) {
-        return getItems(auth, session).stream().mapToInt(CartItem::getQuantity).sum();
+        if (isLoggedIn(auth)) {
+            Long total = savedCartRepo.countAvailableQuantityByUserId(getUser(auth).getId());
+            return saturatingInt(total == null ? 0L : total);
+        }
+        long total = synchronizeGuestCart(session).stream().mapToLong(CartItem::getQuantity).sum();
+        return saturatingInt(total);
+    }
+
+    private int saturatingInt(long value) {
+        if (value <= 0) return 0;
+        return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }
 
     @Transactional
@@ -336,7 +365,7 @@ public class CartService {
 
             List<GuestCartLineSnapshot> sameProductGuestItems = guestItems.subList(index, end);
             Product product = productRepository.findByIdWithLock(productId).orElse(null);
-            if (product == null || !product.isActive() || product.getStock() <= 0) {
+            if (product == null || !product.isActive()) {
                 for (GuestCartLineSnapshot item : sameProductGuestItems) {
                     warnings.add(item.productName() + " (size " + item.selectedSize()
                             + ") không còn khả dụng và không được gộp vào giỏ hàng.");
@@ -345,8 +374,11 @@ public class CartService {
                 continue;
             }
 
+            Map<String, ProductVariant> variantsBySize = new HashMap<>();
+            for (ProductVariant variant : variantRepository.findAllByProductIdWithLock(productId)) {
+                variantsBySize.put(normalizeSizeKey(variant.getSize()), variant);
+            }
             List<SavedCartItem> existingRows = savedCartRepo.findAllByUserAndProductIdWithLock(user, productId);
-            long currentTotal = existingRows.stream().mapToLong(SavedCartItem::getQuantity).sum();
             for (GuestCartLineSnapshot guestItem : sameProductGuestItems) {
                 String selectedSize = normalizeStoredSize(product, guestItem.selectedSize());
                 int requested = Math.max(guestItem.quantity(), 0);
@@ -355,26 +387,33 @@ public class CartService {
                             + ") không còn hỗ trợ kích cỡ này và không được gộp vào giỏ hàng.");
                     continue;
                 }
-                int accepted = (int) Math.min((long) requested,
-                        Math.max((long) product.getStock() - currentTotal, 0L));
+                ProductVariant variant = variantsBySize.get(normalizeSizeKey(selectedSize));
+                if (variant == null || !variant.isEnabled() || variant.getStock() <= 0) {
+                    warnings.add(product.getName() + " (size " + selectedSize
+                            + ") đã hết hàng hoặc không còn bán.");
+                    continue;
+                }
+
                 SavedCartItem matching = existingRows.stream()
-                        .filter(item -> sameSize(item.getSelectedSize(), selectedSize))
+                        .filter(item -> sameSize(item.getSelectedSize(), variant.getSize()))
                         .findFirst().orElse(null);
+                int currentQuantity = matching == null ? 0 : Math.max(matching.getQuantity(), 0);
+                int accepted = Math.min(requested, Math.max(variant.getStock() - currentQuantity, 0));
 
                 if (accepted > 0) {
                     if (matching == null) {
-                        matching = savedCartRepo.save(new SavedCartItem(user, product, accepted, selectedSize));
+                        matching = savedCartRepo.save(new SavedCartItem(
+                                user, product, accepted, variant.getSize()));
                         existingRows.add(matching);
                     } else {
-                        matching.setSelectedSize(selectedSize);
-                        matching.setQuantity(matching.getQuantity() + accepted);
+                        matching.setSelectedSize(variant.getSize());
+                        matching.setQuantity(currentQuantity + accepted);
                     }
-                    currentTotal += accepted;
                 }
                 if (accepted < requested) {
-                    warnings.add(product.getName() + " (size " + selectedSize + "): chỉ gộp được "
-                            + accepted + "/" + requested + " sản phẩm vì tổng tồn kho còn "
-                            + product.getStock() + ".");
+                    warnings.add(product.getName() + " (size " + variant.getSize() + "): chỉ gộp được "
+                            + accepted + "/" + requested + " sản phẩm vì size này còn "
+                            + variant.getStock() + " trong kho.");
                 }
             }
             index = end;
@@ -383,7 +422,6 @@ public class CartService {
         clearMergedGuestCartAfterCommit(session, guestItems);
         return new CartMergeResult(warnings);
     }
-
 
     private void clearMergedGuestCartAfterCommit(HttpSession session,
                                                   List<GuestCartLineSnapshot> mergedItems) {
@@ -394,10 +432,6 @@ public class CartService {
                     for (GuestCartLineSnapshot item : mergedItems) {
                         CartItem current = guest.get(item.key());
                         if (current == null) continue;
-
-                        // Remove only the quantity that belonged to the captured guest-cart
-                        // snapshot. A concurrent request may have added more of the same line
-                        // while the database merge was running; that newer quantity must remain.
                         long remaining = (long) current.getQuantity() - item.quantity();
                         if (remaining <= 0) {
                             guest.remove(item.key());
@@ -405,7 +439,8 @@ public class CartService {
                             guest.put(item.key(), new CartItem(
                                     current.getProduct(),
                                     (int) Math.min(remaining, Integer.MAX_VALUE),
-                                    current.getSelectedSize()));
+                                    current.getSelectedSize(),
+                                    current.getAvailableStock()));
                         }
                     }
                 }
@@ -429,31 +464,46 @@ public class CartService {
     private record GuestCartLineSnapshot(String key, Long productId, String productName,
                                          String selectedSize, int quantity) {}
 
-    private Product lockAvailableProduct(Long productId) {
+    private InventorySelection lockAvailableSelection(Long productId, String requestedSize) {
         Product product = productRepository.findByIdWithLock(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-        if (!product.isActive() || product.getStock() <= 0) {
-            throw new BusinessException("Sản phẩm đã hết hàng hoặc không khả dụng.", "unavailable_product");
+        if (!product.isActive()) {
+            throw new BusinessException("Sản phẩm không còn khả dụng.", "unavailable_product");
         }
-        return product;
+        String selectedSize = normalizeRequestedSize(product, requestedSize);
+        ProductVariant variant = variantRepository.findByProductIdAndSizeWithLock(productId, selectedSize)
+                .orElseThrow(() -> new BusinessException(
+                        "Kích cỡ đã chọn không còn khả dụng.", "invalid_size"));
+        if (!variant.isEnabled() || variant.getStock() <= 0) {
+            throw new BusinessException("Kích cỡ " + variant.getSize() + " đã hết hàng.",
+                    "variant_out_of_stock");
+        }
+        return new InventorySelection(product, variant, variant.getSize());
     }
 
     private String normalizeRequestedSize(Product product, String requestedSize) {
         List<String> sizes = product.getAvailableSizes();
         String cleaned = cleanSize(requestedSize);
         if (cleaned.isBlank()) {
-            if (sizes.size() == 1 && Product.DEFAULT_SIZE.equals(sizes.getFirst())) return Product.DEFAULT_SIZE;
-            throw new BusinessException("Vui lòng chọn kích cỡ trước khi thêm vào giỏ hàng.", "size_required");
+            if (sizes.size() == 1 && Product.DEFAULT_SIZE.equals(sizes.getFirst())) {
+                return Product.DEFAULT_SIZE;
+            }
+            throw new BusinessException("Vui lòng chọn kích cỡ trước khi thêm vào giỏ hàng.",
+                    "size_required");
         }
         return sizes.stream()
                 .filter(size -> sameSize(size, cleaned))
                 .findFirst()
-                .orElseThrow(() -> new BusinessException("Kích cỡ đã chọn không còn khả dụng.", "invalid_size"));
+                .orElseThrow(() -> new BusinessException(
+                        "Kích cỡ đã chọn không còn khả dụng.", "invalid_size"));
     }
 
     private String normalizeStoredSize(Product product, String selectedSize) {
         String cleaned = cleanSize(selectedSize);
-        if (cleaned.isBlank()) return product.getAvailableSizes().getFirst();
+        if (cleaned.isBlank()) {
+            List<String> sizes = product.getAvailableSizes();
+            return sizes.isEmpty() ? null : sizes.getFirst();
+        }
         return product.getAvailableSizes().stream()
                 .filter(size -> sameSize(size, cleaned))
                 .findFirst()
@@ -461,7 +511,11 @@ public class CartService {
     }
 
     private String lineKey(Long productId, String selectedSize) {
-        return productId + "::" + cleanSize(selectedSize).toLowerCase(Locale.ROOT);
+        return productId + "::" + normalizeSizeKey(selectedSize);
+    }
+
+    private String normalizeSizeKey(String value) {
+        return cleanSize(value).toLowerCase(Locale.ROOT);
     }
 
     private String cleanSize(String value) { return value == null ? "" : value.trim(); }
@@ -470,5 +524,17 @@ public class CartService {
         return cleanSize(left).equalsIgnoreCase(cleanSize(right));
     }
 
+    private record InventorySelection(Product product, ProductVariant variant, String size) {}
+
     public record CartMergeResult(List<String> warnings) {}
+
+    public record CartUpdateResult(int requestedQuantity,
+                                   int appliedQuantity,
+                                   boolean lineFound,
+                                   boolean removed,
+                                   boolean limitedByStock) {
+        static CartUpdateResult notFound(int requestedQuantity) {
+            return new CartUpdateResult(requestedQuantity, 0, false, false, false);
+        }
+    }
 }

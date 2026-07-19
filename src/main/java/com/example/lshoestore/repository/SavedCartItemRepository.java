@@ -39,6 +39,22 @@ public interface SavedCartItemRepository extends JpaRepository<SavedCartItem, Lo
             + "ORDER BY s.product.id, s.selectedSize, s.id")
     List<SavedCartItem> findByUserWithLock(@Param("user") User user);
 
+    @Query(value = """
+            SELECT COALESCE(SUM(LEAST(
+                GREATEST(s.quantity, 0)::BIGINT,
+                GREATEST(v.stock, 0)::BIGINT
+            )), 0)::BIGINT
+            FROM saved_cart_items s
+            JOIN product p ON p.id = s.product_id
+            JOIN product_variant v ON v.product_id = s.product_id
+                AND LOWER(BTRIM(v.size)) = LOWER(BTRIM(s.selected_size))
+            WHERE s.user_id = :userId
+              AND p.active = TRUE
+              AND v.enabled = TRUE
+              AND v.stock > 0
+            """, nativeQuery = true)
+    Long countAvailableQuantityByUserId(@Param("userId") Long userId);
+
     @Modifying
     @Transactional
     void deleteByUser(User user);

@@ -1,0 +1,2 @@
+# Shared root virtual environment used only by the FastAPI AI service.
+-r ai-service/requirements.txt

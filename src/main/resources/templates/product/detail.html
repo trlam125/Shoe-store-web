@@ -15,7 +15,7 @@
         <h1 th:text="${product.name}"></h1>
         <p class="detail-copy" th:text="${product.description}"></p>
         <div class="product-meta">
-            <p><span>Kích cỡ</span><b th:text="${#strings.listJoin(product.availableSizes, ', ')}"></b></p>
+            <p><span>Tồn theo kích cỡ</span><b th:text="${product.inventorySummary}"></b></p>
             <p><span>Tình trạng</span><b th:text="${product.stock > 0 ? 'Còn ' + product.stock + ' sản phẩm' : 'Tạm hết hàng'}"></b></p>
             <p><span>Danh mục</span><b th:text="${product.category != null ? product.category.name : 'Khác'}"></b></p>
         </div>
@@ -23,10 +23,12 @@
         <form class="add-cart-form" th:action="@{/cart/add/{id}(id=${product.id})}" method="post">
             <label class="size-label" for="selectedSize">Chọn kích cỡ</label>
             <div class="size-options" id="selectedSize">
-                <label class="size-option" th:each="size, stat : ${product.availableSizes}">
-                    <input type="radio" name="selectedSize" th:value="${size}"
-                           th:checked="${stat.first}" required>
-                    <span th:text="${size}">39</span>
+                <label class="size-option" th:each="variant : ${product.enabledVariants}"
+                       th:classappend="${variant.stock <= 0} ? ' unavailable' : ''">
+                    <input type="radio" name="selectedSize" th:value="${variant.size}"
+                           th:disabled="${variant.stock <= 0}"
+                           th:checked="${variant.size.equalsIgnoreCase(product.firstInStockSize)}" required>
+                    <span th:text="${variant.stock > 0 ? variant.size + ' · còn ' + variant.stock : variant.size + ' · hết'}">39</span>
                 </label>
             </div>
             <button class="btn" type="submit" th:disabled="${product.stock <= 0}" th:text="${product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Sản phẩm tạm hết hàng'}">Thêm vào giỏ hàng</button>

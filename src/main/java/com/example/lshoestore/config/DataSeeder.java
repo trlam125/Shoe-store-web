@@ -2,10 +2,12 @@ package com.example.lshoestore.config;
 
 import com.example.lshoestore.model.Category;
 import com.example.lshoestore.model.Product;
+import com.example.lshoestore.model.ProductVariant;
 import com.example.lshoestore.model.User;
 import com.example.lshoestore.repository.CategoryRepository;
 import com.example.lshoestore.repository.ProductRepository;
 import com.example.lshoestore.repository.UserRepository;
+import com.example.lshoestore.service.PasswordPolicy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -22,16 +24,16 @@ import java.util.UUID;
 @Configuration
 public class DataSeeder {
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
-    private static final String[] DEMO_SHOE_IMAGES = {
-            "https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=900&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=900&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1608231387042-66d1773070a5?q=80&w=900&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?q=80&w=900&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?q=80&w=900&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=900&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=900&auto=format&fit=crop",
-            "https://images.unsplash.com/photo-1605408499391-6368c628ef42?q=80&w=900&auto=format&fit=crop"
-    };
+    private static final Map<String, String> DEMO_SHOE_IMAGES_BY_BRAND = Map.of(
+            "Nike", "/images/products/catalog-nike.png",
+            "Adidas", "/images/products/catalog-adidas.png",
+            "New Balance", "/images/products/catalog-new-balance.png",
+            "Puma", "/images/products/catalog-puma.png",
+            "MLB", "/images/products/catalog-mlb.png",
+            "Converse", "/images/products/catalog-converse.png",
+            "Vans", "/images/products/catalog-vans.png",
+            "Asics", "/images/products/catalog-asics.png"
+    );
 
 
     @Bean
@@ -55,14 +57,21 @@ public class DataSeeder {
                         log.warn("Disabled the legacy default password for account {}. Configure BOOTSTRAP_ADMIN_PASSWORD or use password reset.", user.getEmail());
                     });
 
-            if (users.count() == 0 && adminEmail != null && !adminEmail.isBlank()
-                    && adminPassword != null && adminPassword.length() >= 8) {
-                User admin = new User();
-                admin.setFullName("LSHOE Administrator");
-                admin.setEmail(adminEmail.trim().toLowerCase(java.util.Locale.ROOT));
+            if (!users.existsByRoleIgnoreCase("ROLE_ADMIN")
+                    && adminEmail != null && !adminEmail.isBlank()
+                    && isUsableBootstrapPassword(adminPassword)) {
+                String normalizedAdminEmail = adminEmail.trim().toLowerCase(java.util.Locale.ROOT);
+                User admin = users.findByEmailIgnoreCase(normalizedAdminEmail).orElseGet(User::new);
+                boolean existingAccount = admin.getId() != null;
+                if (!existingAccount) {
+                    admin.setFullName("LSHOE Administrator");
+                    admin.setEmail(normalizedAdminEmail);
+                }
                 admin.setPassword(encoder.encode(adminPassword));
                 admin.setRole("ROLE_ADMIN");
+                if (existingAccount) admin.revokeSessions();
                 users.save(admin);
+                log.info("Bootstrapped administrator account {}", normalizedAdminEmail);
             }
 
             String[][] categoryData = {
@@ -157,7 +166,7 @@ public class DataSeeder {
 
 
     private boolean isUsableBootstrapPassword(String value) {
-        return value != null && value.length() >= 8 && !value.startsWith("CHANGE_ME");
+        return PasswordPolicy.isValidForBcrypt(value) && !value.startsWith("CHANGE_ME");
     }
 
     private void add(ProductRepository repo,
@@ -176,9 +185,15 @@ public class DataSeeder {
         product.setPrice(BigDecimal.valueOf(price));
         product.setOldPrice(BigDecimal.valueOf(oldPrice));
         product.setCategory(categoryMap.get(categoryName));
-        product.setStock(stock);
-        product.setSizeText("36, 37, 38, 39, 40, 41, 42, 43");
-        product.setImageUrl(DEMO_SHOE_IMAGES[Math.floorMod(name.hashCode(), DEMO_SHOE_IMAGES.length)]);
+        String[] sizes = {"36", "37", "38", "39", "40", "41", "42", "43"};
+        int baseStock = stock / sizes.length;
+        int remainder = stock % sizes.length;
+        for (int index = 0; index < sizes.length; index++) {
+            product.addVariant(new ProductVariant(product, sizes[index],
+                    baseStock + (index < remainder ? 1 : 0)));
+        }
+        product.syncInventorySummary();
+        product.setImageUrl(DEMO_SHOE_IMAGES_BY_BRAND.get(brand));
         repo.save(product);
     }
 }

@@ -1,123 +1,143 @@
-# ============================================================
+# ============================================================================
 # LSHOE Store - Git attributes
-# Normalize text files while keeping platform scripts usable.
-# ============================================================
+# Store text as LF in Git; use CRLF only for Windows-native scripts.
+# ============================================================================
 
-# Let Git detect text files and store them with LF in the repository.
+# Automatic text detection with LF as the repository/default checkout format.
 * text=auto eol=lf
 
-# ---------- Platform-specific scripts ----------
-# Windows command scripts are checked out with CRLF.
+# ----------------------------------------------------------------------------
+# Platform-specific scripts
+# ----------------------------------------------------------------------------
 *.bat text eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
+*.sh  text eol=lf
 
-# Unix shell scripts must keep LF.
-*.sh text eol=lf
-
-# ---------- Source code ----------
+# ----------------------------------------------------------------------------
+# Source code
+# ----------------------------------------------------------------------------
 *.java text eol=lf diff=java
-*.kt text eol=lf
-*.kts text eol=lf
-*.py text eol=lf diff=python
-*.js text eol=lf
-*.mjs text eol=lf
-*.cjs text eol=lf
-*.ts text eol=lf
-*.tsx text eol=lf
+*.kt   text eol=lf
+*.kts  text eol=lf
+*.py   text eol=lf diff=python
+*.js   text eol=lf
+*.mjs  text eol=lf
+*.cjs  text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
 
-# ---------- Web templates and styles ----------
+# ----------------------------------------------------------------------------
+# Web templates and styles
+# ----------------------------------------------------------------------------
 *.html text eol=lf
-*.htm text eol=lf
-*.css text eol=lf
+*.htm  text eol=lf
+*.css  text eol=lf
 *.scss text eol=lf
 *.sass text eol=lf
 *.less text eol=lf
-*.svg text eol=lf
+*.svg  text eol=lf
 
-# ---------- Configuration, data and documentation ----------
-*.xml text eol=lf
+# ----------------------------------------------------------------------------
+# Configuration, data and documentation
+# ----------------------------------------------------------------------------
+*.xml        text eol=lf
 *.properties text eol=lf
-*.yml text eol=lf
-*.yaml text eol=lf
-*.json text eol=lf
-*.toml text eol=lf
-*.ini text eol=lf
-*.conf text eol=lf
-*.sql text eol=lf
-*.csv text eol=lf
-*.tsv text eol=lf
-*.md text eol=lf diff=markdown
-*.txt text eol=lf
-*.env text eol=lf
-*.env.* text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+*.json       text eol=lf
+*.toml       text eol=lf
+*.ini        text eol=lf
+*.conf       text eol=lf
+*.sql        text eol=lf
+*.csv        text eol=lf
+*.tsv        text eol=lf
+*.md         text eol=lf diff=markdown
+*.txt        text eol=lf
+*.env        text eol=lf
+*.env.*      text eol=lf
+*.example    text eol=lf
+*.lock       text eol=lf
 
-pom.xml text eol=lf
-docker-compose.yml text eol=lf
-docker-compose.yaml text eol=lf
-Dockerfile text eol=lf
-.gitignore text eol=lf
-.gitattributes text eol=lf
+pom.xml                 text eol=lf
+Dockerfile              text eol=lf
+Dockerfile.*            text eol=lf
+docker-compose.yml      text eol=lf
+docker-compose.yaml     text eol=lf
+.gitignore              text eol=lf
+.gitattributes          text eol=lf
+.editorconfig           text eol=lf
 
-# ---------- Binary assets ----------
-*.png binary
-*.jpg binary
+# ----------------------------------------------------------------------------
+# Binary images and media
+# ----------------------------------------------------------------------------
+*.png  binary
+*.jpg  binary
 *.jpeg binary
-*.gif binary
+*.gif  binary
 *.webp binary
-*.ico binary
-*.bmp binary
-*.tif binary
+*.ico  binary
+*.bmp  binary
+*.tif  binary
 *.tiff binary
+*.avif binary
+
+*.mp3  binary
+*.wav  binary
+*.ogg  binary
+*.mp4  binary
+*.webm binary
+*.mov  binary
+*.avi  binary
 
 # Fonts
-*.woff binary
+*.woff  binary
 *.woff2 binary
-*.ttf binary
-*.otf binary
-*.eot binary
+*.ttf   binary
+*.otf   binary
+*.eot   binary
 
 # Documents
-*.pdf binary
-*.doc binary
+*.pdf  binary
+*.doc  binary
 *.docx binary
-*.xls binary
+*.xls  binary
 *.xlsx binary
-*.ppt binary
+*.ppt  binary
 *.pptx binary
 
 # Java packages and native binaries
-*.jar binary
-*.war binary
-*.ear binary
+*.jar   binary
+*.war   binary
+*.ear   binary
 *.class binary
-*.exe binary
-*.dll binary
-*.so binary
+*.exe   binary
+*.dll   binary
+*.so    binary
 *.dylib binary
 
 # Archives
 *.zip binary
 *.tar binary
-*.gz binary
+*.gz  binary
 *.tgz binary
-*.7z binary
+*.7z  binary
 *.rar binary
 
-# Databases and dumps
-*.db binary
-*.sqlite binary
+# Databases and binary dumps
+*.db      binary
+*.sqlite  binary
 *.sqlite3 binary
-*.dump binary
-*.backup binary
+*.dump    binary
+*.backup  binary
 
 # AI/ML model artifacts
-*.pt binary
-*.pth binary
-*.ckpt binary
-*.onnx binary
-*.joblib binary
-*.pkl binary
-*.h5 binary
-*.hdf5 binary
+*.pt          binary
+*.pth         binary
+*.ckpt        binary
+*.onnx        binary
+*.joblib      binary
+*.pkl         binary
+*.h5          binary
+*.hdf5        binary
 *.safetensors binary

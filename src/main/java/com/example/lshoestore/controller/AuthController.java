@@ -4,6 +4,7 @@ import com.example.lshoestore.dto.RegistrationForm;
 import com.example.lshoestore.model.User;
 import com.example.lshoestore.repository.UserRepository;
 import com.example.lshoestore.service.CartService;
+import com.example.lshoestore.service.PasswordPolicy;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -59,6 +60,9 @@ public class AuthController {
         model.addAttribute("cartCount", cart.count(auth, session));
         boolean captchaValid = verifyCaptcha(captchaAnswer, session);
         if (!captchaValid) model.addAttribute("captchaError", "Kết quả xác minh không đúng.");
+        if (!PasswordPolicy.isValidForBcrypt(form.getPassword())) {
+            bindingResult.rejectValue("password", "password.bytes", PasswordPolicy.VALIDATION_MESSAGE);
+        }
         if (bindingResult.hasErrors() || !captchaValid) {
             form.setPassword("");
             prepareCaptcha(model, session);

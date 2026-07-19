@@ -18,12 +18,10 @@ public class OrderItem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    // Nullable in the JPA mapping so Hibernate can add these columns to an existing
-    // database. DataMigrationRunner backfills historical rows and enforces NOT NULL.
-    @Column(name = "product_name", length = 160)
+    @Column(name = "product_name", nullable = false, length = 160)
     private String productName;
 
-    @Column(name = "product_brand", length = 100)
+    @Column(name = "product_brand", nullable = false, length = 100)
     private String productBrand;
 
     @Column(nullable = false)
@@ -32,8 +30,7 @@ public class OrderItem {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal price;
 
-    // Nullable in the mapping so the migration can upgrade historical orders safely.
-    @Column(name = "selected_size", length = 160)
+    @Column(name = "selected_size", nullable = false, length = 160)
     private String selectedSize;
 
     public Long getId() { return id; }

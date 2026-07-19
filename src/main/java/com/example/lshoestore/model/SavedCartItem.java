@@ -26,8 +26,7 @@ public class SavedCartItem {
     @Column(nullable = false)
     private int quantity;
 
-    // Để nullable ở mức JPA nhằm nâng cấp an toàn các database cũ; migration sẽ điền dữ liệu và đặt NOT NULL.
-    @Column(name = "selected_size", length = 160)
+    @Column(name = "selected_size", nullable = false, length = 160)
     private String selectedSize;
 
     public SavedCartItem() {}

@@ -16,7 +16,8 @@
             <td th:text="${p.id}"></td>
             <td><div class="cart-product"><img th:src="${p.imageUrl}" th:alt="${p.name}"><div><b th:text="${p.name}"></b><span th:text="${p.brand}"></span></div></div></td>
             <td th:text="${#numbers.formatDecimal(p.price,0,'COMMA',0,'POINT')} + 'đ'"></td>
-            <td><span class="stock-pill" th:classappend="${p.stock <= 0} ? 'out' : ''" th:text="${p.stock}"></span></td>
+            <td><span class="stock-pill" th:classappend="${p.stock <= 0} ? 'out' : ''"
+                      th:text="${p.stock}" th:title="${p.inventorySummary}"></span></td>
             <td><span class="status-pill" th:classappend="${p.active} ? 'active' : 'inactive'" th:text="${p.active ? 'Đang bán' : 'Đã ẩn'}"></span></td>
             <td><div class="table-actions"><a class="btn secondary small" th:href="@{/admin/products/edit/{id}(id=${p.id})}">Sửa</a><form class="inline" th:action="@{/admin/products/toggle/{id}(id=${p.id})}" method="post"><button class="table-button" type="submit" th:text="${p.active ? 'Ẩn' : 'Hiện lại'}"></button></form></div></td>
         </tr></tbody>

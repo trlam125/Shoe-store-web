@@ -22,6 +22,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByActiveTrueOrderByIdDesc(Pageable pageable);
     Page<Product> findByActiveTrueAndNameContainingIgnoreCaseOrderByIdDesc(String keyword, Pageable pageable);
     Page<Product> findByActiveTrueAndCategory_IdOrderByIdDesc(Long categoryId, Pageable pageable);
+    Page<Product> findByActiveTrueAndCategory_IdAndNameContainingIgnoreCaseOrderByIdDesc(
+            Long categoryId, String keyword, Pageable pageable);
 
     Page<Product> findAllByOrderByIdDesc(Pageable pageable);
     long countByActiveTrue();

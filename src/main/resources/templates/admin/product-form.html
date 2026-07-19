@@ -41,9 +41,11 @@
                 <p class="field-error" th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}"></p>
             </div>
             <div>
-                <label>Kích cỡ</label>
-                <input th:field="*{sizeText}" maxlength="120" placeholder="Ví dụ: 36, 37, 38, 39, 40">
-                <p class="field-error" th:if="${#fields.hasErrors('sizeText')}" th:errors="*{sizeText}"></p>
+                <label>Tồn kho theo từng kích cỡ</label>
+                <textarea th:field="*{variantStockText}" maxlength="2000" rows="4" required
+                          placeholder="Ví dụ: 36: 5, 37: 8, 38: 0"></textarea>
+                <small>Mỗi kích cỡ theo dạng <b>size: số lượng</b>, ngăn cách bằng dấu phẩy hoặc xuống dòng.</small>
+                <p class="field-error" th:if="${#fields.hasErrors('variantStockText')}" th:errors="*{variantStockText}"></p>
             </div>
             <div>
                 <label>Giá bán (đ)</label>
@@ -56,13 +58,9 @@
                 <p class="field-error" th:if="${#fields.hasErrors('oldPrice')}" th:errors="*{oldPrice}"></p>
             </div>
             <div>
-                <label>Tồn kho tổng cho tất cả kích cỡ</label>
-                <input th:field="*{stock}" type="number" min="0" required>
-                <p class="field-error" th:if="${#fields.hasErrors('stock')}" th:errors="*{stock}"></p>
-            </div>
-            <div>
                 <label>Link ảnh</label>
-                <input th:field="*{imageUrl}" type="url" maxlength="1000" placeholder="https://...">
+                <input th:field="*{imageUrl}" type="text" maxlength="1000"
+                       placeholder="/images/products/example.png hoặc https://...">
                 <p class="field-error" th:if="${#fields.hasErrors('imageUrl')}" th:errors="*{imageUrl}"></p>
             </div>
         </div>

@@ -1,43 +1,40 @@
-# ============================================================
-# LSHOE Store - Git ignore rules
-# Spring Boot (Maven) + Python AI services + PostgreSQL
-# ============================================================
+# ============================================================================
+# LSHOE Store
+# Spring Boot (Maven) + Python AI service + PostgreSQL
+# ============================================================================
 
-# ---------- Secrets and environment-specific configuration ----------
+# ----------------------------------------------------------------------------
+# Secrets and machine-specific configuration
+# ----------------------------------------------------------------------------
 .env
 .env.*
-!*.env.example
-!*.env.template
+!.env.example
+!.env.template
 !**/.env.example
 !**/.env.template
 
-# Local Spring configuration that may contain credentials
+# Local Spring profiles/configuration that may contain credentials
 application-local.properties
 application-secrets.properties
 application-*.local.properties
-**/application-local.properties
-**/application-secrets.properties
-**/application-*.local.properties
 
-# Private keys, certificates and tokens
-*.pem
+# Credentials, private keys and local secret directories
 *.key
+*.pem
 *.p12
 *.pfx
 *.jks
 *.keystore
-*.crt
-*.cer
+credentials*.json
+service-account*.json
 secrets/
-**/secrets/
 
-# ---------- Java / Maven ----------
+# ----------------------------------------------------------------------------
+# Java / Maven
+# ----------------------------------------------------------------------------
 target/
-**/target/
 build/
-**/build/
 out/
-**/out/
 *.class
 *.jar.original
 dependency-reduced-pom.xml
@@ -50,36 +47,31 @@ replay_pid*
 .attach_pid*
 *.hprof
 
-# ---------- Python ----------
+# ----------------------------------------------------------------------------
+# Python
+# ----------------------------------------------------------------------------
 __pycache__/
-**/__pycache__/
 *.py[cod]
 *$py.class
 *.pyd
 *.so
 .Python
-.python-version
 
 # Virtual environments
 .venv/
 venv/
 env/
 ENV/
-**/.venv/
-**/venv/
-**/env/
-**/ENV/
 
-# Python package/build output
-pip-wheel-metadata/
+# Packaging/build output
+dist/
+.eggs/
 *.egg
 *.egg-info/
-dist/
-**/dist/
-.eggs/
+pip-wheel-metadata/
 wheels/
 
-# Python test, lint and coverage caches
+# Test, lint, type-check and coverage caches
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -92,7 +84,9 @@ wheels/
 htmlcov/
 coverage.xml
 
-# ---------- AI/ML generated artifacts ----------
+# ----------------------------------------------------------------------------
+# AI/ML generated artifacts
+# ----------------------------------------------------------------------------
 *.pt
 *.pth
 *.ckpt
@@ -103,24 +97,22 @@ coverage.xml
 *.hdf5
 *.safetensors
 
-# Runtime/generated AI data (scoped to this repository)
 /data/
 /datasets/
 /models/
 /checkpoints/
-/Chatbot/data/
-/Chatbot/uploads/
-/Chatbot/models/
 /ai-service/data/
-/ai-service/uploads/
+/ai-service/datasets/
 /ai-service/models/
 /ai-service/checkpoints/
+/ai-service/uploads/
 
-# ---------- Runtime uploads, temporary files and logs ----------
+# ----------------------------------------------------------------------------
+# Runtime files, uploads and temporary data
+# ----------------------------------------------------------------------------
 /uploads/
 /src/main/resources/static/uploads/
 logs/
-**/logs/
 *.log
 *.pid
 *.pid.lock
@@ -128,13 +120,11 @@ spring-shell.log
 
 tmp/
 temp/
-**/tmp/
-**/temp/
 *.tmp
 *.temp
 *.cache
 
-# ---------- Databases and local data volumes ----------
+# Local databases, dumps and PostgreSQL data directories
 *.db
 *.sqlite
 *.sqlite3
@@ -144,9 +134,34 @@ pgdata/
 postgres-data/
 .pgdata/
 
-# ---------- Node/frontend tooling (if added later) ----------
+# ----------------------------------------------------------------------------
+# Cloudflare Tunnel local files
+# ----------------------------------------------------------------------------
+/cloudflared-windows-amd64.exe
+/cloudflared.exe
+/cloudflared
+/.cloudflared/
+/cloudflare-tunnel-token.txt
+/cert.pem
+
+# Named-tunnel configuration is specific to a machine/domain.
+/cloudflared-config.yml
+/cloudflared-config.yaml
+!/cloudflared-config.example.yml
+!/cloudflared-config.example.yaml
+
+# ----------------------------------------------------------------------------
+# Docker local overrides
+# ----------------------------------------------------------------------------
+/docker-compose.override.yml
+/docker-compose.override.yaml
+/compose.override.yml
+/compose.override.yaml
+
+# ----------------------------------------------------------------------------
+# Frontend tooling, if introduced later
+# ----------------------------------------------------------------------------
 node_modules/
-**/node_modules/
 .npm/
 .pnpm-store/
 .yarn/
@@ -156,8 +171,11 @@ node_modules/
 .svelte-kit/
 coverage/
 
-# ---------- IDEs and editors ----------
+# ----------------------------------------------------------------------------
+# IDEs and editors
+# ----------------------------------------------------------------------------
 .idea/
+.run/
 *.iml
 *.ipr
 *.iws
@@ -172,7 +190,9 @@ coverage/
 *.swo
 *~
 
-# ---------- Operating-system files ----------
+# ----------------------------------------------------------------------------
+# Operating-system files
+# ----------------------------------------------------------------------------
 .DS_Store
 .AppleDouble
 .LSOverride
@@ -183,24 +203,13 @@ Desktop.ini
 $RECYCLE.BIN/
 *.lnk
 
-# ---------- Cloudflare Tunnel local files ----------
-cloudflared
-cloudflared.exe
-cloudflared-*
-.cloudflared/
-cloudflare-tunnel-token.txt
-cert.pem
-
-# ---------- Local Docker overrides ----------
-docker-compose.override.yml
-docker-compose.override.yaml
-compose.override.yml
-compose.override.yaml
-
-# ---------- Generated archives ----------
-*.zip
-*.tar
-*.tar.gz
-*.tgz
-*.7z
-*.rar
+# ----------------------------------------------------------------------------
+# Root-level release archives and local review scratch files
+# ----------------------------------------------------------------------------
+/*.zip
+/*.tar
+/*.tar.gz
+/*.tgz
+/*.7z
+/*.rar
+/.logic-tests/

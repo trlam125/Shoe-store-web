@@ -70,6 +70,10 @@ public class HomeController {
 
     private Page<Product> findProductPage(String keyword, Long category, int page) {
         Pageable pageable = PageRequest.of(page, CATALOG_PAGE_SIZE);
+        if (keyword != null && !keyword.isBlank() && category != null) {
+            return products.findByActiveTrueAndCategory_IdAndNameContainingIgnoreCaseOrderByIdDesc(
+                    category, keyword, pageable);
+        }
         if (keyword != null && !keyword.isBlank()) {
             return products.findByActiveTrueAndNameContainingIgnoreCaseOrderByIdDesc(keyword, pageable);
         }
