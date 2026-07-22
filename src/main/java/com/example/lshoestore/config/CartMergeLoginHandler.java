@@ -1,11 +1,13 @@
 package com.example.lshoestore.config;
 
+import com.example.lshoestore.exception.BusinessException;
 import com.example.lshoestore.service.CartService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
@@ -34,13 +36,22 @@ public class CartMergeLoginHandler extends SimpleUrlAuthenticationSuccessHandler
                                         Authentication authentication) throws IOException, ServletException {
         HttpSession session = request.getSession(false);
         if (session != null) {
-            CartService.CartMergeResult result = cartService.mergeGuestCart(authentication, session);
-            if (!result.warnings().isEmpty()) {
-                String message = String.join(" ", result.warnings());
-                FlashMap flashMap = new FlashMap();
-                flashMap.put("warning", message);
-                FlashMapManager flashMapManager = new SessionFlashMapManager();
-                flashMapManager.saveOutputFlashMap(flashMap, request, response);
+            try {
+                CartService.CartMergeResult result = cartService.mergeGuestCart(authentication, session);
+                if (!result.warnings().isEmpty()) {
+                    String message = String.join(" ", result.warnings());
+                    FlashMap flashMap = new FlashMap();
+                    flashMap.put("warning", message);
+                    FlashMapManager flashMapManager = new SessionFlashMapManager();
+                    flashMapManager.saveOutputFlashMap(flashMap, request, response);
+                }
+            } catch (BusinessException exception) {
+                if (!"account_disabled".equals(exception.getCode())) throw exception;
+                SecurityContextHolder.clearContext();
+                session.invalidate();
+                getRedirectStrategy().sendRedirect(request, response,
+                        request.getContextPath() + "/login?error");
+                return;
             }
         }
 

@@ -52,6 +52,7 @@ public class OrderService {
     public Order placeOrder(User user, CheckoutForm form, String expectedCartFingerprint) {
         User lockedUser = users.findByIdWithLock(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài khoản người dùng"));
+        requireActiveAccount(lockedUser);
 
         if (orders.existsByCheckoutToken(form.getCheckoutToken())) {
             throw new BusinessException("Đơn hàng này đã được tạo trước đó.", "duplicate_checkout");
@@ -178,6 +179,14 @@ public class OrderService {
         order.setStatus(newStatus);
         if (newStatus == OrderStatus.HOAN_THANH && order.getCompletedAt() == null) {
             order.setCompletedAt(LocalDateTime.now());
+        }
+    }
+
+    private void requireActiveAccount(User user) {
+        if (!user.isEnabled()) {
+            throw new BusinessException(
+                    "Tài khoản đã bị khóa. Không thể tạo đơn hàng.",
+                    "account_disabled");
         }
     }
 

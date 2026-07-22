@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản lý tài khoản - LSHOE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=7}">
+</head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<section class="section">
+    <div class="title-row">
+        <div>
+            <p class="eyebrow">Khách hàng và tài khoản</p>
+            <h1>Quản lý tài khoản</h1>
+            <p class="section-subtitle">Tìm kiếm, xem lịch sử mua hàng và khóa hoặc mở khóa tài khoản khách hàng.</p>
+        </div>
+        <a class="btn secondary small" th:href="@{/admin}">Về bảng điều khiển</a>
+    </div>
+
+    <form class="admin-filter" th:action="@{/admin/customers}" method="get">
+        <label>
+            <span>Tìm khách hàng</span>
+            <input type="search" name="q" th:value="${q}" placeholder="Tên, email hoặc số điện thoại">
+        </label>
+        <label>
+            <span>Trạng thái</span>
+            <select name="status">
+                <option value="all" th:selected="${status == 'all'}">Tất cả tài khoản</option>
+                <option value="active" th:selected="${status == 'active'}">Đang hoạt động</option>
+                <option value="locked" th:selected="${status == 'locked'}">Đã khóa</option>
+            </select>
+        </label>
+        <button class="btn" type="submit">Tìm kiếm</button>
+        <a class="btn secondary" th:href="@{/admin/customers}">Đặt lại</a>
+    </form>
+
+    <p class="result-count" th:text="${'Tìm thấy ' + totalCustomers + ' tài khoản'}">Tìm thấy 0 tài khoản</p>
+
+    <div class="table-wrap" th:if="${!#lists.isEmpty(customers)}">
+        <table class="customer-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tài khoản</th>
+                <th>Liên hệ</th>
+                <th>Vai trò</th>
+                <th>Đơn hàng</th>
+                <th>Đã chi tiêu</th>
+                <th>Ngày đăng ký</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${customers}">
+                <td th:text="${c.id}"></td>
+                <td>
+                    <div class="customer-identity">
+                        <span class="customer-avatar" th:text="${#strings.substring(c.fullName, 0, 1).toUpperCase()}">K</span>
+                        <div>
+                            <b th:text="${c.fullName}"></b>
+                            <small th:text="${c.email}"></small>
+                        </div>
+                    </div>
+                </td>
+                <td th:text="${c.phone != null and !c.phone.isBlank() ? c.phone : '-'}"></td>
+                <td>
+                    <span class="role-pill" th:classappend="${c.role == 'ROLE_ADMIN'} ? 'admin' : ''"
+                          th:text="${c.role == 'ROLE_ADMIN' ? 'Quản trị viên' : 'Khách hàng'}"></span>
+                </td>
+                <td><b th:text="${c.orderCount}"></b></td>
+                <td><b th:text="${#numbers.formatDecimal(c.completedSpend, 0, 'COMMA', 0, 'POINT') + 'đ'}"></b></td>
+                <td th:text="${c.createdAt != null ? #temporals.format(c.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                <td>
+                    <span class="status-pill" th:classappend="${c.enabled} ? 'active' : 'inactive'"
+                          th:text="${c.enabled ? 'Hoạt động' : 'Đã khóa'}"></span>
+                </td>
+                <td>
+                    <div class="table-actions">
+                        <a class="btn secondary small" th:href="@{/admin/customers/{id}(id=${c.id})}">Chi tiết</a>
+                        <form class="inline" th:if="${c.role != 'ROLE_ADMIN'}"
+                              th:action="@{/admin/customers/{id}/toggle(id=${c.id})}" method="post">
+                            <input type="hidden" name="returnTo" value="list">
+                            <input type="hidden" name="q" th:value="${q}">
+                            <input type="hidden" name="status" th:value="${status}">
+                            <button class="table-button" th:classappend="${c.enabled} ? 'danger-button' : ''" type="submit"
+                                    th:text="${c.enabled ? 'Khóa' : 'Mở khóa'}"
+                                    onclick="return confirm('Xác nhận thay đổi trạng thái tài khoản này?')"></button>
+                        </form>
+                        <small class="protected-note" th:if="${c.role == 'ROLE_ADMIN'}">Tài khoản được bảo vệ</small>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="empty-state" th:if="${#lists.isEmpty(customers)}">
+        <div class="empty-icon">👤</div>
+        <h3>Không tìm thấy tài khoản phù hợp</h3>
+        <p>Thử đổi từ khóa hoặc bộ lọc trạng thái.</p>
+        <a class="btn" th:href="@{/admin/customers}">Xem tất cả tài khoản</a>
+    </div>
+
+    <div class="pagination" th:if="${totalPages > 1}">
+        <a th:if="${currentPage > 0}"
+           th:href="@{/admin/customers(page=${currentPage - 1},q=${q},status=${status})}">« Trước</a>
+        <span th:each="i : ${#numbers.sequence(0, totalPages - 1)}">
+            <a th:href="@{/admin/customers(page=${i},q=${q},status=${status})}"
+               th:text="${i + 1}" th:classappend="${i == currentPage} ? 'active' : ''"></a>
+        </span>
+        <a th:if="${currentPage < totalPages - 1}"
+           th:href="@{/admin/customers(page=${currentPage + 1},q=${q},status=${status})}">Tiếp »</a>
+    </div>
+</section>
+<div th:replace="~{fragments :: footer}"></div>
+</body>
+</html>

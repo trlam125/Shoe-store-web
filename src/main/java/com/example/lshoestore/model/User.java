@@ -2,6 +2,7 @@ package com.example.lshoestore.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
 import java.util.Locale;
 
 @Entity
@@ -29,6 +30,12 @@ public class User {
     @Column(length = 500)
     private String address;
 
+    @Column(nullable = false)
+    private boolean enabled = true;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
     @Column
     private Integer sessionVersion = 0;
 
@@ -48,6 +55,10 @@ public class User {
     public void setPhone(String phone) { this.phone = phone; }
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public int getSessionVersion() { return sessionVersion == null ? 0 : sessionVersion; }
     public void setSessionVersion(int sessionVersion) { this.sessionVersion = sessionVersion; }
     public void revokeSessions() { this.sessionVersion = getSessionVersion() + 1; }

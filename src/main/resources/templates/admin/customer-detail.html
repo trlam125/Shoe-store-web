@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chi tiết tài khoản - LSHOE</title>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=7}">
+</head>
+<body>
+<div th:replace="~{fragments :: header}"></div>
+<section class="section">
+    <div class="title-row">
+        <div>
+            <p class="eyebrow">Hồ sơ tài khoản</p>
+            <h1 th:text="${customer.user.fullName}">Khách hàng</h1>
+        </div>
+        <div class="table-actions">
+            <a class="btn secondary small" th:href="@{/admin/customers}">Danh sách tài khoản</a>
+            <a class="btn secondary small" th:if="${customer.user.role != 'ROLE_ADMIN'}"
+               th:href="@{/admin/customers/{id}/edit(id=${customer.user.id})}">Chỉnh sửa thông tin</a>
+            <form class="inline" th:if="${customer.user.role != 'ROLE_ADMIN'}"
+                  th:action="@{/admin/customers/{id}/toggle(id=${customer.user.id})}" method="post">
+                <input type="hidden" name="returnTo" value="detail">
+                <button class="btn small" th:classappend="${customer.user.enabled} ? 'danger-button' : ''" type="submit"
+                        th:text="${customer.user.enabled ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}"
+                        onclick="return confirm('Xác nhận thay đổi trạng thái tài khoản này?')"></button>
+            </form>
+        </div>
+    </div>
+
+    <div class="customer-detail-grid">
+        <article class="customer-profile-card">
+            <div class="customer-profile-head">
+                <span class="customer-avatar large" th:text="${#strings.substring(customer.user.fullName, 0, 1).toUpperCase()}">K</span>
+                <div>
+                    <h2 th:text="${customer.user.fullName}"></h2>
+                    <span class="status-pill" th:classappend="${customer.user.enabled} ? 'active' : 'inactive'"
+                          th:text="${customer.user.enabled ? 'Đang hoạt động' : 'Đã khóa'}"></span>
+                    <span class="role-pill" th:classappend="${customer.user.role == 'ROLE_ADMIN'} ? 'admin' : ''"
+                          th:text="${customer.user.role == 'ROLE_ADMIN' ? 'Quản trị viên' : 'Khách hàng'}"></span>
+                </div>
+            </div>
+            <dl class="customer-info-list">
+                <div><dt>Email</dt><dd th:text="${customer.user.email}"></dd></div>
+                <div><dt>Số điện thoại</dt><dd th:text="${customer.user.phone != null and !customer.user.phone.isBlank() ? customer.user.phone : 'Chưa cập nhật'}"></dd></div>
+                <div><dt>Địa chỉ</dt><dd th:text="${customer.user.address != null and !customer.user.address.isBlank() ? customer.user.address : 'Chưa cập nhật'}"></dd></div>
+                <div><dt>Ngày đăng ký</dt><dd th:text="${customer.user.createdAt != null ? #temporals.format(customer.user.createdAt, 'dd/MM/yyyy HH:mm') : '-'}"></dd></div>
+            </dl>
+            <p class="protected-notice" th:if="${customer.user.role == 'ROLE_ADMIN'}">Tài khoản quản trị viên được bảo vệ và không thể chỉnh sửa hoặc khóa từ giao diện này.</p>
+        </article>
+
+        <div class="stats customer-stats">
+            <div><b th:text="${customer.orderCount}">0</b><span>Tổng đơn hàng</span></div>
+            <div><b th:text="${customer.completedOrderCount}">0</b><span>Đơn hoàn thành</span></div>
+            <div><b class="money-stat" th:text="${#numbers.formatDecimal(customer.completedSpend, 0, 'COMMA', 0, 'POINT') + 'đ'}">0đ</b><span>Tổng chi tiêu hoàn thành</span></div>
+        </div>
+    </div>
+
+    <div class="title-row customer-orders-title">
+        <div><p class="eyebrow">Lịch sử giao dịch</p><h2>Đơn hàng của tài khoản</h2></div>
+    </div>
+
+    <div class="table-wrap" th:if="${!#lists.isEmpty(customer.orders)}">
+        <table>
+            <thead><tr><th>Mã đơn</th><th>Người nhận</th><th>Liên hệ</th><th>Địa chỉ</th><th>Ngày đặt</th><th>Tổng tiền</th><th>Trạng thái</th></tr></thead>
+            <tbody>
+            <tr th:each="o : ${customer.orders}">
+                <td><b th:text="${'#' + o.id}"></b></td>
+                <td th:text="${o.receiverName}"></td>
+                <td th:text="${o.phone}"></td>
+                <td class="address-cell" th:text="${o.address}"></td>
+                <td th:text="${#temporals.format(o.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                <td><b th:text="${#numbers.formatDecimal(o.total, 0, 'COMMA', 0, 'POINT') + 'đ'}"></b></td>
+                <td><span class="status-pill" th:classappend="${o.status.name().toLowerCase()}" th:text="${o.status.displayName}"></span></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="empty-state compact" th:if="${#lists.isEmpty(customer.orders)}">
+        <h3>Tài khoản chưa có đơn hàng</h3>
+        <p>Lịch sử mua hàng sẽ xuất hiện tại đây.</p>
+    </div>
+</section>
+<div th:replace="~{fragments :: footer}"></div>
+</body>
+</html>

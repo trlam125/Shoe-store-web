@@ -96,10 +96,35 @@ public class ProductAdminService {
                 variant = new ProductVariant(product, input.size(), input.stock());
                 product.addVariant(variant);
             } else {
+                int stockToSave = input.stock();
+                // A disabled size can hold stock restored from cancelled historical orders.
+                // When the administrator enables that size again, treat the entered value as
+                // additional stock so the retained quantity is never silently overwritten.
+                if (!variant.isEnabled() && variant.getStock() > 0) {
+                    long mergedStock = (long) variant.getStock() + input.stock();
+                    if (mergedStock > MAX_VARIANT_STOCK) {
+                        throw new BusinessException(
+                                "Tồn kho của size " + input.size() + " sau khi cộng phần đang giữ "
+                                        + "không được vượt quá " + MAX_VARIANT_STOCK + ".",
+                                "invalid_variant_stock");
+                    }
+                    stockToSave = (int) mergedStock;
+                }
                 variant.setSize(input.size());
-                variant.setStock(input.stock());
+                variant.setStock(stockToSave);
                 variant.setEnabled(true);
             }
+        }
+
+        long enabledTotal = product.getVariants().stream()
+                .filter(ProductVariant::isEnabled)
+                .mapToLong(ProductVariant::getStock)
+                .sum();
+        if (enabledTotal > MAX_TOTAL_STOCK) {
+            throw new BusinessException(
+                    "Tổng tồn kho sản phẩm sau khi khôi phục size đã tắt không được vượt quá "
+                            + MAX_TOTAL_STOCK + ".",
+                    "stock_limit");
         }
         product.syncInventorySummary();
         // Always touch the parent row when variants are saved. This guarantees that the
@@ -116,12 +141,31 @@ public class ProductAdminService {
         product.setActive(!product.isActive());
     }
 
+    /**
+     * Safely removes a product from the storefront without physically deleting rows.
+     *
+     * Checkout locks a user's saved-cart rows before locking products. A physical delete
+     * would need to delete those cart rows after locking the product, creating the opposite
+     * lock order and a possible PostgreSQL deadlock. Archiving only updates the product row,
+     * preserves order history and allows the administrator to restore the product later.
+     *
+     * @return true when the product changed from active to archived; false if it was already archived
+     */
+    @Transactional
+    public boolean archive(Long id) {
+        Product product = products.findByIdWithLock(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sản phẩm"));
+        if (!product.isActive()) return false;
+        product.setActive(false);
+        return true;
+    }
+
     @Transactional(readOnly = true)
     public ProductForm getForm(Long id) {
         Product product = products.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sản phẩm"));
-        variants.findAllByProductId(product.getId());
-        return ProductForm.from(product);
+        List<ProductVariant> productVariants = variants.findAllByProductId(product.getId());
+        return ProductForm.from(product, productVariants);
     }
 
     static LinkedHashMap<String, VariantInput> parseVariantStock(String raw) {

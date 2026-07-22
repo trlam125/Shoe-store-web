@@ -4,26 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Quản lý sản phẩm - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=5}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=6}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
 <section class="section">
-    <div class="title-row"><div><p class="eyebrow">Kho hàng</p><h1>Quản lý sản phẩm</h1></div><a class="btn" th:href="@{/admin/products/new}">+ Thêm sản phẩm</a></div>
+    <div class="title-row">
+        <div><p class="eyebrow">Kho hàng</p><h1>Quản lý sản phẩm</h1></div>
+        <a class="btn" th:href="@{/admin/products/new}">+ Thêm sản phẩm</a>
+    </div>
     <div class="table-wrap"><table>
         <thead><tr><th>ID</th><th>Sản phẩm</th><th>Giá</th><th>Tồn kho</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
         <tbody><tr th:each="p : ${products}">
             <td th:text="${p.id}"></td>
-            <td><div class="cart-product"><img th:src="${p.imageUrl}" th:alt="${p.name}"><div><b th:text="${p.name}"></b><span th:text="${p.brand}"></span></div></div></td>
+            <td><div class="cart-product">
+                <img th:src="${p.imageUrl != null and !p.imageUrl.isBlank() ? p.imageUrl : '/images/hero-bg.png'}" th:alt="${p.name}">
+                <div><b th:text="${p.name}"></b><span th:text="${p.brand}"></span></div>
+            </div></td>
             <td th:text="${#numbers.formatDecimal(p.price,0,'COMMA',0,'POINT')} + 'đ'"></td>
             <td><span class="stock-pill" th:classappend="${p.stock <= 0} ? 'out' : ''"
                       th:text="${p.stock}" th:title="${p.inventorySummary}"></span></td>
-            <td><span class="status-pill" th:classappend="${p.active} ? 'active' : 'inactive'" th:text="${p.active ? 'Đang bán' : 'Đã ẩn'}"></span></td>
-            <td><div class="table-actions"><a class="btn secondary small" th:href="@{/admin/products/edit/{id}(id=${p.id})}">Sửa</a><form class="inline" th:action="@{/admin/products/toggle/{id}(id=${p.id})}" method="post"><button class="table-button" type="submit" th:text="${p.active ? 'Ẩn' : 'Hiện lại'}"></button></form></div></td>
+            <td><span class="status-pill" th:classappend="${p.active} ? 'active' : 'inactive'"
+                      th:text="${p.active ? 'Đang bán' : 'Đã ẩn'}"></span></td>
+            <td><div class="table-actions">
+                <a class="btn secondary small" th:href="@{/admin/products/edit/{id}(id=${p.id})}">Sửa</a>
+                <form class="inline" th:action="@{/admin/products/toggle/{id}(id=${p.id})}" method="post">
+                    <button class="table-button" type="submit" th:text="${p.active ? 'Ẩn' : 'Hiện lại'}"></button>
+                </form>
+            </div></td>
         </tr></tbody>
     </table></div>
-    <div class="empty-state" th:if="${#lists.isEmpty(products)}"><div class="empty-icon">👟</div><h3>Chưa có sản phẩm</h3><a class="btn" th:href="@{/admin/products/new}">Thêm sản phẩm đầu tiên</a></div>
-    <div class="pagination" th:if="${totalPages > 1}"><a th:if="${currentPage > 0}" th:href="@{/admin/products(page=${currentPage - 1})}">« Trước</a><span th:each="i : ${#numbers.sequence(0, totalPages - 1)}"><a th:href="@{/admin/products(page=${i})}" th:text="${i + 1}" th:classappend="${i == currentPage} ? 'active' : ''"></a></span><a th:if="${currentPage < totalPages - 1}" th:href="@{/admin/products(page=${currentPage + 1})}">Tiếp »</a></div>
+    <div class="empty-state" th:if="${#lists.isEmpty(products)}">
+        <div class="empty-icon">👟</div><h3>Chưa có sản phẩm</h3>
+        <a class="btn" th:href="@{/admin/products/new}">Thêm sản phẩm đầu tiên</a>
+    </div>
+    <div class="pagination" th:if="${totalPages > 1}">
+        <a th:if="${currentPage > 0}" th:href="@{/admin/products(page=${currentPage - 1})}">« Trước</a>
+        <span th:each="i : ${#numbers.sequence(0, totalPages - 1)}"><a th:href="@{/admin/products(page=${i})}"
+              th:text="${i + 1}" th:classappend="${i == currentPage} ? 'active' : ''"></a></span>
+        <a th:if="${currentPage < totalPages - 1}" th:href="@{/admin/products(page=${currentPage + 1})}">Tiếp »</a>
+    </div>
 </section>
 <div th:replace="~{fragments :: footer}"></div>
 </body>

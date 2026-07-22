@@ -18,6 +18,7 @@ public class StoreUserPrincipal implements UserDetails {
     private final String password;
     private final String role;
     private final int sessionVersion;
+    private final boolean enabled;
 
     public StoreUserPrincipal(User user) {
         this.userId = user.getId();
@@ -25,6 +26,7 @@ public class StoreUserPrincipal implements UserDetails {
         this.password = user.getPassword();
         this.role = user.getRole();
         this.sessionVersion = user.getSessionVersion();
+        this.enabled = user.isEnabled();
     }
 
     public Long getUserId() { return userId; }
@@ -36,7 +38,7 @@ public class StoreUserPrincipal implements UserDetails {
     @Override public String getPassword() { return password; }
     @Override public String getUsername() { return email; }
     @Override public boolean isAccountNonExpired() { return true; }
-    @Override public boolean isAccountNonLocked() { return true; }
+    @Override public boolean isAccountNonLocked() { return enabled; }
     @Override public boolean isCredentialsNonExpired() { return true; }
-    @Override public boolean isEnabled() { return true; }
+    @Override public boolean isEnabled() { return enabled; }
 }

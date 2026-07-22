@@ -87,8 +87,12 @@ public class CartController {
                          Authentication auth,
                          HttpSession session,
                          RedirectAttributes redirectAttributes) {
-        cart.remove(id, selectedSize, auth, session);
-        redirectAttributes.addFlashAttribute("success", "Đã xóa sản phẩm khỏi giỏ hàng.");
+        try {
+            cart.remove(id, selectedSize, auth, session);
+            redirectAttributes.addFlashAttribute("success", "Đã xóa sản phẩm khỏi giỏ hàng.");
+        } catch (BusinessException exception) {
+            redirectAttributes.addFlashAttribute("error", exception.getMessage());
+        }
         return "redirect:/cart";
     }
 }

@@ -46,6 +46,7 @@ public class SessionVersionFilter extends OncePerRequestFilter {
                     .filter(user -> user.getSessionVersion() == principal.getSessionVersion())
                     .filter(user -> user.getEmail().equalsIgnoreCase(principal.getUsername()))
                     .filter(user -> user.getRole().equals(principal.getRole()))
+                    .filter(user -> user.isEnabled())
                     .isPresent();
         }
 

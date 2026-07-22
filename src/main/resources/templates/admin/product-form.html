@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Thông tin sản phẩm - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=5}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=6}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
@@ -17,7 +17,8 @@
         <a class="btn secondary small" th:href="@{/admin/products}">Quay lại</a>
     </div>
     <p class="error" th:if="${error}" th:text="${error}"></p>
-    <form th:action="@{/admin/products/save}" method="post" th:object="${productForm}">
+    <form th:action="@{/admin/products/save}" method="post" enctype="multipart/form-data"
+          th:object="${productForm}">
         <input type="hidden" th:field="*{id}">
         <input type="hidden" th:field="*{version}">
 
@@ -45,6 +46,16 @@
                 <textarea th:field="*{variantStockText}" maxlength="2000" rows="4" required
                           placeholder="Ví dụ: 36: 5, 37: 8, 38: 0"></textarea>
                 <small>Mỗi kích cỡ theo dạng <b>size: số lượng</b>, ngăn cách bằng dấu phẩy hoặc xuống dòng.</small>
+                <div th:if="${productForm.disabledVariantStockText != null and !productForm.disabledVariantStockText.isBlank()}">
+                    <p class="warning">
+                        <b>Tồn kho đang giữ ở size đã tắt:</b>
+                        <span th:text="${productForm.disabledVariantStockText}">40: 3</span>
+                    </p>
+                    <small>
+                        Khi nhập lại một size ở trên, số lượng mới sẽ được <b>cộng vào</b> phần đang giữ,
+                        không ghi đè mất tồn kho cũ. Nhập <b>0</b> nếu chỉ muốn bật lại size với số lượng đang giữ.
+                    </small>
+                </div>
                 <p class="field-error" th:if="${#fields.hasErrors('variantStockText')}" th:errors="*{variantStockText}"></p>
             </div>
             <div>
@@ -62,6 +73,13 @@
                 <input th:field="*{imageUrl}" type="text" maxlength="1000"
                        placeholder="/images/products/example.png hoặc https://...">
                 <p class="field-error" th:if="${#fields.hasErrors('imageUrl')}" th:errors="*{imageUrl}"></p>
+                <label for="imageFile">Tải ảnh mới</label>
+                <input id="imageFile" name="imageFile" type="file"
+                       accept="image/jpeg,image/png,image/webp">
+                <small>JPEG, PNG hoặc WebP, tối đa 5 MB. Ảnh tải lên sẽ thay thế link ảnh ở trên.</small>
+                <img id="imagePreview" class="product-image-preview"
+                     th:if="${productForm.imageUrl != null and !productForm.imageUrl.isBlank()}"
+                     th:src="${productForm.imageUrl}" alt="Xem trước ảnh sản phẩm">
             </div>
         </div>
 
@@ -78,5 +96,21 @@
     </form>
 </section>
 <div th:replace="~{fragments :: footer}"></div>
+<script>
+    const imageFile = document.getElementById('imageFile');
+    imageFile?.addEventListener('change', () => {
+        const file = imageFile.files?.[0];
+        if (!file) return;
+        let preview = document.getElementById('imagePreview');
+        if (!preview) {
+            preview = document.createElement('img');
+            preview.id = 'imagePreview';
+            preview.className = 'product-image-preview';
+            preview.alt = 'Xem trước ảnh sản phẩm';
+            imageFile.parentElement.appendChild(preview);
+        }
+        preview.src = URL.createObjectURL(file);
+    });
+</script>
 </body>
 </html>

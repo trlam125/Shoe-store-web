@@ -20,13 +20,38 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByActiveTrueAndCategory_IdOrderByIdDesc(Long categoryId);
 
     Page<Product> findByActiveTrueOrderByIdDesc(Pageable pageable);
-    Page<Product> findByActiveTrueAndNameContainingIgnoreCaseOrderByIdDesc(String keyword, Pageable pageable);
     Page<Product> findByActiveTrueAndCategory_IdOrderByIdDesc(Long categoryId, Pageable pageable);
-    Page<Product> findByActiveTrueAndCategory_IdAndNameContainingIgnoreCaseOrderByIdDesc(
-            Long categoryId, String keyword, Pageable pageable);
+
+    @Query(value = """
+            SELECT p
+            FROM Product p
+            WHERE p.active = true
+              AND (:categoryId IS NULL OR p.category.id = :categoryId)
+              AND (
+                    LOCATE(LOWER(:keyword), LOWER(p.name)) > 0
+                    OR LOCATE(LOWER(:keyword), LOWER(p.brand)) > 0
+                    OR LOCATE(LOWER(:keyword), LOWER(COALESCE(p.description, ''))) > 0
+                  )
+            ORDER BY p.id DESC
+            """,
+            countQuery = """
+            SELECT COUNT(p)
+            FROM Product p
+            WHERE p.active = true
+              AND (:categoryId IS NULL OR p.category.id = :categoryId)
+              AND (
+                    LOCATE(LOWER(:keyword), LOWER(p.name)) > 0
+                    OR LOCATE(LOWER(:keyword), LOWER(p.brand)) > 0
+                    OR LOCATE(LOWER(:keyword), LOWER(COALESCE(p.description, ''))) > 0
+                  )
+            """)
+    Page<Product> searchActiveCatalog(@Param("keyword") String keyword,
+                                      @Param("categoryId") Long categoryId,
+                                      Pageable pageable);
 
     Page<Product> findAllByOrderByIdDesc(Pageable pageable);
     long countByActiveTrue();
+    boolean existsByImageUrl(String imageUrl);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Product p WHERE p.id = :id")

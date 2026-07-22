@@ -62,6 +62,16 @@ public class CartService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
+    private User getActiveUserForUpdate(Authentication auth) {
+        User user = getUserForUpdate(auth);
+        if (!user.isEnabled()) {
+            throw new BusinessException(
+                    "Tài khoản đã bị khóa. Không thể thay đổi giỏ hàng.",
+                    "account_disabled");
+        }
+        return user;
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, CartItem> getGuestCart(HttpSession session) {
         Object raw = session.getAttribute(GUEST_CART_KEY);
@@ -100,7 +110,7 @@ public class CartService {
     @Transactional
     public boolean add(Long productId, String requestedSize, Authentication auth, HttpSession session) {
         if (isLoggedIn(auth)) {
-            User user = getUserForUpdate(auth);
+            User user = getActiveUserForUpdate(auth);
             InventorySelection selection = lockAvailableSelection(productId, requestedSize);
             List<SavedCartItem> productRows = savedCartRepo.findAllByUserAndProductIdWithLock(user, productId);
             SavedCartItem matching = productRows.stream()
@@ -141,7 +151,7 @@ public class CartService {
 
         if (isLoggedIn(auth)) {
             // Keep the same lock order as add/checkout: user -> product -> variant -> cart rows.
-            User user = getUserForUpdate(auth);
+            User user = getActiveUserForUpdate(auth);
             Product product = productRepository.findByIdWithLock(productId)
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
             selectedSize = normalizeRequestedSize(product, selectedSize);
@@ -198,7 +208,7 @@ public class CartService {
                                    Authentication auth, HttpSession session) {
         String normalizedSize = cleanSize(selectedSize);
         if (isLoggedIn(auth)) {
-            User user = getUserForUpdate(auth);
+            User user = getActiveUserForUpdate(auth);
             List<SavedCartItem> rows = savedCartRepo.findAllByUserAndProductIdWithLock(user, productId);
             List<SavedCartItem> matchingRows = rows.stream()
                     .filter(item -> sameSize(item.getSelectedSize(), normalizedSize))
@@ -215,7 +225,7 @@ public class CartService {
     @Transactional
     public void clear(Authentication auth, HttpSession session) {
         if (isLoggedIn(auth)) {
-            savedCartRepo.deleteByUser(getUserForUpdate(auth));
+            savedCartRepo.deleteByUser(getActiveUserForUpdate(auth));
         } else {
             synchronized (session) {
                 getGuestCart(session).clear();
@@ -366,7 +376,7 @@ public class CartService {
 
         restoreDetachedGuestCartOnRollback(session, detachedGuestCart);
         List<String> warnings = new ArrayList<>();
-        User user = getUserForUpdate(auth);
+        User user = getActiveUserForUpdate(auth);
         int index = 0;
         while (index < guestItems.size()) {
             Long productId = guestItems.get(index).productId();
@@ -409,7 +419,8 @@ public class CartService {
                         .filter(item -> sameSize(item.getSelectedSize(), variant.getSize()))
                         .findFirst().orElse(null);
                 int currentQuantity = matching == null ? 0 : Math.max(matching.getQuantity(), 0);
-                int accepted = Math.min(requested, Math.max(variant.getStock() - currentQuantity, 0));
+                int availableToAdd = Math.max(variant.getStock() - currentQuantity, 0);
+                int accepted = Math.min(requested, availableToAdd);
 
                 if (accepted > 0) {
                     if (matching == null) {
@@ -426,8 +437,9 @@ public class CartService {
                 }
                 if (accepted < requested) {
                     warnings.add(product.getName() + " (size " + variant.getSize() + "): chỉ gộp được "
-                            + accepted + "/" + requested + " sản phẩm vì size này còn "
-                            + variant.getStock() + " trong kho.");
+                            + accepted + "/" + requested + " sản phẩm vì chỉ còn "
+                            + availableToAdd + " sản phẩm có thể thêm vào giỏ (tồn kho: "
+                            + variant.getStock() + ", đã có trong giỏ: " + currentQuantity + ").");
                 }
             }
             index = end;

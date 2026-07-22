@@ -23,12 +23,13 @@
         <form class="add-cart-form" th:action="@{/cart/add/{id}(id=${product.id})}" method="post">
             <label class="size-label" for="selectedSize">Chọn kích cỡ</label>
             <div class="size-options" id="selectedSize">
-                <label class="size-option" th:each="variant : ${product.enabledVariants}"
-                       th:classappend="${variant.stock <= 0} ? ' unavailable' : ''">
-                    <input type="radio" name="selectedSize" th:value="${variant.size}"
-                           th:disabled="${variant.stock <= 0}"
-                           th:checked="${variant.size.equalsIgnoreCase(product.firstInStockSize)}" required>
-                    <span th:text="${variant.stock > 0 ? variant.size + ' · còn ' + variant.stock : variant.size + ' · hết'}">39</span>
+                <label class="size-option" th:each="size : ${product.availableSizes}"
+                       th:with="sizeStock=${product.getStockForSize(size)}"
+                       th:classappend="${sizeStock <= 0} ? ' unavailable' : ''">
+                    <input type="radio" name="selectedSize" th:value="${size}"
+                           th:disabled="${sizeStock <= 0}"
+                           th:checked="${size.equalsIgnoreCase(product.firstInStockSize)}" required>
+                    <span th:text="${sizeStock > 0 ? size + ' · còn ' + sizeStock : size + ' · hết'}">39</span>
                 </label>
             </div>
             <button class="btn" type="submit" th:disabled="${product.stock <= 0}" th:text="${product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Sản phẩm tạm hết hàng'}">Thêm vào giỏ hàng</button>

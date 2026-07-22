@@ -1,6 +1,7 @@
 package com.example.lshoestore.dto;
 
 import com.example.lshoestore.model.Product;
+import com.example.lshoestore.model.ProductVariant;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -8,6 +9,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.List;
 
 public class ProductForm {
     private Long id;
@@ -40,12 +43,23 @@ public class ProductForm {
     @Size(max = 2000, message = "Danh sách tồn kho kích cỡ tối đa 2000 ký tự")
     private String variantStockText;
 
+    /**
+     * Read-only summary of stock retained on disabled variants. This stock can be
+     * restored by cancelled historical orders and must not be silently overwritten
+     * when an administrator enables the same size again.
+     */
+    private String disabledVariantStockText;
+
     private boolean active = true;
 
     @NotNull(message = "Vui lòng chọn danh mục")
     private Long categoryId;
 
     public static ProductForm from(Product product) {
+        return from(product, product.getVariants());
+    }
+
+    public static ProductForm from(Product product, List<ProductVariant> productVariants) {
         ProductForm form = new ProductForm();
         form.id = product.getId();
         form.version = product.getVersion();
@@ -55,7 +69,18 @@ public class ProductForm {
         form.price = product.getPrice();
         form.oldPrice = product.getOldPrice();
         form.imageUrl = product.getImageUrl();
-        form.variantStockText = product.getEnabledVariants().stream()
+        List<ProductVariant> safeVariants = productVariants == null ? List.of() : productVariants;
+        form.variantStockText = safeVariants.stream()
+                .filter(ProductVariant::isEnabled)
+                .sorted(Comparator.comparing(ProductVariant::getSize,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .map(variant -> variant.getSize() + ": " + variant.getStock())
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("");
+        form.disabledVariantStockText = safeVariants.stream()
+                .filter(variant -> !variant.isEnabled() && variant.getStock() > 0)
+                .sorted(Comparator.comparing(ProductVariant::getSize,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                 .map(variant -> variant.getSize() + ": " + variant.getStock())
                 .reduce((left, right) -> left + ", " + right)
                 .orElse("");
@@ -82,6 +107,10 @@ public class ProductForm {
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     public String getVariantStockText() { return variantStockText; }
     public void setVariantStockText(String variantStockText) { this.variantStockText = variantStockText; }
+    public String getDisabledVariantStockText() { return disabledVariantStockText; }
+    public void setDisabledVariantStockText(String disabledVariantStockText) {
+        this.disabledVariantStockText = disabledVariantStockText;
+    }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
     public Long getCategoryId() { return categoryId; }

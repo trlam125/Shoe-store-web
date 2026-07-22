@@ -58,4 +58,8 @@ public interface SavedCartItemRepository extends JpaRepository<SavedCartItem, Lo
     @Modifying
     @Transactional
     void deleteByUser(User user);
+
+    @Modifying
+    @Transactional
+    void deleteByProductId(Long productId);
 }
