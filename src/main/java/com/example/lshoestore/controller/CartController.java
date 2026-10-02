@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ResponseBody;
+import java.util.Map;
+
 @Controller
 @RequestMapping("/cart")
 public class CartController {
@@ -30,6 +34,33 @@ public class CartController {
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add));
         model.addAttribute("cartCount", cart.count(auth, session));
         return "cart/view";
+    }
+
+    @PostMapping(value = "/add/{id}", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<?> addJson(@PathVariable Long id,
+                                     @RequestParam(required = false) String selectedSize,
+                                     Authentication auth,
+                                     HttpSession session) {
+        try {
+            if (!cart.add(id, selectedSize, auth, session)) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "Số lượng trong giỏ đã đạt mức tồn kho hiện tại."
+                ));
+            }
+            int cartCount = cart.count(auth, session);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Đã thêm sản phẩm vào giỏ hàng.",
+                    "cartCount", cartCount
+            ));
+        } catch (BusinessException exception) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", exception.getMessage()
+            ));
+        }
     }
 
     @PostMapping("/add/{id}")

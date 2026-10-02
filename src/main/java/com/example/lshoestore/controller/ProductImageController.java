@@ -21,11 +21,11 @@ public class ProductImageController {
 
     @GetMapping("/uploads/products/{filename:.+}")
     public ResponseEntity<Resource> image(@PathVariable String filename) {
-        Resource resource = imageStorage.load(filename);
-        if (resource == null) return ResponseEntity.notFound().build();
+        ProductImageStorageService.StoredImage image = imageStorage.load(filename);
+        if (image == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(imageStorage.contentType(filename)))
+                .contentType(MediaType.parseMediaType(image.contentType()))
                 .cacheControl(CacheControl.maxAge(Duration.ofDays(30)).cachePublic().immutable())
-                .body(resource);
+                .body(image.resource());
     }
 }

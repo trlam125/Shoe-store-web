@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${product.name} + ' - LSHOE'">Chi tiết sản phẩm</title>
     <link rel="stylesheet" th:href="@{/css/style.css?v=5}">
+    <link rel="stylesheet" th:href="@{/css/cart-button.css?v=1}">
 </head>
 <body>
 <div th:replace="~{fragments :: header}"></div>
@@ -32,11 +33,80 @@
                     <span th:text="${sizeStock > 0 ? size + ' · còn ' + sizeStock : size + ' · hết'}">39</span>
                 </label>
             </div>
-            <button class="btn" type="submit" th:disabled="${product.stock <= 0}" th:text="${product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Sản phẩm tạm hết hàng'}">Thêm vào giỏ hàng</button>
+            
+            <!-- Animated Add To Cart Button (plan.md) -->
+            <button class="cart-button" type="submit" th:disabled="${product.stock <= 0}" aria-label="Thêm vào giỏ hàng">
+                <div class="cart-default">
+                    <svg class="default-package-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    </svg>
+                    <span th:text="${product.stock > 0 ? 'Thêm vào giỏ hàng' : 'Sản phẩm tạm hết hàng'}">Thêm vào giỏ hàng</span>
+                </div>
+                <div class="cart-scene">
+                    <div class="scanner">
+                        <span class="scanner-led scanner-led-left"></span>
+                        <span class="scanner-led scanner-led-right"></span>
+                        <div class="scanner-light"></div>
+                        <div class="scanner-laser-line"></div>
+                    </div>
+                    <div class="conveyor"><div class="conveyor-track"></div></div>
+                    <div class="package">
+                        <svg class="package-svg" viewBox="0 0 44 40" fill="none">
+                            <ellipse cx="22" cy="38" rx="16" ry="2.5" fill="rgba(0,0,0,0.35)"/>
+                            <path d="M6 14L22 23L38 14V31L22 39L6 31V14Z" fill="#d2965c"/>
+                            <path d="M22 23L38 14V31L22 39V23Z" fill="#b97c45"/>
+                            <path d="M6 14L22 23V39L6 31V14Z" fill="#de9f63"/>
+                            <path d="M20.5 22.2L23.5 23.8V39L20.5 37.5V22.2Z" fill="#ca8c53" opacity="0.85"/>
+                            <g opacity="0.75">
+                                <rect x="9" y="24" width="1.5" height="7" fill="#442a12"/>
+                                <rect x="11.5" y="24" width="2" height="7" fill="#442a12"/>
+                                <rect x="14.5" y="24" width="1" height="7" fill="#442a12"/>
+                                <rect x="16.5" y="24" width="2.5" height="7" fill="#442a12"/>
+                            </g>
+                            <rect x="9" y="18" width="9" height="4.5" rx="0.5" fill="#f8fafc" opacity="0.9"/>
+                            <g class="box-flap-left" style="transform: rotate(-24deg);"><polygon points="6,14 22,23 16,9 2,2" fill="#e8ad74"/></g>
+                            <g class="box-flap-right" style="transform: rotate(24deg);"><polygon points="22,23 38,14 42,2 28,9" fill="#c4874e"/></g>
+                            <polygon class="box-tape" points="16,9 28,9 23,23 19,23" fill="#cf9258" opacity="0"/>
+                        </svg>
+                    </div>
+                    <div class="shopping-cart">
+                        <svg class="cart-svg" viewBox="0 0 54 50" fill="none">
+                            <ellipse cx="26" cy="48" rx="18" ry="2" fill="rgba(0,0,0,0.3)"/>
+                            <g class="cart-wheels">
+                                <circle cx="16" cy="43" r="4" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/>
+                                <circle cx="16" cy="43" r="1.5" fill="#f8fafc"/>
+                                <circle cx="36" cy="43" r="4" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/>
+                                <circle cx="36" cy="43" r="1.5" fill="#f8fafc"/>
+                            </g>
+                            <path d="M16 41L21 34H33L36 41" stroke="#64748b" stroke-width="2.5" stroke-linecap="round"/>
+                            <path d="M4 8H10L14 31H39L44 14H12" stroke="#e2e8f0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <rect x="1" y="6" width="6" height="4" rx="2" fill="#f59e0b"/>
+                        </svg>
+                    </div>
+                    <div class="cart-badge">+1</div>
+                </div>
+                <div class="cart-success">
+                    <div class="success-icon-wrap">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                            <circle class="success-circle" cx="14" cy="14" r="12" stroke="#3dd598" stroke-width="2.6" stroke-linecap="round"/>
+                            <path class="success-check" d="M8.5 14.5L12 18L19.5 10.5" stroke="#3dd598" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <span>Đã thêm vào giỏ!</span>
+                </div>
+                <div class="cart-error">
+                    <div class="error-circle">!</div>
+                    <span>Thử lại sau</span>
+                </div>
+            </button>
         </form>
         <p class="secure-note">✓ Thanh toán COD &nbsp; ✓ Đổi trả trong 30 ngày &nbsp; ✓ Hàng chính hãng</p>
     </div>
 </main>
 <div th:replace="~{fragments :: footer}"></div>
+<script th:src="@{/js/cart-button.js?v=1}"></script>
 </body>
 </html>

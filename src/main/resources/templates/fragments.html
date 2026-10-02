@@ -11,7 +11,12 @@
             <span class="topbar-text">🚚 Miễn phí giao hàng cho đơn từ 1.000.000đ&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔄 Đổi trả miễn phí trong 30 ngày&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;💳 Thanh toán khi nhận hàng (COD)&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;✅ 100% giày chính hãng&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔥 Sale lên đến 50% - Số lượng có hạn&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;📞 Hotline: 0900 000 000&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;</span>
         </div>
     </div>
-    <nav class="navbar"><a class="logo" th:href="@{/}">LSHOE</a>
+    <nav class="navbar"><a class="logo" th:href="@{/}" aria-label="LSHOE Trang chủ">
+        <div class="logo-mascot-wrapper" aria-hidden="true">
+            <div class="mascot-bear"></div>
+        </div>
+        <span class="logo-text">LSHOE</span>
+    </a>
         <form th:action="@{/products}" class="search"><input name="q" placeholder="Tìm kiếm giày..." th:value="${q}">
             <button>Tìm</button>
         </form>
@@ -33,7 +38,15 @@
 </header>
 <footer th:fragment="footer" class="footer">
     <div class="footer-grid">
-        <div><b>LSHOE</b><p>Không gian sneaker dành cho mọi phong cách, từ thiết kế kinh điển đến xu hướng mới.</p></div>
+        <div>
+            <a class="logo footer-logo" th:href="@{/}" aria-label="LSHOE Trang chủ">
+                <div class="logo-mascot-wrapper" aria-hidden="true">
+                    <div class="mascot-bear"></div>
+                </div>
+                <span class="logo-text">LSHOE</span>
+            </a>
+            <p>Không gian sneaker dành cho mọi phong cách, từ thiết kế kinh điển đến xu hướng mới.</p>
+        </div>
         <div><strong>Khám phá</strong><a th:href="@{/products}">Sản phẩm</a><a th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a th:href="@{/cart}">Giỏ hàng</a><a th:href="@{/orders}">Đơn hàng</a></div>
         <div><strong>Hỗ trợ</strong><span>Đổi trả trong 30 ngày</span><span>Thanh toán khi nhận hàng</span><span>Hotline: 0900 000 000</span></div>
     </div>

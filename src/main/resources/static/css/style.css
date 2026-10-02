@@ -71,25 +71,93 @@ a { color: inherit; }
 .logo {
     display: inline-flex;
     align-items: center;
-    gap: 9px;
+    gap: 10px;
     color: var(--ink);
     text-decoration: none;
-    font-size: 29px;
+    font-size: 28px;
     font-weight: 900;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
+    transition: transform 0.2s ease;
 }
-.logo::before {
-    content: "L";
-    display: grid;
-    place-items: center;
-    width: 38px;
-    height: 38px;
+.logo-mascot-wrapper {
+    position: relative;
+    width: 40px;
+    height: 40px;
     border-radius: 12px;
-    color: #fff;
-    background: linear-gradient(135deg, var(--brand), #8b5cf6);
-    box-shadow: 0 8px 20px rgba(91, 76, 240, 0.28);
-    font-size: 20px;
-    letter-spacing: 0;
+    background: linear-gradient(145deg, #0d1723, #1e293b);
+    border: 1.5px solid rgba(91, 76, 240, 0.4);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25), 0 0 10px rgba(91, 76, 240, 0.2);
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+.logo:hover .logo-mascot-wrapper {
+    transform: scale(1.1) rotate(-3deg);
+    border-color: #5b4cf0;
+    box-shadow: 0 8px 22px rgba(91, 76, 240, 0.45), 0 0 16px rgba(91, 76, 240, 0.3);
+}
+
+/* Animated Mascot from Uiverse lucky-emu-65 */
+.mascot-bear {
+    width: 160px;
+    height: 185px;
+    position: relative;
+    background: #fff;
+    border-radius: 100px 100px 0 0;
+    transform: scale(0.24);
+    transform-origin: bottom center;
+    margin-bottom: -5px;
+}
+.mascot-bear:after {
+    content: "";
+    position: absolute;
+    width: 100px;
+    height: 125px;
+    left: 50%;
+    top: 25px;
+    transform: translateX(-50%);
+    background-image: radial-gradient(circle, #000 48%, transparent 55%),
+        radial-gradient(circle, #000 48%, transparent 55%),
+        radial-gradient(circle, #fff 30%, transparent 45%),
+        radial-gradient(circle, #000 48%, transparent 51%),
+        linear-gradient(#000 20px, transparent 0),
+        linear-gradient(#cfecf9 60px, transparent 0),
+        radial-gradient(circle, #cfecf9 50%, transparent 51%),
+        radial-gradient(circle, #cfecf9 50%, transparent 51%);
+    background-repeat: no-repeat;
+    background-size: 16px 16px, 16px 16px, 10px 10px, 42px 42px, 12px 3px,
+        50px 25px, 70px 70px, 70px 70px;
+    background-position: 25px 10px, 55px 10px, 36px 44px, 50% 30px, 50% 85px,
+        50% 50px, 50% 22px, 50% 45px;
+    animation: mascotFaceLift 3s linear infinite alternate;
+}
+.mascot-bear:before {
+    content: "";
+    position: absolute;
+    width: 140%;
+    height: 125px;
+    left: -20%;
+    top: 0;
+    background-image: radial-gradient(circle, #fff 48%, transparent 50%),
+        radial-gradient(circle, #fff 48%, transparent 50%);
+    background-repeat: no-repeat;
+    background-size: 65px 65px;
+    background-position: 0px 12px, 145px 12px;
+    animation: mascotEarLift 3s linear infinite alternate;
+}
+@keyframes mascotFaceLift {
+    0% { transform: translateX(-60%); }
+    100% { transform: translateX(-30%); }
+}
+@keyframes mascotEarLift {
+    0% { transform: translateX(10px); }
+    100% { transform: translateX(0px); }
+}
+.footer-logo {
+    margin-bottom: 12px;
 }
 .search {
     display: flex;

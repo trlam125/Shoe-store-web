@@ -41,7 +41,6 @@ import java.util.Set;
 public class AiController {
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
             MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_PNG_VALUE, "image/webp");
-    private static final long MAX_IMAGE_BYTES = 10L * 1024 * 1024;
 
     private final String aiServiceUrl;
     private final String aiApiKey;
@@ -50,11 +49,13 @@ public class AiController {
     private final CartService cart;
     private final RequestRateLimiter rateLimiter;
     private final int imageRequestsPerMinute;
+    private final long maxImageBytes;
 
     public AiController(@Value("${ai.service.url:http://127.0.0.1:8001}") String aiServiceUrl,
                         @Value("${ai.service.api-key:}") String aiApiKey,
                         @Value("${ai.service.image-timeout-ms:120000}") int timeoutMs,
                         @Value("${app.rate-limit.image-per-minute:5}") int imageRequestsPerMinute,
+                        @Value("${app.ai-image.max-bytes:10485760}") long maxImageBytes,
                         ObjectMapper objectMapper,
                         CartService cart,
                         RequestRateLimiter rateLimiter) {
@@ -64,6 +65,7 @@ public class AiController {
         this.cart = cart;
         this.rateLimiter = rateLimiter;
         this.imageRequestsPerMinute = Math.max(imageRequestsPerMinute, 1);
+        this.maxImageBytes = Math.max(maxImageBytes, 1L);
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(3_000);
         factory.setReadTimeout(timeoutMs);
@@ -91,8 +93,8 @@ public class AiController {
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("detail", "Vui lòng chọn một ảnh."));
         }
-        if (file.getSize() > MAX_IMAGE_BYTES) {
-            return ResponseEntity.status(413).body(Map.of("detail", "Ảnh tải lên vượt quá 10 MB."));
+        if (file.getSize() > maxImageBytes) {
+            return ResponseEntity.status(413).body(Map.of("detail", "Ảnh tải lên vượt quá giới hạn dung lượng cho phép."));
         }
         if (!ALLOWED_IMAGE_TYPES.contains(file.getContentType())) {
             return ResponseEntity.status(415).body(Map.of("detail", "Chỉ hỗ trợ JPEG, PNG hoặc WebP."));

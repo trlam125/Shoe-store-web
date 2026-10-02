@@ -1,0 +1,61 @@
+# syntax=docker/dockerfile:1
+
+# Build the Spring Boot application with Java 21.
+FROM maven:3.9.11-eclipse-temurin-21 AS java-build
+WORKDIR /build
+
+COPY pom.xml ./
+RUN mvn -q -DskipTests dependency:go-offline
+
+COPY src ./src
+RUN mvn -q -DskipTests package
+
+# One Vercel container runs both Spring Boot (public HTTP server) and the
+# loopback-only FastAPI service. This keeps the existing local architecture and
+# avoids exposing the AI service as a second public application.
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    SPRING_PROFILES_ACTIVE=prod \
+    AI_SERVICE_AUTOSTART=false \
+    AI_SERVICE_SETUP_VENV=false \
+    AI_RELOAD=false \
+    PRODUCT_IMAGE_STORAGE=database
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        libgomp1 \
+        openjdk-21-jre-headless \
+        python3 \
+        python3-pip \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+
+WORKDIR /app
+COPY ai-service/requirements.txt /tmp/requirements.txt
+
+# The Vercel workload is CPU-only. Installing PyTorch from its CPU wheel index
+# avoids bundling CUDA libraries and keeps the container substantially smaller.
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && grep -Ev '^(torch|torchvision)==' /tmp/requirements.txt > /tmp/requirements-core.txt \
+    && python -m pip install --no-cache-dir -r /tmp/requirements-core.txt \
+    && python -m pip install --no-cache-dir \
+        torch==2.6.0 torchvision==0.21.0 \
+        --index-url https://download.pytorch.org/whl/cpu
+
+# Cache the pretrained ResNet18 weights in the image so the first image-search
+# request does not need to download a model at runtime.
+RUN python -c "from torchvision.models import ResNet18_Weights, resnet18; resnet18(weights=ResNet18_Weights.DEFAULT)"
+
+COPY --from=java-build /build/target/*.jar /app/app.jar
+COPY ai-service /app/ai-service
+COPY vercel-entrypoint.sh /app/vercel-entrypoint.sh
+RUN chmod +x /app/vercel-entrypoint.sh
+
+EXPOSE 80
+CMD ["/app/vercel-entrypoint.sh"]
