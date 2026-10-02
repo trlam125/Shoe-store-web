@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    AI_RELOAD=false \
+    AI_HOST=0.0.0.0
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt /tmp/requirements.txt
+
+# Install ordinary dependencies first, then the CPU-only PyTorch wheels.
+RUN python -m pip install --no-cache-dir --upgrade pip \
+    && grep -Ev '^(torch|torchvision)==' /tmp/requirements.txt > /tmp/requirements-core.txt \
+    && python -m pip install --no-cache-dir -r /tmp/requirements-core.txt \
+    && python -m pip install --no-cache-dir \
+        torch==2.6.0 torchvision==0.21.0 \
+        --index-url https://download.pytorch.org/whl/cpu
+
+# Cache ResNet18 weights in the image so the first AI request does not download them.
+RUN python -c "from torchvision.models import ResNet18_Weights, resnet18; resnet18(weights=ResNet18_Weights.DEFAULT)"
+
+COPY . /app
+
+EXPOSE 80
+
+CMD ["sh", "-c", "exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-80}"]
