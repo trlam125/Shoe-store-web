@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="https://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Giới thiệu LSHOE - Hệ thống Sneaker Chính Hãng & Công Nghệ AI Hàng Đầu</title>
+    <meta name="description"
+        content="Khám phá LSHOE - Không gian sneaker chính hãng cao cấp từ Nike, Adidas, New Balance, MLB... kết hợp cùng công nghệ Trí tuệ Nhân tạo AI tìm kiếm bằng hình ảnh tiên tiến nhất. Đăng nhập ngay!">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=11}">
+</head>
+
+<body class="intro-page-body">
+    <div th:replace="~{fragments :: header}"></div>
+
+    <!-- ================= HERO SECTION ================= -->
+    <section class="intro-hero-section">
+        <div class="intro-hero-ambient-glow" aria-hidden="true"></div>
+        <div class="intro-hero-grid">
+            <div class="intro-hero-left">
+                <!-- Brand Badge with Uiverse animations -->
+                <div class="intro-brand-showcase">
+                    <!-- Proud Penguin 50 Rotating Logo -->
+                    <div class="lshoe-logo-btn large" aria-hidden="true" title="LSHOE Proud Penguin Animation">
+                        <p class="lshoe-logo-btn__text">
+                            <span style="--index: 0;">L</span>
+                            <span style="--index: 1;">S</span>
+                            <span style="--index: 2;">H</span>
+                            <span style="--index: 3;">O</span>
+                            <span style="--index: 4;">E</span>
+                            <span style="--index: 5;">&nbsp;</span>
+                            <span style="--index: 6;">•</span>
+                            <span style="--index: 7;">&nbsp;</span>
+                            <span style="--index: 8;">S</span>
+                            <span style="--index: 9;">N</span>
+                            <span style="--index: 10;">E</span>
+                            <span style="--index: 11;">A</span>
+                            <span style="--index: 12;">K</span>
+                            <span style="--index: 13;">E</span>
+                            <span style="--index: 14;">R</span>
+                            <span style="--index: 15;">S</span>
+                            <span style="--index: 16;">&nbsp;</span>
+                            <span style="--index: 17;">•</span>
+                        </p>
+                        <div class="lshoe-logo-btn__circle">
+                            <svg class="lshoe-logo-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M2.5 14.5c.8-2.5 2.8-4 5.5-4h2.5l3.5 3 4 .5c1.5 0 3 1 3.5 2.5l.5 1.5H2v-1.5c0-.7.2-1.4.5-2z" />
+                                <path d="M2 18h20v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2z" />
+                                <path d="M10.5 10.5l1.5-3.5 3 1" />
+                            </svg>
+                            <svg class="lshoe-logo-btn__icon lshoe-logo-btn__icon--copy" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M2.5 14.5c.8-2.5 2.8-4 5.5-4h2.5l3.5 3 4 .5c1.5 0 3 1 3.5 2.5l.5 1.5H2v-1.5c0-.7.2-1.4.5-2z" />
+                                <path d="M2 18h20v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2z" />
+                                <path d="M10.5 10.5l1.5-3.5 3 1" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Spotty Swan 68 3D Animated Metallic Text -->
+                    <div class="spotty-swan-wrap">
+                        <div class="spotty-swan-card large">
+                            <span class="spotty-swan-title">LSHOE</span>
+                            <span class="spotty-swan-sub">AUTHENTIC SNEAKER SPACE</span>
+                            <div class="spotty-swan-texture"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="intro-pill-badge">✨ Thế Giới Sneaker Chính Hãng & Công Nghệ AI</p>
+                <h1 class="intro-hero-title">Nâng Tầm Bước Chân, Định Hình Bản Lĩnh</h1>
+                <p class="intro-hero-desc">
+                    LSHOE là hệ thống phân phối giày sneaker chính hãng hàng đầu, quy tụ các thương hiệu đỉnh cao toàn
+                    cầu như <b>Nike, Adidas, Jordan, New Balance, MLB</b>... Kết hợp công nghệ <b>Tìm kiếm bằng ảnh
+                        AI</b> tiên tiến giúp bạn tìm thấy đôi giày mơ ước trong vài giây.
+                </p>
+
+                <div class="intro-hero-actions">
+                    <a sec:authorize="isAnonymous()" class="btn intro-btn-glow" th:href="@{/login}">
+                        <span>🚀 Đăng nhập ngay</span>
+                    </a>
+                    <a sec:authorize="isAnonymous()" class="btn intro-btn-secondary" th:href="@{/register}">
+                        <span>✨ Tạo tài khoản mới</span>
+                    </a>
+                    <a sec:authorize="isAuthenticated()" class="btn intro-btn-glow" th:href="@{/products}">
+                        <span>👟 Khám phá bộ sưu tập</span>
+                    </a>
+                    <a class="btn intro-btn-ghost" th:href="@{/ai/image-search}">
+                        <span>🔍 Thử tìm kiếm bằng AI</span>
+                    </a>
+                </div>
+
+                <div class="intro-trust-grid">
+                    <div class="intro-trust-card">
+                        <span class="intro-trust-num">100%</span>
+                        <span class="intro-trust-label">Chính hãng kiểm định</span>
+                    </div>
+                    <div class="intro-trust-card">
+                        <span class="intro-trust-num">30 Ngày</span>
+                        <span class="intro-trust-label">Đổi trả miễn phí</span>
+                    </div>
+                    <div class="intro-trust-card">
+                        <span class="intro-trust-num">4.9 ★</span>
+                        <span class="intro-trust-label">12.000+ Đánh giá hài lòng</span>
+                    </div>
+                    <div class="intro-trust-card">
+                        <span class="intro-trust-num">2 Giờ</span>
+                        <span class="intro-trust-label">Giao nhanh nội thành</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="intro-hero-right">
+                <div class="intro-hero-visual-card">
+                    <img th:src="@{/images/intro-hero.jpg}" alt="LSHOE Limited Edition Sneaker"
+                        class="intro-hero-sneaker-img" loading="eager">
+                    <div class="intro-floating-tag tag-top-left">
+                        <span class="tag-icon">⚡</span>
+                        <div>
+                            <b>Công nghệ AI Vision</b>
+                            <small>Nhận diện chuẩn xác 99%</small>
+                        </div>
+                    </div>
+                    <div class="intro-floating-tag tag-bottom-right">
+                        <span class="tag-icon">🛡️</span>
+                        <div>
+                            <b>Bao check trọn đời</b>
+                            <small>Hoàn 200% nếu phát hiện fake</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= BRAND STRIP ================= -->
+    <section class="intro-brand-marquee" aria-label="Thương hiệu liên kết">
+        <div class="intro-brand-marquee-track">
+            <span>NIKE AIR JORDAN</span><span class="sep">✦</span>
+            <span>ADIDAS ORIGINALS</span><span class="sep">✦</span>
+            <span>NEW BALANCE</span><span class="sep">✦</span>
+            <span>PUMA MOTORSPORT</span><span class="sep">✦</span>
+            <span>CONVERSE ALL STAR</span><span class="sep">✦</span>
+            <span>MLB KOREA</span><span class="sep">✦</span>
+            <span>VANS OFF THE WALL</span><span class="sep">✦</span>
+            <span>ASICS GEL</span><span class="sep">✦</span>
+            <span>NIKE AIR JORDAN</span><span class="sep">✦</span>
+            <span>ADIDAS ORIGINALS</span><span class="sep">✦</span>
+            <span>NEW BALANCE</span><span class="sep">✦</span>
+            <span>PUMA MOTORSPORT</span><span class="sep">✦</span>
+            <span>CONVERSE ALL STAR</span><span class="sep">✦</span>
+            <span>MLB KOREA</span><span class="sep">✦</span>
+            <span>VANS OFF THE WALL</span><span class="sep">✦</span>
+            <span>ASICS GEL</span><span class="sep">✦</span>
+        </div>
+    </section>
+
+    <!-- ================= 4 CORE PILLARS ================= -->
+    <section class="intro-section">
+        <div class="intro-section-header">
+            <p class="intro-section-eyebrow">Tại sao chọn LSHOE?</p>
+            <h2>4 Giá Trị Cốt Lõi Đưa LSHOE Trở Thành Lựa Chọn Số 1</h2>
+            <p class="intro-section-sub">Chúng tôi không chỉ bán những đôi giày, chúng tôi mang đến trải nghiệm mua sắm
+                an tâm và phong cách khác biệt.</p>
+        </div>
+
+        <div class="intro-pillars-grid">
+            <div class="intro-pillar-card">
+                <div class="intro-pillar-icon-box">
+                    <span>🤖</span>
+                </div>
+                <h3>Công Nghệ AI Vision Đột Phá</h3>
+                <p>Bắt gặp một đôi giày cực đẹp trên phố hoặc mạng xã hội? Chỉ cần chụp lại hoặc tải ảnh lên, hệ thống
+                    Trí tuệ Nhân tạo của LSHOE sẽ lập tức phân tích và gợi ý sản phẩm trùng khớp.</p>
+                <a class="intro-pillar-link" th:href="@{/ai/image-search}">Trải nghiệm thử AI ngay →</a>
+            </div>
+
+            <div class="intro-pillar-card">
+                <div class="intro-pillar-icon-box">
+                    <span>💎</span>
+                </div>
+                <h3>Cam Kết 100% Chính Hãng</h3>
+                <p>Mỗi sản phẩm tại LSHOE đều nhập khẩu trực tiếp từ các nhà phân phối chính ngạch, có đầy đủ hoá đơn và
+                    tem chống hàng giả. Chúng tôi cam kết bồi thường 200% nếu phát hiện hàng không chính hãng.</p>
+                <span class="intro-pillar-tag">Kiểm định 7 bước chuẩn quốc tế</span>
+            </div>
+
+            <div class="intro-pillar-card">
+                <div class="intro-pillar-icon-box">
+                    <span>📦</span>
+                </div>
+                <h3>Giao Hàng Siêu Tốc & Kiểm Hàng (COD)</h3>
+                <p>Miễn phí giao hàng toàn quốc cho đơn từ 1.000.000đ. Nhận hàng, mở hộp kiểm tra đúng mẫu, đúng size,
+                    ưng ý mới thanh toán. Đội ngũ giao hàng hỏa tốc trong 2h tại khu vực nội thành.</p>
+                <span class="intro-pillar-tag">Đóng hộp 2 lớp chống va đập</span>
+            </div>
+
+            <div class="intro-pillar-card">
+                <div class="intro-pillar-icon-box">
+                    <span>🔄</span>
+                </div>
+                <h3>Đổi Trả 30 Ngày Không Lý Do</h3>
+                <p>Chưa vừa chân hay muốn đổi phối màu khác? LSHOE hỗ trợ đổi size, đổi mẫu tận nhà hoàn toàn miễn phí
+                    trong vòng 30 ngày kể từ ngày nhận hàng với thủ tục cực kỳ nhanh chóng.</p>
+                <span class="intro-pillar-tag">Hỗ trợ thu hồi tận nhà</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= FEATURED SNEAKERS PREVIEW ================= -->
+    <section class="intro-section intro-section-dark">
+        <div class="intro-section-header">
+            <p class="intro-section-eyebrow">Bộ Sưu Tập Nóng Hổi</p>
+            <h2>Sneaker Mới Nhất Vừa Cập Bến Tại LSHOE</h2>
+            <p class="intro-section-sub">Những mẫu thiết kế kinh điển và các phiên bản giới hạn đang được săn đón nhiều
+                nhất.</p>
+        </div>
+
+        <div class="intro-product-grid">
+            <article class="intro-prod-card" th:each="p : ${products}" th:if="${pStat.index < 4}">
+                <div class="intro-prod-img-wrap">
+                    <img th:src="${p.imageUrl}" th:alt="${p.name}" loading="lazy">
+                    <span class="intro-prod-badge" th:if="${p.category != null}"
+                        th:text="${p.category.name}">Sneaker</span>
+                </div>
+                <div class="intro-prod-body">
+                    <h4 th:text="${p.name}">Tên sản phẩm</h4>
+                    <div class="intro-prod-foot">
+                        <span class="intro-prod-price"
+                            th:text="${#numbers.formatDecimal(p.price, 0, 'POINT', 0, 'COMMA') + 'đ'}">2.500.000đ</span>
+                        <a class="intro-prod-action" th:href="@{/products/{id}(id=${p.id})}">Chi tiết →</a>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <div class="intro-explore-all">
+            <a class="btn intro-btn-glow" th:href="@{/products}">Xem toàn bộ hơn 100+ mẫu sneaker →</a>
+        </div>
+    </section>
+
+    <!-- ================= MEMBER PERKS: BEFORE LOGIN ================= -->
+    <section class="intro-section">
+        <div class="intro-section-header">
+            <p class="intro-section-eyebrow">Đặc quyền hội viên</p>
+            <h2>Tại Sao Bạn Nên Đăng Ký / Đăng Nhập Tài Khoản LSHOE?</h2>
+            <p class="intro-section-sub">Trở thành thành viên của cộng đồng LSHOE để mở khóa hàng loạt tiện ích và ưu
+                đãi độc quyền.</p>
+        </div>
+
+        <div class="intro-comparison-box">
+            <div class="intro-compare-col guest-col">
+                <div class="col-head">
+                    <span class="col-icon">🚶</span>
+                    <h3>Khách vãng lai</h3>
+                    <p>Mua sắm cơ bản không đăng nhập</p>
+                </div>
+                <ul class="col-list">
+                    <li class="check-item"><span>✓</span> Xem danh mục và chi tiết giày</li>
+                    <li class="check-item"><span>✓</span> Tìm kiếm bằng hình ảnh AI</li>
+                    <li class="cross-item"><span>✕</span> Không tích lũy điểm thưởng L-Coin</li>
+                    <li class="cross-item"><span>✕</span> Giỏ hàng có thể bị mất khi tắt trình duyệt</li>
+                    <li class="cross-item"><span>✕</span> Không theo dõi được trạng thái đơn hàng real-time</li>
+                    <li class="cross-item"><span>✕</span> Bỏ lỡ thông báo các đợt phát hành sneaker giới hạn</li>
+                </ul>
+                <a class="btn secondary full-width" th:href="@{/products}">Tiếp tục xem giày</a>
+            </div>
+
+            <div class="intro-compare-col member-col">
+                <div class="member-featured-badge">KHUYÊN DÙNG</div>
+                <div class="col-head">
+                    <span class="col-icon">👑</span>
+                    <h3>Thành viên LSHOE VIP</h3>
+                    <p>Miễn phí tạo tài khoản trong 30 giây</p>
+                </div>
+                <ul class="col-list">
+                    <li class="check-item highlight"><span>★</span> <b>Tặng ngay voucher 100.000đ</b> cho đơn đầu tiên
+                    </li>
+                    <li class="check-item"><span>✓</span> <b>Tích điểm hoàn tiền 3-5%</b> mỗi đơn hàng</li>
+                    <li class="check-item"><span>✓</span> <b>Đồng bộ giỏ hàng</b> tự động trên máy tính và điện thoại
+                    </li>
+                    <li class="check-item"><span>✓</span> <b>Theo dõi lịch trình đơn hàng</b> từ lúc gói đến khi nhận
+                    </li>
+                    <li class="check-item"><span>✓</span> <b>Ưu tiên nhận thông báo sớm</b> các đợt Drop giới hạn</li>
+                    <li class="check-item"><span>✓</span> <b>Trợ lý AI cá nhân hóa</b> tư vấn size chuẩn theo form chân
+                    </li>
+                </ul>
+                <div class="col-actions">
+                    <a class="btn intro-btn-glow full-width" th:href="@{/register}">Đăng ký tài khoản miễn phí</a>
+                    <a class="btn intro-btn-ghost full-width" th:href="@{/login}">Đã có tài khoản? Đăng nhập ngay</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= CUSTOMER REVIEWS ================= -->
+    <section class="intro-section intro-section-dark">
+        <div class="intro-section-header">
+            <p class="intro-section-eyebrow">Cộng đồng sneakerhead</p>
+            <h2>Khách Hàng Nói Gì Về LSHOE?</h2>
+            <p class="intro-section-sub">Hơn 12.000 bạn trẻ, tín đồ sneaker và người yêu thời trang đã tin chọn LSHOE.
+            </p>
+        </div>
+
+        <div class="intro-reviews-grid">
+            <div class="intro-review-card">
+                <div class="review-stars">★★★★★</div>
+                <p class="review-text">“Mình vừa mua đôi Jordan 1 Low tại LSHOE. Giày đóng hộp 2 lớp rất cẩn thận, bao
+                    check chính hãng, thơm mùi da mới. Đổi size cũng cực kỳ nhiệt tình, chỉ 1 ngày là có shipper mang
+                    size mới đến tận nhà!”</p>
+                <div class="review-author">
+                    <div class="review-avatar">NT</div>
+                    <div>
+                        <b>Nguyễn Tuấn</b>
+                        <small>Hà Nội · Đã mua Nike Air Jordan</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="intro-review-card">
+                <div class="review-stars">★★★★★</div>
+                <p class="review-text">“Tính năng tìm kiếm giày bằng ảnh của shop đỉnh thật sự! Hôm trước đi chơi thấy
+                    bạn kia mang đôi New Balance đẹp quá mà không biết mã gì, chụp lại quăng vô web LSHOE là ra đúng tên
+                    và size luôn. 10 điểm công nghệ!”</p>
+                <div class="review-author">
+                    <div class="review-avatar">ML</div>
+                    <div>
+                        <b>Mai Linh</b>
+                        <small>TP. Hồ Chí Minh · Đã mua New Balance 550</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="intro-review-card">
+                <div class="review-stars">★★★★★</div>
+                <p class="review-text">“Là người chơi sneaker hơn 5 năm nay, mình rất khắt khe về nguồn gốc hàng. LSHOE
+                    cam kết bồi thường 200% nếu fake làm mình rất yên tâm. Đã mua 3 đôi tại đây và chưa bao giờ thất
+                    vọng.”</p>
+                <div class="review-author">
+                    <div class="review-avatar">HD</div>
+                    <div>
+                        <b>Hoàng Dũng</b>
+                        <small>Đà Nẵng · Sneaker Collector</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= BOTTOM CTA ================= -->
+    <section class="intro-cta-banner-section">
+        <div class="intro-cta-card">
+            <div class="cta-mesh-bg" aria-hidden="true"></div>
+            <div class="cta-content">
+                <!-- Animated Mini Logo in CTA -->
+                <div class="lshoe-logo-btn" style="margin: 0 auto 16px;" aria-hidden="true">
+                    <p class="lshoe-logo-btn__text">
+                        <span style="--index: 0;">L</span>
+                        <span style="--index: 1;">S</span>
+                        <span style="--index: 2;">H</span>
+                        <span style="--index: 3;">O</span>
+                        <span style="--index: 4;">E</span>
+                        <span style="--index: 5;">&nbsp;</span>
+                        <span style="--index: 6;">•</span>
+                        <span style="--index: 7;">&nbsp;</span>
+                        <span style="--index: 8;">S</span>
+                        <span style="--index: 9;">N</span>
+                        <span style="--index: 10;">E</span>
+                        <span style="--index: 11;">A</span>
+                        <span style="--index: 12;">K</span>
+                        <span style="--index: 13;">E</span>
+                        <span style="--index: 14;">R</span>
+                        <span style="--index: 15;">S</span>
+                        <span style="--index: 16;">&nbsp;</span>
+                        <span style="--index: 17;">•</span>
+                    </p>
+                    <div class="lshoe-logo-btn__circle">
+                        <svg class="lshoe-logo-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M2.5 14.5c.8-2.5 2.8-4 5.5-4h2.5l3.5 3 4 .5c1.5 0 3 1 3.5 2.5l.5 1.5H2v-1.5c0-.7.2-1.4.5-2z" />
+                            <path d="M2 18h20v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2z" />
+                        </svg>
+                        <svg class="lshoe-logo-btn__icon lshoe-logo-btn__icon--copy" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path
+                                d="M2.5 14.5c.8-2.5 2.8-4 5.5-4h2.5l3.5 3 4 .5c1.5 0 3 1 3.5 2.5l.5 1.5H2v-1.5c0-.7.2-1.4.5-2z" />
+                            <path d="M2 18h20v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2z" />
+                        </svg>
+                    </div>
+                </div>
+
+                <h2>Sẵn Sàng Nâng Tầm Phong Cách Của Bạn?</h2>
+                <p>Đăng ký thành viên ngay hôm nay để nhận voucher 100.000đ cho đơn hàng đầu tiên và trải nghiệm dịch vụ
+                    sneaker chính hãng đỉnh cao.</p>
+                <div class="cta-btn-group">
+                    <a sec:authorize="isAnonymous()" class="btn intro-btn-glow" th:href="@{/register}">Đăng Ký Tài Khoản
+                        Mới</a>
+                    <a sec:authorize="isAnonymous()" class="btn intro-btn-secondary" th:href="@{/login}">Đăng Nhập</a>
+                    <a class="btn intro-btn-ghost" th:href="@{/products}">Khám Phá Cửa Hàng</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div th:replace="~{fragments :: footer}"></div>
+</body>
+
+</html>

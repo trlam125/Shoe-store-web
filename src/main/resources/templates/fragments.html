@@ -1,374 +1,542 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="https://www.thymeleaf.org/extras/spring-security">
+
 <body>
-<header th:fragment="header" class="site-header">
-    <p th:if="${success}" class="global-alert success" th:text="${success}"></p>
-    <p th:if="${warning}" class="global-alert warning" th:text="${warning}"></p>
-    <p th:if="${error}" class="global-alert error" th:text="${error}"></p>
-    <div class="topbar">
-        <div class="topbar-track">
-            <span class="topbar-text">🚚 Miễn phí giao hàng cho đơn từ 1.000.000đ&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔄 Đổi trả miễn phí trong 30 ngày&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;💳 Thanh toán khi nhận hàng (COD)&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;✅ 100% giày chính hãng&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔥 Sale lên đến 50% - Số lượng có hạn&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;📞 Hotline: 0900 000 000&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;</span>
-            <span class="topbar-text">🚚 Miễn phí giao hàng cho đơn từ 1.000.000đ&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔄 Đổi trả miễn phí trong 30 ngày&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;💳 Thanh toán khi nhận hàng (COD)&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;✅ 100% giày chính hãng&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔥 Sale lên đến 50% - Số lượng có hạn&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;📞 Hotline: 0900 000 000&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;</span>
+    <header th:fragment="header" class="site-header">
+        <p th:if="${success}" class="global-alert success" th:text="${success}"></p>
+        <p th:if="${warning}" class="global-alert warning" th:text="${warning}"></p>
+        <p th:if="${error}" class="global-alert error" th:text="${error}"></p>
+        <div class="topbar">
+            <div class="topbar-track">
+                <span class="topbar-text">🚚 Miễn phí giao hàng cho đơn từ
+                    1.000.000đ&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔄 Đổi trả miễn phí trong 30
+                    ngày&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;💳 Thanh toán khi nhận hàng
+                    (COD)&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;✅ 100% giày chính
+                    hãng&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔥 Sale lên đến 50% - Số lượng có
+                    hạn&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;📞 Hotline: 0900 000
+                    000&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;</span>
+                <span class="topbar-text">🚚 Miễn phí giao hàng cho đơn từ
+                    1.000.000đ&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔄 Đổi trả miễn phí trong 30
+                    ngày&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;💳 Thanh toán khi nhận hàng
+                    (COD)&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;✅ 100% giày chính
+                    hãng&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;🔥 Sale lên đến 50% - Số lượng có
+                    hạn&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;📞 Hotline: 0900 000
+                    000&nbsp;&nbsp;&nbsp;★&nbsp;&nbsp;&nbsp;</span>
+            </div>
         </div>
-    </div>
-    <nav class="navbar"><a class="logo" th:href="@{/}" aria-label="LSHOE Trang chủ">
-        <div class="logo-mascot-wrapper" aria-hidden="true">
-            <div class="mascot-bear"></div>
-        </div>
-        <span class="logo-text">LSHOE</span>
-    </a>
-        <form th:action="@{/products}" class="search"><input name="q" placeholder="Tìm kiếm giày..." th:value="${q}">
-            <button>Tìm</button>
-        </form>
-        <div class="navlinks"><a th:href="@{/products}">Sản phẩm</a><a th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a class="cart-nav-link" th:href="@{/cart}" aria-label="Mở giỏ hàng">
-            <svg class="cart-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M3 3h2l1.7 9.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6L20 6H6.1M9 19.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm10 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z"/>
-            </svg>
-            <span class="cart-nav-label">Giỏ hàng</span>
-            <span class="cart-count-badge" th:text="${cartCount != null ? cartCount : 0}">0</span>
-        </a><a sec:authorize="isAnonymous()"
-                                                                              th:href="@{/login}">Đăng nhập</a><a
-                sec:authorize="isAuthenticated()" th:href="@{/orders}">Đơn hàng</a><a sec:authorize="hasRole('ADMIN')"
-                                                                                      th:href="@{/admin}">Admin</a>
-            <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="inline">
-                <button>Đăng xuất</button>
-            </form>
-        </div>
-    </nav>
-</header>
-<footer th:fragment="footer" class="footer">
-    <div class="footer-grid">
-        <div>
-            <a class="logo footer-logo" th:href="@{/}" aria-label="LSHOE Trang chủ">
-                <div class="logo-mascot-wrapper" aria-hidden="true">
-                    <div class="mascot-bear"></div>
+        <nav class="navbar">
+            <a class="logo lshoe-brand-logo" th:href="@{/}" aria-label="LSHOE Trang chủ">
+                <div class="lshoe-logo-btn" aria-hidden="true">
+                    <p class="lshoe-logo-btn__text">
+                        <span style="--index: 0;">L</span>
+                        <span style="--index: 1;">S</span>
+                        <span style="--index: 2;">H</span>
+                        <span style="--index: 3;">O</span>
+                        <span style="--index: 4;">E</span>
+                        <span style="--index: 5;">&nbsp;</span>
+                        <span style="--index: 6;">•</span>
+                        <span style="--index: 7;">&nbsp;</span>
+                        <span style="--index: 8;">S</span>
+                        <span style="--index: 9;">N</span>
+                        <span style="--index: 10;">E</span>
+                        <span style="--index: 11;">A</span>
+                        <span style="--index: 12;">K</span>
+                        <span style="--index: 13;">E</span>
+                        <span style="--index: 14;">R</span>
+                        <span style="--index: 15;">S</span>
+                        <span style="--index: 16;">&nbsp;</span>
+                        <span style="--index: 17;">•</span>
+                    </p>
+                    <div class="lshoe-logo-btn__circle">
+                        <svg class="lshoe-logo-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M2.5 14.5c.8-2.5 2.8-4 5.5-4h2.5l3.5 3 4 .5c1.5 0 3 1 3.5 2.5l.5 1.5H2v-1.5c0-.7.2-1.4.5-2z" />
+                            <path d="M2 18h20v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2z" />
+                            <path d="M10.5 10.5l1.5-3.5 3 1" />
+                        </svg>
+                        <svg class="lshoe-logo-btn__icon lshoe-logo-btn__icon--copy" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M2.5 14.5c.8-2.5 2.8-4 5.5-4h2.5l3.5 3 4 .5c1.5 0 3 1 3.5 2.5l.5 1.5H2v-1.5c0-.7.2-1.4.5-2z" />
+                            <path d="M2 18h20v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2z" />
+                            <path d="M10.5 10.5l1.5-3.5 3 1" />
+                        </svg>
+                    </div>
                 </div>
-                <span class="logo-text">LSHOE</span>
+                <div class="spotty-swan-wrap">
+                    <div class="spotty-swan-card">
+                        <span class="spotty-swan-title">LSHOE</span>
+                        <span class="spotty-swan-sub">SNEAKER STORE</span>
+                        <div class="spotty-swan-texture"></div>
+                    </div>
+                </div>
             </a>
-            <p>Không gian sneaker dành cho mọi phong cách, từ thiết kế kinh điển đến xu hướng mới.</p>
+            <form th:action="@{/products}" class="search"><input name="q" placeholder="Tìm kiếm giày..."
+                    th:value="${q}">
+                <button>Tìm</button>
+            </form>
+            <div class="navlinks"><a th:href="@{/intro}">Giới thiệu</a><a th:href="@{/products}">Sản phẩm</a><a
+                    th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a class="cart-nav-link" th:href="@{/cart}"
+                    aria-label="Mở giỏ hàng">
+                    <svg class="cart-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            d="M3 3h2l1.7 9.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6L20 6H6.1M9 19.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm10 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+                    </svg>
+                    <span class="cart-nav-label">Giỏ hàng</span>
+                    <span class="cart-count-badge" th:text="${cartCount != null ? cartCount : 0}">0</span>
+                </a><a sec:authorize="isAnonymous()" th:href="@{/login}">Đăng nhập</a><a
+                    sec:authorize="isAuthenticated()" th:href="@{/orders}">Đơn hàng</a><a
+                    sec:authorize="hasRole('ADMIN')" th:href="@{/admin}">Admin</a>
+                <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="inline">
+                    <button>Đăng xuất</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <footer th:fragment="footer" class="footer">
+        <div class="footer-grid">
+            <div>
+                <a class="logo footer-logo lshoe-brand-logo" th:href="@{/}" aria-label="LSHOE Trang chủ">
+                    <div class="lshoe-logo-btn" aria-hidden="true">
+                        <p class="lshoe-logo-btn__text">
+                            <span style="--index: 0;">L</span>
+                            <span style="--index: 1;">S</span>
+                            <span style="--index: 2;">H</span>
+                            <span style="--index: 3;">O</span>
+                            <span style="--index: 4;">E</span>
+                            <span style="--index: 5;">&nbsp;</span>
+                            <span style="--index: 6;">•</span>
+                            <span style="--index: 7;">&nbsp;</span>
+                            <span style="--index: 8;">S</span>
+                            <span style="--index: 9;">N</span>
+                            <span style="--index: 10;">E</span>
+                            <span style="--index: 11;">A</span>
+                            <span style="--index: 12;">K</span>
+                            <span style="--index: 13;">E</span>
+                            <span style="--index: 14;">R</span>
+                            <span style="--index: 15;">S</span>
+                            <span style="--index: 16;">&nbsp;</span>
+                            <span style="--index: 17;">•</span>
+                        </p>
+                        <div class="lshoe-logo-btn__circle">
+                            <svg class="lshoe-logo-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M2.5 14.5c.8-2.5 2.8-4 5.5-4h2.5l3.5 3 4 .5c1.5 0 3 1 3.5 2.5l.5 1.5H2v-1.5c0-.7.2-1.4.5-2z" />
+                                <path d="M2 18h20v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2z" />
+                                <path d="M10.5 10.5l1.5-3.5 3 1" />
+                            </svg>
+                            <svg class="lshoe-logo-btn__icon lshoe-logo-btn__icon--copy" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M2.5 14.5c.8-2.5 2.8-4 5.5-4h2.5l3.5 3 4 .5c1.5 0 3 1 3.5 2.5l.5 1.5H2v-1.5c0-.7.2-1.4.5-2z" />
+                                <path d="M2 18h20v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-2z" />
+                                <path d="M10.5 10.5l1.5-3.5 3 1" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="spotty-swan-wrap">
+                        <div class="spotty-swan-card">
+                            <span class="spotty-swan-title">LSHOE</span>
+                            <span class="spotty-swan-sub">SNEAKER STORE</span>
+                            <div class="spotty-swan-texture"></div>
+                        </div>
+                    </div>
+                </a>
+                <p>Không gian sneaker dành cho mọi phong cách, từ thiết kế kinh điển đến xu hướng mới.</p>
+            </div>
+            <div><strong>Khám phá</strong><a th:href="@{/intro}">Giới thiệu</a><a th:href="@{/products}">Sản phẩm</a><a
+                    th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a th:href="@{/cart}">Giỏ hàng</a><a
+                    th:href="@{/orders}">Đơn hàng</a></div>
+            <div><strong>Hỗ trợ</strong><span>Đổi trả trong 30 ngày</span><span>Thanh toán khi nhận
+                    hàng</span><span>Hotline: 0900 000 000</span></div>
         </div>
-        <div><strong>Khám phá</strong><a th:href="@{/products}">Sản phẩm</a><a th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a th:href="@{/cart}">Giỏ hàng</a><a th:href="@{/orders}">Đơn hàng</a></div>
-        <div><strong>Hỗ trợ</strong><span>Đổi trả trong 30 ngày</span><span>Thanh toán khi nhận hàng</span><span>Hotline: 0900 000 000</span></div>
-    </div>
-    <div class="footer-bottom">© LSHOE · Email: support@lshoe.vn · Hà Nội</div>
+        <div class="footer-bottom">© LSHOE · Email: support@lshoe.vn · Hà Nội</div>
 
-    <!-- ========== CHAT BUBBLE ========== -->
-<div id="chat-bubble-btn" onclick="toggleChat()" title="Chat với trợ lý LSHOE">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="26" height="26">
-        <path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/>
-    </svg>
-    <span id="chat-unread" style="display:none">1</span>
-</div>
+        <!-- ========== CHAT BUBBLE ========== -->
+        <div id="chat-bubble-btn" onclick="toggleChat()" title="Chat với trợ lý LSHOE">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="26" height="26">
+                <path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z" />
+            </svg>
+            <span id="chat-unread" style="display:none">1</span>
+        </div>
 
-<div id="chat-window">
-    <div id="chat-header">
-        <span>🤖 Trợ lý LSHOE</span>
-        <button onclick="toggleChat()" id="chat-close-btn">✕</button>
-    </div>
-    <div id="chat-messages">
-        <div class="chat-msg bot">Xin chào! Tôi có thể giúp bạn tìm giày phù hợp. Bạn đang cần tư vấn gì? 👟</div>
-    </div>
-    <div id="chat-input-row">
-        <input id="chat-input" type="text" placeholder="Nhập tin nhắn..." onkeydown="if(event.key==='Enter') sendChat()"/>
-        <button id="chat-send-btn" onclick="sendChat()">Gửi</button>
-    </div>
-</div>
-<input id="chat-csrf" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div id="chat-window">
+            <div id="chat-header">
+                <span>🤖 Trợ lý LSHOE</span>
+                <button onclick="toggleChat()" id="chat-close-btn">✕</button>
+            </div>
+            <div id="chat-messages">
+                <div class="chat-msg bot">Xin chào! Tôi có thể giúp bạn tìm giày phù hợp. Bạn đang cần tư vấn gì? 👟
+                </div>
+            </div>
+            <div id="chat-input-row">
+                <input id="chat-input" type="text" placeholder="Nhập tin nhắn..."
+                    onkeydown="if(event.key==='Enter') sendChat()" />
+                <button id="chat-send-btn" onclick="sendChat()">Gửi</button>
+            </div>
+        </div>
+        <input id="chat-csrf" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 
-<style>
-#chat-bubble-btn {
-    position: fixed;
-    bottom: 28px;
-    right: 28px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-    z-index: 1000;
-    transition: transform 0.2s;
-}
-#chat-bubble-btn:hover { transform: scale(1.08); }
-
-#chat-unread {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background: #e53935;
-    color: white;
-    font-size: 11px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-}
-
-#chat-window {
-    position: fixed;
-    bottom: 96px;
-    right: 28px;
-    width: min(420px, calc(100vw - 32px));
-    height: min(560px, calc(100vh - 130px));
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-    display: none;
-    flex-direction: column;
-    z-index: 1000;
-    overflow: hidden;
-    font-family: inherit;
-}
-#chat-window.open { display: flex; }
-
-#chat-header {
-    background: #111;
-    color: #fff;
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-weight: 600;
-    font-size: 15px;
-}
-#chat-close-btn {
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 18px;
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
-}
-
-#chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 14px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.chat-msg {
-    max-width: 82%;
-    min-width: 0;
-    padding: 9px 13px;
-    border-radius: 14px;
-    font-size: 14px;
-    line-height: 1.5;
-    word-break: normal;
-    overflow-wrap: anywhere;
-}
-.chat-msg.user {
-    align-self: flex-end;
-    background: #111;
-    color: #fff;
-    border-bottom-right-radius: 4px;
-}
-.chat-msg.bot {
-    align-self: flex-start;
-    background: #f1f1f1;
-    color: #222;
-    border-bottom-left-radius: 4px;
-    max-width: 95%;
-}
-.chat-msg.bot.has-table {
-    width: 100%;
-    max-width: 100%;
-    padding: 10px;
-}
-.chat-msg.typing { color: #999; font-style: italic; }
-
-/* Markdown styles bên trong bubble bot */
-.chat-msg.bot p  { margin: 0 0 6px; }
-.chat-msg.bot p:last-child { margin-bottom: 0; }
-.chat-msg.bot strong { font-weight: 700; }
-.chat-msg.bot em { font-style: italic; }
-.chat-msg.bot ul, .chat-msg.bot ol {
-    margin: 4px 0 6px 16px;
-    padding: 0;
-}
-.chat-msg.bot li { margin-bottom: 3px; }
-.chat-table-scroll {
-    width: 100%;
-    margin: 8px 0 4px;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    border: 1px solid #d5d8df;
-    border-radius: 10px;
-    background: #fff;
-    -webkit-overflow-scrolling: touch;
-}
-.chat-msg.bot table {
-    border-collapse: collapse;
-    width: max-content;
-    min-width: 100%;
-    margin: 0;
-    font-size: 12px;
-    line-height: 1.4;
-}
-.chat-msg.bot th, .chat-msg.bot td {
-    min-width: 96px;
-    max-width: 220px;
-    border: 1px solid #d5d8df;
-    padding: 7px 9px;
-    text-align: left;
-    vertical-align: top;
-    word-break: normal;
-    overflow-wrap: normal;
-    hyphens: none;
-}
-.chat-msg.bot th {
-    background: #e9ebef;
-    font-weight: 700;
-    white-space: nowrap;
-}
-.chat-msg.bot th:first-child,
-.chat-msg.bot td:first-child { min-width: 105px; }
-.chat-msg.bot th:nth-child(2),
-.chat-msg.bot td:nth-child(2) { min-width: 150px; }
-.chat-msg.bot th:nth-child(4),
-.chat-msg.bot td:nth-child(4) { min-width: 140px; }
-.chat-msg.bot code {
-    background: #e4e4e4;
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-size: 12px;
-    font-family: monospace;
-}
-.chat-msg.bot pre {
-    background: #e4e4e4;
-    border-radius: 6px;
-    padding: 8px;
-    overflow-x: auto;
-    font-size: 12px;
-}
-.chat-msg.bot pre code { background: none; padding: 0; }
-
-#chat-input-row {
-    display: flex;
-    border-top: 1px solid #eee;
-    padding: 10px 10px;
-    gap: 8px;
-}
-#chat-input {
-    flex: 1;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 14px;
-    outline: none;
-}
-#chat-input:focus { border-color: #111; }
-#chat-input-row button {
-    background: #111;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 14px;
-    cursor: pointer;
-    font-size: 14px;
-    white-space: nowrap;
-}
-#chat-input-row button:hover { background: #333; }
-#chat-input-row button:disabled, #chat-input:disabled { opacity: .58; cursor: not-allowed; }
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-<script>
-(function () {
-    let chatHistory = [];
-    let opened = false;
-    let sending = false;
-
-    window.toggleChat = function () {
-        const win = document.getElementById('chat-window');
-        opened = !opened;
-        win.classList.toggle('open', opened);
-        document.getElementById('chat-unread').style.display = 'none';
-        if (opened) document.getElementById('chat-input').focus();
-    };
-
-    window.sendChat = async function () {
-        const input = document.getElementById('chat-input');
-        const sendButton = document.getElementById('chat-send-btn');
-        const msg = input.value.trim();
-        if (!msg || sending) return;
-        sending = true;
-        input.disabled = true;
-        sendButton.disabled = true;
-        input.value = '';
-        const previousHistory = chatHistory.slice(-10);
-
-        appendMsg(msg, 'user', false);
-        chatHistory.push({ role: 'user', content: msg });
-
-        const typingEl = appendMsg('Đang trả lời...', 'bot typing', false);
-
-        try {
-            const csrf = document.getElementById('chat-csrf');
-            const res = await fetch('/chatbot/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrf.value
-                },
-                body: JSON.stringify({ message: msg, history: previousHistory })
-            });
-            const data = await res.json();
-            typingEl.remove();
-            if (res.status === 401) { window.location.href = '/login?expired'; return; }
-            const reply = data.reply || data.error || 'Xin lỗi, tôi không hiểu yêu cầu.';
-            appendMsg(reply, 'bot', true);  // parse markdown
-            if (res.ok) {
-                chatHistory.push({ role: 'assistant', content: reply });
+        <style>
+            #chat-bubble-btn {
+                position: fixed;
+                bottom: 28px;
+                right: 28px;
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+                z-index: 1000;
+                transition: transform 0.2s;
             }
-        } catch (e) {
-            typingEl.remove();
-            appendMsg('Kết nối thất bại. Vui lòng thử lại.', 'bot', false);
-        } finally {
-            sending = false;
-            input.disabled = false;
-            sendButton.disabled = false;
-            input.focus();
-        }
-    };
 
-    function appendMsg(text, cls, parseMarkdown) {
-        const box = document.getElementById('chat-messages');
-        const el = document.createElement('div');
-        el.className = 'chat-msg ' + cls;
-        
-        if (parseMarkdown && typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
-            el.innerHTML = DOMPurify.sanitize(marked.parse(text));
+            #chat-bubble-btn:hover {
+                transform: scale(1.08);
+            }
 
-            // Bảng Markdown không bị ép cột quá hẹp: cho phép cuộn ngang thay vì xuống dòng từng chữ.
-            el.querySelectorAll('table').forEach((table) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'chat-table-scroll';
-                table.parentNode.insertBefore(wrapper, table);
-                wrapper.appendChild(table);
-                el.classList.add('has-table');
-            });
-        } else {
-            el.textContent = text;
-        }
-        
-        box.appendChild(el);
-        box.scrollTop = box.scrollHeight;
-        return el;
-    }
-})();
-</script>
-<!-- ========== END CHAT BUBBLE ========== -->
-</footer>
+            #chat-unread {
+                position: absolute;
+                top: -4px;
+                right: -4px;
+                background: #e53935;
+                color: white;
+                font-size: 11px;
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+            }
+
+            #chat-window {
+                position: fixed;
+                bottom: 96px;
+                right: 28px;
+                width: min(420px, calc(100vw - 32px));
+                height: min(560px, calc(100vh - 130px));
+                background: #fff;
+                border-radius: 16px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+                display: none;
+                flex-direction: column;
+                z-index: 1000;
+                overflow: hidden;
+                font-family: inherit;
+            }
+
+            #chat-window.open {
+                display: flex;
+            }
+
+            #chat-header {
+                background: #111;
+                color: #fff;
+                padding: 14px 16px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                font-weight: 600;
+                font-size: 15px;
+            }
+
+            #chat-close-btn {
+                background: none;
+                border: none;
+                color: #fff;
+                font-size: 18px;
+                cursor: pointer;
+                line-height: 1;
+                padding: 0;
+            }
+
+            #chat-messages {
+                flex: 1;
+                overflow-y: auto;
+                padding: 14px 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .chat-msg {
+                max-width: 82%;
+                min-width: 0;
+                padding: 9px 13px;
+                border-radius: 14px;
+                font-size: 14px;
+                line-height: 1.5;
+                word-break: normal;
+                overflow-wrap: anywhere;
+            }
+
+            .chat-msg.user {
+                align-self: flex-end;
+                background: #111;
+                color: #fff;
+                border-bottom-right-radius: 4px;
+            }
+
+            .chat-msg.bot {
+                align-self: flex-start;
+                background: #f1f1f1;
+                color: #222;
+                border-bottom-left-radius: 4px;
+                max-width: 95%;
+            }
+
+            .chat-msg.bot.has-table {
+                width: 100%;
+                max-width: 100%;
+                padding: 10px;
+            }
+
+            .chat-msg.typing {
+                color: #999;
+                font-style: italic;
+            }
+
+            /* Markdown styles bên trong bubble bot */
+            .chat-msg.bot p {
+                margin: 0 0 6px;
+            }
+
+            .chat-msg.bot p:last-child {
+                margin-bottom: 0;
+            }
+
+            .chat-msg.bot strong {
+                font-weight: 700;
+            }
+
+            .chat-msg.bot em {
+                font-style: italic;
+            }
+
+            .chat-msg.bot ul,
+            .chat-msg.bot ol {
+                margin: 4px 0 6px 16px;
+                padding: 0;
+            }
+
+            .chat-msg.bot li {
+                margin-bottom: 3px;
+            }
+
+            .chat-table-scroll {
+                width: 100%;
+                margin: 8px 0 4px;
+                overflow-x: auto;
+                overscroll-behavior-inline: contain;
+                border: 1px solid #d5d8df;
+                border-radius: 10px;
+                background: #fff;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .chat-msg.bot table {
+                border-collapse: collapse;
+                width: max-content;
+                min-width: 100%;
+                margin: 0;
+                font-size: 12px;
+                line-height: 1.4;
+            }
+
+            .chat-msg.bot th,
+            .chat-msg.bot td {
+                min-width: 96px;
+                max-width: 220px;
+                border: 1px solid #d5d8df;
+                padding: 7px 9px;
+                text-align: left;
+                vertical-align: top;
+                word-break: normal;
+                overflow-wrap: normal;
+                hyphens: none;
+            }
+
+            .chat-msg.bot th {
+                background: #e9ebef;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+
+            .chat-msg.bot th:first-child,
+            .chat-msg.bot td:first-child {
+                min-width: 105px;
+            }
+
+            .chat-msg.bot th:nth-child(2),
+            .chat-msg.bot td:nth-child(2) {
+                min-width: 150px;
+            }
+
+            .chat-msg.bot th:nth-child(4),
+            .chat-msg.bot td:nth-child(4) {
+                min-width: 140px;
+            }
+
+            .chat-msg.bot code {
+                background: #e4e4e4;
+                border-radius: 4px;
+                padding: 1px 5px;
+                font-size: 12px;
+                font-family: monospace;
+            }
+
+            .chat-msg.bot pre {
+                background: #e4e4e4;
+                border-radius: 6px;
+                padding: 8px;
+                overflow-x: auto;
+                font-size: 12px;
+            }
+
+            .chat-msg.bot pre code {
+                background: none;
+                padding: 0;
+            }
+
+            #chat-input-row {
+                display: flex;
+                border-top: 1px solid #eee;
+                padding: 10px 10px;
+                gap: 8px;
+            }
+
+            #chat-input {
+                flex: 1;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 14px;
+                outline: none;
+            }
+
+            #chat-input:focus {
+                border-color: #111;
+            }
+
+            #chat-input-row button {
+                background: #111;
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 14px;
+                cursor: pointer;
+                font-size: 14px;
+                white-space: nowrap;
+            }
+
+            #chat-input-row button:hover {
+                background: #333;
+            }
+
+            #chat-input-row button:disabled,
+            #chat-input:disabled {
+                opacity: .58;
+                cursor: not-allowed;
+            }
+        </style>
+
+        <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+        <script>
+            (function () {
+                let chatHistory = [];
+                let opened = false;
+                let sending = false;
+
+                window.toggleChat = function () {
+                    const win = document.getElementById('chat-window');
+                    opened = !opened;
+                    win.classList.toggle('open', opened);
+                    document.getElementById('chat-unread').style.display = 'none';
+                    if (opened) document.getElementById('chat-input').focus();
+                };
+
+                window.sendChat = async function () {
+                    const input = document.getElementById('chat-input');
+                    const sendButton = document.getElementById('chat-send-btn');
+                    const msg = input.value.trim();
+                    if (!msg || sending) return;
+                    sending = true;
+                    input.disabled = true;
+                    sendButton.disabled = true;
+                    input.value = '';
+                    const previousHistory = chatHistory.slice(-10);
+
+                    appendMsg(msg, 'user', false);
+                    chatHistory.push({ role: 'user', content: msg });
+
+                    const typingEl = appendMsg('Đang trả lời...', 'bot typing', false);
+
+                    try {
+                        const csrf = document.getElementById('chat-csrf');
+                        const res = await fetch('/chatbot/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrf.value
+                            },
+                            body: JSON.stringify({ message: msg, history: previousHistory })
+                        });
+                        const data = await res.json();
+                        typingEl.remove();
+                        if (res.status === 401) { window.location.href = '/login?expired'; return; }
+                        const reply = data.reply || data.error || 'Xin lỗi, tôi không hiểu yêu cầu.';
+                        appendMsg(reply, 'bot', true);  // parse markdown
+                        if (res.ok) {
+                            chatHistory.push({ role: 'assistant', content: reply });
+                        }
+                    } catch (e) {
+                        typingEl.remove();
+                        appendMsg('Kết nối thất bại. Vui lòng thử lại.', 'bot', false);
+                    } finally {
+                        sending = false;
+                        input.disabled = false;
+                        sendButton.disabled = false;
+                        input.focus();
+                    }
+                };
+
+                function appendMsg(text, cls, parseMarkdown) {
+                    const box = document.getElementById('chat-messages');
+                    const el = document.createElement('div');
+                    el.className = 'chat-msg ' + cls;
+
+                    if (parseMarkdown && typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+                        el.innerHTML = DOMPurify.sanitize(marked.parse(text));
+
+                        // Bảng Markdown không bị ép cột quá hẹp: cho phép cuộn ngang thay vì xuống dòng từng chữ.
+                        el.querySelectorAll('table').forEach((table) => {
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'chat-table-scroll';
+                            table.parentNode.insertBefore(wrapper, table);
+                            wrapper.appendChild(table);
+                            el.classList.add('has-table');
+                        });
+                    } else {
+                        el.textContent = text;
+                    }
+
+                    box.appendChild(el);
+                    box.scrollTop = box.scrollHeight;
+                    return el;
+                }
+            })();
+        </script>
+        <!-- ========== END CHAT BUBBLE ========== -->
+    </footer>
 </body>
+
 </html>

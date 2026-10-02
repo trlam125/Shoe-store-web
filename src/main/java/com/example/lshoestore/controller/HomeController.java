@@ -38,6 +38,15 @@ public class HomeController {
         return "index";
     }
 
+    @GetMapping({"/intro", "/about", "/gioi-thieu"})
+    public String intro(Model model, Authentication auth, HttpSession session) {
+        model.addAttribute("products", products.findTop12ByActiveTrueOrderByIdDesc());
+        model.addAttribute("categories", categories.findAll());
+        model.addAttribute("cartCount", cart.count(auth, session));
+        return "intro";
+    }
+
+
     @GetMapping("/products")
     public String list(@RequestParam(required = false) String q,
                        @RequestParam(required = false) Long category,
