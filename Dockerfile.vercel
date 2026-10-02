@@ -17,7 +17,8 @@ COPY --from=build /build/target/*.jar /app/app.jar
 ENV SPRING_PROFILES_ACTIVE=prod \
     AI_SERVICE_AUTOSTART=false \
     AI_SERVICE_SETUP_VENV=false \
-    PRODUCT_IMAGE_STORAGE=database
+    PRODUCT_IMAGE_STORAGE=database \
+    SERVER_PORT=80
 
 EXPOSE 80
 
