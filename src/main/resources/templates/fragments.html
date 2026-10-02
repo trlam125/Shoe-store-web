@@ -3,6 +3,16 @@
 
 <body>
     <header th:fragment="header" class="site-header">
+        <script>
+            (function () {
+                try {
+                    var theme = localStorage.getItem('lshoe-theme');
+                    if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                        document.documentElement.classList.add('dark-theme');
+                    }
+                } catch (e) { }
+            })();
+        </script>
         <p th:if="${success}" class="global-alert success" th:text="${success}"></p>
         <p th:if="${warning}" class="global-alert warning" th:text="${warning}"></p>
         <p th:if="${error}" class="global-alert error" th:text="${error}"></p>
@@ -36,14 +46,14 @@
                         <span style="--index: 5;">&nbsp;</span>
                         <span style="--index: 6;">•</span>
                         <span style="--index: 7;">&nbsp;</span>
-                        <span style="--index: 8;">S</span>
-                        <span style="--index: 9;">N</span>
-                        <span style="--index: 10;">E</span>
-                        <span style="--index: 11;">A</span>
-                        <span style="--index: 12;">K</span>
+                        <span style="--index: 8;">•</span>
+                        <span style="--index: 9;">S</span>
+                        <span style="--index: 10;">T</span>
+                        <span style="--index: 11;">O</span>
+                        <span style="--index: 12;">R</span>
                         <span style="--index: 13;">E</span>
-                        <span style="--index: 14;">R</span>
-                        <span style="--index: 15;">S</span>
+                        <span style="--index: 14;">&nbsp;</span>
+                        <span style="--index: 15;">•</span>
                         <span style="--index: 16;">&nbsp;</span>
                         <span style="--index: 17;">•</span>
                     </p>
@@ -67,30 +77,77 @@
                 <div class="spotty-swan-wrap">
                     <div class="spotty-swan-card">
                         <span class="spotty-swan-title">LSHOE</span>
-                        <span class="spotty-swan-sub">SNEAKER STORE</span>
+                        <span class="spotty-swan-sub">STORE</span>
                         <div class="spotty-swan-texture"></div>
                     </div>
                 </div>
             </a>
-            <form th:action="@{/products}" class="search"><input name="q" placeholder="Tìm kiếm giày..."
-                    th:value="${q}">
-                <button>Tìm</button>
+            <form th:action="@{/products}" class="search searchBox" method="get">
+                <input class="searchInput" name="q" placeholder="Tìm kiếm giày sneaker..." th:value="${q}">
+                <button class="searchButton" type="submit" aria-label="Tìm kiếm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 29 29" fill="none">
+                        <path
+                            d="M23.7953 23.9182L19.0585 19.1814M19.0585 19.1814C19.8188 18.4211 20.4219 17.5185 20.8333 16.5251C21.2448 15.5318 21.4566 14.4671 21.4566 13.3919C21.4566 12.3167 21.2448 11.252 20.8333 10.2587C20.4219 9.2653 19.8188 8.36271 19.0585 7.60242C18.2982 6.84214 17.3956 6.23905 16.4022 5.82759C15.4089 5.41612 14.3442 5.20435 13.269 5.20435C12.1938 5.20435 11.1291 5.41612 10.1358 5.82759C9.1424 6.23905 8.23981 6.84214 7.47953 7.60242C5.94407 9.13789 5.08145 11.2204 5.08145 13.3919C5.08145 15.5634 5.94407 17.6459 7.47953 19.1814C9.01499 20.7168 11.0975 21.5794 13.269 21.5794C15.4405 21.5794 17.523 20.7168 19.0585 19.1814Z"
+                            stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
             </form>
             <div class="navlinks"><a th:href="@{/intro}">Giới thiệu</a><a th:href="@{/products}">Sản phẩm</a><a
                     th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a class="cart-nav-link" th:href="@{/cart}"
                     aria-label="Mở giỏ hàng">
-                    <svg class="cart-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path
-                            d="M3 3h2l1.7 9.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6L20 6H6.1M9 19.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Zm10 0a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z" />
+                    <span class="cart-nav-btn-text">
+                        <span class="cart-nav-label">Giỏ hàng</span>
+                        <span class="cart-count-badge" th:text="${cartCount != null ? cartCount : 0}">0</span>
+                    </span>
+                    <svg class="cart-nav-icon" fill="#fff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                        aria-hidden="true">
+                        <g id="cart">
+                            <circle r="1.91" cy="20.59" cx="10.07"></circle>
+                            <circle r="1.91" cy="20.59" cx="18.66"></circle>
+                            <path
+                                d="M.52,1.5H3.18a2.87,2.87,0,0,1,2.74,2L9.11,13.91H8.64A2.39,2.39,0,0,0,6.25,16.3h0a2.39,2.39,0,0,0,2.39,2.38h10"
+                                fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round"></path>
+                            <polyline points="7.21 5.32 22.48 5.32 22.48 7.23 20.57 13.91 9.11 13.91" fill="none"
+                                stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            </polyline>
+                        </g>
                     </svg>
-                    <span class="cart-nav-label">Giỏ hàng</span>
-                    <span class="cart-count-badge" th:text="${cartCount != null ? cartCount : 0}">0</span>
                 </a><a sec:authorize="isAnonymous()" th:href="@{/login}">Đăng nhập</a><a
                     sec:authorize="isAuthenticated()" th:href="@{/orders}">Đơn hàng</a><a
                     sec:authorize="hasRole('ADMIN')" th:href="@{/admin}">Admin</a>
                 <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="inline">
                     <button>Đăng xuất</button>
                 </form>
+                <!-- Friendly Otter 40 Theme Toggle -->
+                <div class="theme-toggle-wrap" title="Chuyển chế độ Sáng / Tối">
+                    <div class="toggle-container">
+                        <input type="checkbox" class="toggle-input" id="theme-toggle"
+                            onchange="toggleSiteTheme(this.checked)" aria-label="Chuyển đổi giao diện sáng tối">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 292 142" class="toggle">
+                            <path
+                                d="M71 142C31.7878 142 0 110.212 0 71C0 31.7878 31.7878 0 71 0C110.212 0 119 30 146 30C173 30 182 0 221 0C260 0 292 31.7878 292 71C292 110.212 260.212 142 221 142C181.788 142 173 112 146 112C119 112 110.212 142 71 142Z"
+                                class="toggle-background"></path>
+                            <rect rx="6" height="64" width="12" y="39" x="64" class="toggle-icon on"></rect>
+                            <path
+                                d="M221 91C232.046 91 241 82.0457 241 71C241 59.9543 232.046 51 221 51C209.954 51 201 59.9543 201 71C201 82.0457 209.954 91 221 91ZM221 103C238.673 103 253 88.6731 253 71C253 53.3269 238.673 39 221 39C203.327 39 189 53.3269 189 71C189 88.6731 203.327 103 221 103Z"
+                                fill-rule="evenodd" class="toggle-icon off"></path>
+                            <g filter="url('#goo')">
+                                <rect fill="#fff" rx="29" height="58" width="116" y="42" x="13"
+                                    class="toggle-circle-center"></rect>
+                                <rect fill="#fff" rx="58" height="114" width="114" y="14" x="14"
+                                    class="toggle-circle left"></rect>
+                                <rect fill="#fff" rx="58" height="114" width="114" y="14" x="164"
+                                    class="toggle-circle right"></rect>
+                            </g>
+                            <filter id="goo">
+                                <feGaussianBlur stdDeviation="10" result="blur" in="SourceGraphic"></feGaussianBlur>
+                                <feColorMatrix result="goo" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"
+                                    mode="matrix" in="blur"></feColorMatrix>
+                            </filter>
+                        </svg>
+                    </div>
+                </div>
             </div>
         </nav>
     </header>
@@ -108,14 +165,14 @@
                             <span style="--index: 5;">&nbsp;</span>
                             <span style="--index: 6;">•</span>
                             <span style="--index: 7;">&nbsp;</span>
-                            <span style="--index: 8;">S</span>
-                            <span style="--index: 9;">N</span>
-                            <span style="--index: 10;">E</span>
-                            <span style="--index: 11;">A</span>
-                            <span style="--index: 12;">K</span>
+                            <span style="--index: 8;">•</span>
+                            <span style="--index: 9;">S</span>
+                            <span style="--index: 10;">T</span>
+                            <span style="--index: 11;">O</span>
+                            <span style="--index: 12;">R</span>
                             <span style="--index: 13;">E</span>
-                            <span style="--index: 14;">R</span>
-                            <span style="--index: 15;">S</span>
+                            <span style="--index: 14;">&nbsp;</span>
+                            <span style="--index: 15;">•</span>
                             <span style="--index: 16;">&nbsp;</span>
                             <span style="--index: 17;">•</span>
                         </p>
@@ -139,7 +196,7 @@
                     <div class="spotty-swan-wrap">
                         <div class="spotty-swan-card">
                             <span class="spotty-swan-title">LSHOE</span>
-                            <span class="spotty-swan-sub">SNEAKER STORE</span>
+                            <span class="spotty-swan-sub">STORE</span>
                             <div class="spotty-swan-texture"></div>
                         </div>
                     </div>
@@ -154,11 +211,29 @@
         </div>
         <div class="footer-bottom">© LSHOE · Email: support@lshoe.vn · Hà Nội</div>
 
-        <!-- ========== CHAT BUBBLE ========== -->
-        <div id="chat-bubble-btn" onclick="toggleChat()" title="Chat với trợ lý LSHOE">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="26" height="26">
-                <path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z" />
-            </svg>
+        <!-- ========== CHAT BUBBLE (UIverse young-walrus-64) ========== -->
+        <div id="chat-bubble-btn" onclick="toggleChat()" title="Chat với trợ lý AI LSHOE">
+            <div class="walrus-loader" aria-hidden="true">
+                <svg width="60" height="60" viewBox="0 0 100 100">
+                    <defs>
+                        <mask id="walrus-clipping">
+                            <polygon points="0,0 100,0 100,100 0,100" fill="black"></polygon>
+                            <polygon points="25,25 75,25 50,75" fill="white"></polygon>
+                            <polygon points="50,25 75,75 25,75" fill="white"></polygon>
+                            <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                            <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                            <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                            <polygon points="35,35 65,35 50,65" fill="white"></polygon>
+                        </mask>
+                    </defs>
+                </svg>
+                <div class="walrus-box"></div>
+            </div>
+            <div class="chat-bubble-badge-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="white" width="18" height="18">
+                    <path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z" />
+                </svg>
+            </div>
             <span id="chat-unread" style="display:none">1</span>
         </div>
 
@@ -184,21 +259,192 @@
                 position: fixed;
                 bottom: 28px;
                 right: 28px;
-                width: 56px;
-                height: 56px;
+                width: 62px;
+                height: 62px;
                 border-radius: 50%;
-                background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                background: transparent;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 cursor: pointer;
-                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
                 z-index: 1000;
-                transition: transform 0.2s;
+                transition: transform 0.25s cubic-bezier(0.34, 1.5, 0.64, 1);
+                border: none;
+                padding: 0;
             }
 
             #chat-bubble-btn:hover {
-                transform: scale(1.08);
+                transform: scale(1.12);
+            }
+
+            #chat-bubble-btn:active {
+                transform: scale(0.95);
+            }
+
+            .walrus-loader {
+                --color-one: #ffbf48;
+                --color-two: #be4a1d;
+                --color-three: #ffbf4780;
+                --color-four: #bf4a1d80;
+                --color-five: #ffbf4740;
+                --time-animation: 2s;
+                --size: 0.60;
+                position: relative;
+                border-radius: 50%;
+                width: 100px;
+                height: 100px;
+                transform: scale(var(--size));
+                transform-origin: center center;
+                box-shadow: 0 0 25px 0 var(--color-three), 0 15px 35px 0 var(--color-four);
+                animation: walrus_colorize calc(var(--time-animation) * 3) ease-in-out infinite;
+                pointer-events: none;
+            }
+
+            .walrus-loader::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                border-top: solid 1.5px var(--color-one);
+                border-bottom: solid 1.5px var(--color-two);
+                background: linear-gradient(180deg, var(--color-five), var(--color-four));
+                box-shadow: inset 0 10px 10px 0 var(--color-three), inset 0 -10px 10px 0 var(--color-four);
+            }
+
+            .walrus-loader .walrus-box {
+                width: 100px;
+                height: 100px;
+                background: linear-gradient(180deg, var(--color-one) 30%, var(--color-two) 70%);
+                mask: url(#walrus-clipping);
+                -webkit-mask: url(#walrus-clipping);
+            }
+
+            .walrus-loader svg {
+                position: absolute;
+                top: 0;
+                left: 0;
+            }
+
+            .walrus-loader svg #walrus-clipping {
+                filter: contrast(15);
+                animation: walrus_roundness calc(var(--time-animation) / 2) linear infinite;
+            }
+
+            .walrus-loader svg #walrus-clipping polygon {
+                filter: blur(7px);
+            }
+
+            .walrus-loader svg #walrus-clipping polygon:nth-child(1) {
+                transform-origin: 75% 25%;
+                transform: rotate(90deg);
+            }
+
+            .walrus-loader svg #walrus-clipping polygon:nth-child(2) {
+                transform-origin: 50% 50%;
+                animation: walrus_rotation var(--time-animation) linear infinite reverse;
+            }
+
+            .walrus-loader svg #walrus-clipping polygon:nth-child(3) {
+                transform-origin: 50% 60%;
+                animation: walrus_rotation var(--time-animation) linear infinite;
+                animation-delay: calc(var(--time-animation) / -3);
+            }
+
+            .walrus-loader svg #walrus-clipping polygon:nth-child(4),
+            .walrus-loader svg #walrus-clipping polygon:nth-child(5) {
+                transform-origin: 40% 40%;
+                animation: walrus_rotation var(--time-animation) linear infinite reverse;
+            }
+
+            .walrus-loader svg #walrus-clipping polygon:nth-child(5) {
+                animation-delay: calc(var(--time-animation) / -2);
+            }
+
+            .walrus-loader svg #walrus-clipping polygon:nth-child(6),
+            .walrus-loader svg #walrus-clipping polygon:nth-child(7) {
+                transform-origin: 60% 40%;
+                animation: walrus_rotation var(--time-animation) linear infinite;
+            }
+
+            .walrus-loader svg #walrus-clipping polygon:nth-child(7) {
+                animation-delay: calc(var(--time-animation) / -1.5);
+            }
+
+            @keyframes walrus_rotation {
+                0% {
+                    transform: rotate(0deg);
+                }
+
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+
+            @keyframes walrus_roundness {
+                0% {
+                    filter: contrast(15);
+                }
+
+                20% {
+                    filter: contrast(3);
+                }
+
+                40% {
+                    filter: contrast(3);
+                }
+
+                60% {
+                    filter: contrast(15);
+                }
+
+                100% {
+                    filter: contrast(15);
+                }
+            }
+
+            @keyframes walrus_colorize {
+                0% {
+                    filter: hue-rotate(0deg);
+                }
+
+                20% {
+                    filter: hue-rotate(-30deg);
+                }
+
+                40% {
+                    filter: hue-rotate(-60deg);
+                }
+
+                60% {
+                    filter: hue-rotate(-90deg);
+                }
+
+                80% {
+                    filter: hue-rotate(-45deg);
+                }
+
+                100% {
+                    filter: hue-rotate(0deg);
+                }
+            }
+
+            .chat-bubble-badge-icon {
+                position: absolute;
+                pointer-events: none;
+                z-index: 10;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: rgba(15, 23, 42, 0.65);
+                backdrop-filter: blur(4px);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
             }
 
             #chat-unread {
@@ -534,6 +780,28 @@
                     return el;
                 }
             })();
+
+            // ========== THEME TOGGLE SCRIPT (UIverse friendly-otter-40) ==========
+            function toggleSiteTheme(isDark) {
+                if (isDark) {
+                    document.documentElement.classList.add('dark-theme');
+                    localStorage.setItem('lshoe-theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark-theme');
+                    localStorage.setItem('lshoe-theme', 'light');
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                var toggle = document.getElementById('theme-toggle');
+                var isDark = document.documentElement.classList.contains('dark-theme') || localStorage.getItem('lshoe-theme') === 'dark';
+                if (toggle) {
+                    toggle.checked = isDark;
+                }
+                if (isDark) {
+                    document.documentElement.classList.add('dark-theme');
+                }
+            });
         </script>
         <!-- ========== END CHAT BUBBLE ========== -->
     </footer>
