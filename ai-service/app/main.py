@@ -97,7 +97,26 @@ MAX_REMOTE_IMAGE_BYTES = int(
 )
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 AI_INTERNAL_API_KEY = os.getenv("AI_INTERNAL_API_KEY", "").strip()
-STORE_BASE_URL = os.getenv("AI_STORE_BASE_URL", "http://127.0.0.1:8081").rstrip("/")
+
+def _default_store_base_url() -> str:
+    explicit = os.getenv("AI_STORE_BASE_URL", "").strip()
+    if explicit:
+        return explicit.rstrip("/")
+
+    # On Vercel Services, avoid a reverse service binding (ai -> store),
+    # which would create a circular dependency with store -> ai.
+    # The public deployment URL routes to the store service via vercel.json.
+    vercel_host = (
+        os.getenv("VERCEL_URL", "").strip()
+        or os.getenv("VERCEL_PROJECT_PRODUCTION_URL", "").strip()
+    )
+    if vercel_host:
+        return f"https://{vercel_host}".rstrip("/")
+
+    return "http://127.0.0.1:8081"
+
+
+STORE_BASE_URL = _default_store_base_url()
 TRUSTED_IMAGE_ORIGINS = {
     origin.strip().rstrip("/")
     for origin in os.getenv("AI_TRUSTED_IMAGE_ORIGINS", STORE_BASE_URL).split(",")

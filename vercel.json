@@ -17,15 +17,7 @@
     "ai": {
       "root": "ai-service/",
       "runtime": "container",
-      "entrypoint": "Dockerfile.vercel",
-      "bindings": [
-        {
-          "type": "service",
-          "service": "store",
-          "format": "url",
-          "env": "AI_STORE_BASE_URL"
-        }
-      ]
+      "entrypoint": "Dockerfile.vercel"
     }
   },
   "rewrites": [
