@@ -63,20 +63,63 @@ cleanup() {
 }
 trap cleanup TERM INT EXIT
 
-cd /app/ai-service
-python run.py &
-AI_PID=$!
-
+# Start Spring Boot first. It is the public HTTP server that Vercel routes to.
 cd /app
 java -jar app.jar &
 JAVA_PID=$!
 
-# If either server stops, terminate the other one so Vercel can replace the
-# unhealthy container instead of leaving a partially working instance alive.
+echo "[vercel] Spring Boot PID: ${JAVA_PID}"
+echo "[vercel] Waiting for Spring Boot on port ${SERVER_PORT}..."
+
+SPRING_READY=false
+for _ in $(seq 1 120); do
+    # If Java exits before opening the public port, surface the real exit code.
+    if ! kill -0 "${JAVA_PID}" 2>/dev/null; then
+        echo "[vercel] ERROR: Spring Boot exited during startup."
+        set +e
+        wait "${JAVA_PID}"
+        STATUS=$?
+        exit "${STATUS}"
+    fi
+
+    # Bash /dev/tcp keeps the runtime image small and avoids requiring curl.
+    if (echo >"/dev/tcp/127.0.0.1/${SERVER_PORT}") >/dev/null 2>&1; then
+        SPRING_READY=true
+        echo "[vercel] Spring Boot is listening on port ${SERVER_PORT}."
+        break
+    fi
+
+    sleep 0.5
+done
+
+if [[ "${SPRING_READY}" != "true" ]]; then
+    echo "[vercel] ERROR: Spring Boot did not open port ${SERVER_PORT} within 60 seconds."
+    kill -TERM "${JAVA_PID}" 2>/dev/null || true
+    set +e
+    wait "${JAVA_PID}" 2>/dev/null
+    exit 1
+fi
+
+# Start FastAPI only after the public website is ready. FastAPI is an internal
+# companion service; an AI-service failure must not take the storefront down.
+cd /app/ai-service
+python run.py &
+AI_PID=$!
+echo "[vercel] FastAPI PID: ${AI_PID}"
+
+cd /app
+
+# Spring Boot owns the lifecycle of the public container. Keep the container
+# alive as long as Spring is alive, even if FastAPI exits unexpectedly.
 set +e
-wait -n "${AI_PID}" "${JAVA_PID}"
+wait "${JAVA_PID}"
 STATUS=$?
-cleanup
-wait "${AI_PID}" 2>/dev/null || true
-wait "${JAVA_PID}" 2>/dev/null || true
+
+echo "[vercel] Spring Boot stopped with status ${STATUS}."
+
+if [[ -n "${AI_PID:-}" ]] && kill -0 "${AI_PID}" 2>/dev/null; then
+    kill -TERM "${AI_PID}" 2>/dev/null || true
+fi
+wait "${AI_PID:-}" 2>/dev/null || true
+
 exit "${STATUS}"
