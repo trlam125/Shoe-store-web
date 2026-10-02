@@ -249,7 +249,7 @@ public class AiServiceAutoStarter implements DisposableBean {
         if (!shuttingDown) {
             log.warn(
                     "AI service is running but did not become ready after {} seconds. "
-                            + "Check AI_DATABASE_URL/DB settings and PostgreSQL.",
+                            + "Check DATABASE_URL/DB settings and PostgreSQL.",
                     timeoutSeconds
             );
         }

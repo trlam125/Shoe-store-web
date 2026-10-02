@@ -48,7 +48,7 @@ def resolve_database_url() -> str:
     in the PostgreSQL URI (or as separate arguments), so inject them only when
     the configured URI does not already contain a username.
     """
-    configured = (os.getenv("AI_DATABASE_URL") or os.getenv("DATABASE_URL") or "").strip()
+    configured = (os.getenv("DATABASE_URL") or "").strip()
     username = os.getenv("DB_USERNAME", "postgres")
     password = os.getenv("DB_PASSWORD", "postgres")
 
@@ -57,7 +57,7 @@ def resolve_database_url() -> str:
         parsed = urlsplit(database_url)
         if parsed.scheme not in {"postgresql", "postgres"}:
             raise RuntimeError(
-                "AI_DATABASE_URL/DATABASE_URL must use the postgresql:// or postgres:// scheme."
+                "DATABASE_URL must use the postgresql:// or postgres:// scheme."
             )
         if parsed.username is not None:
             return database_url
