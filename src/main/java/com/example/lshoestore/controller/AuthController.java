@@ -58,7 +58,10 @@ public class AuthController {
     }
 
     @GetMapping("/login")
-    public String login(Model model, Authentication auth, HttpSession session) {
+    public String login(Model model,
+                        @RequestParam(value = "mode", required = false, defaultValue = "login") String mode,
+                        Authentication auth,
+                        HttpSession session) {
         if (auth != null
                 && auth.isAuthenticated()
                 && !"anonymousUser".equals(auth.getPrincipal())) {
@@ -66,15 +69,27 @@ public class AuthController {
         }
 
         addCartCount(model, auth, session);
+        if (!model.containsAttribute("form")) {
+            model.addAttribute("form", new RegistrationForm());
+        }
+        prepareCaptcha(model, session);
+        model.addAttribute("initialMode", mode);
         return "auth/login";
     }
 
     @GetMapping("/register")
     public String register(Model model, Authentication auth, HttpSession session) {
-        model.addAttribute("form", new RegistrationForm());
-        addCartCount(model, auth, session);
-        prepareCaptcha(model, session);
-        return "auth/register";
+        if (auth != null
+                && auth.isAuthenticated()
+                && !"anonymousUser".equals(auth.getPrincipal())) {
+            return "redirect:/";
+        }
+        return "redirect:/login?mode=register";
+    }
+
+    @GetMapping("/auth-demo")
+    public String authDemo() {
+        return "redirect:/login";
     }
 
     @PostMapping("/register")
@@ -94,7 +109,8 @@ public class AuthController {
         if (bindingResult.hasErrors() || !captchaValid) {
             form.setPassword("");
             prepareCaptcha(model, session);
-            return "auth/register";
+            model.addAttribute("initialMode", "register");
+            return "auth/login";
         }
 
         String email = normalizeEmail(form.getEmail());
@@ -106,7 +122,8 @@ public class AuthController {
             form.setPassword("");
             model.addAttribute("error", "Bạn đã yêu cầu gửi mã quá nhiều lần. Vui lòng thử lại sau.");
             prepareCaptcha(model, session);
-            return "auth/register";
+            model.addAttribute("initialMode", "register");
+            return "auth/login";
         }
 
         EmailVerificationService.StartResponse response;
@@ -116,20 +133,23 @@ public class AuthController {
             form.setPassword("");
             model.addAttribute("error", "Không thể tạo yêu cầu đăng ký. Vui lòng thử lại.");
             prepareCaptcha(model, session);
-            return "auth/register";
+            model.addAttribute("initialMode", "register");
+            return "auth/login";
         }
         EmailVerificationService.StartResult result = response.result();
         if (result == EmailVerificationService.StartResult.EMAIL_ALREADY_USED) {
             form.setPassword("");
             model.addAttribute("error", "Email đã được sử dụng.");
             prepareCaptcha(model, session);
-            return "auth/register";
+            model.addAttribute("initialMode", "register");
+            return "auth/login";
         }
         if (result == EmailVerificationService.StartResult.PUBLIC_URL_UNAVAILABLE) {
             form.setPassword("");
             model.addAttribute("error", "Không xác định được địa chỉ website để tạo liên kết xác thực.");
             prepareCaptcha(model, session);
-            return "auth/register";
+            model.addAttribute("initialMode", "register");
+            return "auth/login";
         }
         if (result == EmailVerificationService.StartResult.EMAIL_DELIVERY_FAILED) {
             form.setPassword("");
@@ -137,7 +157,8 @@ public class AuthController {
                     "Hệ thống chưa gửi được email xác thực và đã hủy yêu cầu chưa gửi. "
                             + "Vui lòng kiểm tra cấu hình email hoặc thử lại sau.");
             prepareCaptcha(model, session);
-            return "auth/register";
+            model.addAttribute("initialMode", "register");
+            return "auth/login";
         }
 
         String target = UriComponentsBuilder.fromPath("/verify-email")

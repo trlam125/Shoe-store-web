@@ -30,16 +30,8 @@ public class HomeController {
         this.cart = cart;
     }
 
-    @GetMapping("/")
+    @GetMapping({"/", "/intro", "/about", "/gioi-thieu"})
     public String home(Model model, Authentication auth, HttpSession session) {
-        model.addAttribute("products", products.findTop12ByActiveTrueOrderByIdDesc());
-        model.addAttribute("categories", categories.findAll());
-        model.addAttribute("cartCount", cart.count(auth, session));
-        return "index";
-    }
-
-    @GetMapping({"/intro", "/about", "/gioi-thieu"})
-    public String intro(Model model, Authentication auth, HttpSession session) {
         model.addAttribute("products", products.findTop12ByActiveTrueOrderByIdDesc());
         model.addAttribute("categories", categories.findAll());
         model.addAttribute("cartCount", cart.count(auth, session));
