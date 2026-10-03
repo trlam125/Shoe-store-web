@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -73,38 +75,41 @@ public class CartService {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, CartItem> getGuestCart(HttpSession session) {
+    private Map<String, GuestCartLine> getGuestCart(HttpSession session) {
         Object raw = session.getAttribute(GUEST_CART_KEY);
         if (raw instanceof Map<?, ?> existing) {
             boolean validMap = existing.entrySet().stream().allMatch(entry -> {
                 if (!(entry.getKey() instanceof String key)
-                        || !(entry.getValue() instanceof CartItem item)
-                        || item.getProduct() == null || item.getProduct().getId() == null
-                        || item.getQuantity() <= 0) return false;
-                return key.equals(lineKey(item.getProduct().getId(), item.getSelectedSize()));
+                        || !(entry.getValue() instanceof GuestCartLine line)
+                        || line.productId() == null || line.quantity() <= 0) return false;
+                return key.equals(lineKey(line.productId(), line.selectedSize()));
             });
-            if (validMap) return (Map<String, CartItem>) existing;
+            if (validMap) return (Map<String, GuestCartLine>) existing;
 
-            Map<String, CartItem> recovered = new LinkedHashMap<>();
+            Map<String, GuestCartLine> recovered = new LinkedHashMap<>();
             for (Object value : existing.values()) {
-                if (!(value instanceof CartItem item) || item.getProduct() == null
-                        || item.getProduct().getId() == null || item.getQuantity() <= 0) continue;
-                String key = lineKey(item.getProduct().getId(), item.getSelectedSize());
-                CartItem current = recovered.get(key);
-                long mergedQuantity = (long) item.getQuantity()
-                        + (current == null ? 0L : current.getQuantity());
-                recovered.put(key, new CartItem(
-                        item.getProduct(),
-                        (int) Math.min(mergedQuantity, Integer.MAX_VALUE),
-                        cleanSize(item.getSelectedSize()),
-                        item.getAvailableStock()));
+                if (!(value instanceof GuestCartLine line)
+                        || line.productId() == null || line.quantity() <= 0) continue;
+                String key = lineKey(line.productId(), line.selectedSize());
+                GuestCartLine current = recovered.get(key);
+                long mergedQuantity = (long) line.quantity()
+                        + (current == null ? 0L : current.quantity());
+                recovered.put(key, new GuestCartLine(
+                        line.productId(),
+                        line.productName(),
+                        cleanSize(line.selectedSize()),
+                        (int) Math.min(mergedQuantity, Integer.MAX_VALUE)));
             }
-            session.setAttribute(GUEST_CART_KEY, recovered);
+            saveGuestCart(session, recovered);
             return recovered;
         }
-        Map<String, CartItem> cart = new LinkedHashMap<>();
-        session.setAttribute(GUEST_CART_KEY, cart);
+        Map<String, GuestCartLine> cart = new LinkedHashMap<>();
+        saveGuestCart(session, cart);
         return cart;
+    }
+
+    private void saveGuestCart(HttpSession session, Map<String, GuestCartLine> cart) {
+        session.setAttribute(GUEST_CART_KEY, new LinkedHashMap<>(cart));
     }
 
     @Transactional
@@ -128,13 +133,14 @@ public class CartService {
         } else {
             InventorySelection selection = lockAvailableSelection(productId, requestedSize);
             synchronized (session) {
-                Map<String, CartItem> guest = getGuestCart(session);
+                Map<String, GuestCartLine> guest = getGuestCart(session);
                 String key = lineKey(productId, selection.size());
-                CartItem current = guest.get(key);
-                int currentQuantity = current == null ? 0 : current.getQuantity();
+                GuestCartLine current = guest.get(key);
+                int currentQuantity = current == null ? 0 : current.quantity();
                 if (currentQuantity >= selection.variant().getStock()) return false;
-                guest.put(key, new CartItem(selection.product(), currentQuantity + 1,
-                        selection.size(), selection.variant().getStock()));
+                guest.put(key, new GuestCartLine(
+                        productId, selection.product().getName(), selection.size(), currentQuantity + 1));
+                saveGuestCart(session, guest);
             }
         }
         return true;
@@ -187,14 +193,16 @@ public class CartService {
         int available = purchasable ? variant.getStock() : 0;
         int capped = Math.min(quantity, available);
         synchronized (session) {
-            Map<String, CartItem> guest = getGuestCart(session);
+            Map<String, GuestCartLine> guest = getGuestCart(session);
             String key = lineKey(productId, selectedSize);
             if (!guest.containsKey(key)) return CartUpdateResult.notFound(quantity);
             if (capped <= 0) {
                 guest.remove(key);
+                saveGuestCart(session, guest);
                 return new CartUpdateResult(quantity, 0, true, true, quantity > 0);
             }
-            guest.put(key, new CartItem(product, capped, variant.getSize(), available));
+            guest.put(key, new GuestCartLine(productId, product.getName(), variant.getSize(), capped));
+            saveGuestCart(session, guest);
         }
         return new CartUpdateResult(quantity, capped, true, false, capped < quantity);
     }
@@ -218,7 +226,10 @@ public class CartService {
             return true;
         }
         synchronized (session) {
-            return getGuestCart(session).remove(lineKey(productId, normalizedSize)) != null;
+            Map<String, GuestCartLine> guest = getGuestCart(session);
+            boolean removed = guest.remove(lineKey(productId, normalizedSize)) != null;
+            if (removed) saveGuestCart(session, guest);
+            return removed;
         }
     }
 
@@ -228,7 +239,7 @@ public class CartService {
             savedCartRepo.deleteByUser(getActiveUserForUpdate(auth));
         } else {
             synchronized (session) {
-                getGuestCart(session).clear();
+                session.removeAttribute(GUEST_CART_KEY);
             }
         }
     }
@@ -279,37 +290,36 @@ public class CartService {
 
     private List<CartItem> synchronizeGuestCart(HttpSession session) {
         synchronized (session) {
-            Map<String, CartItem> guest = getGuestCart(session);
+            Map<String, GuestCartLine> guest = getGuestCart(session);
             List<CartItem> result = new ArrayList<>();
             Map<String, Integer> remainingStock = new HashMap<>();
-            Map<String, CartItem> refreshedCart = new LinkedHashMap<>();
+            Map<String, GuestCartLine> refreshedCart = new LinkedHashMap<>();
 
-            List<CartItem> sorted = guest.values().stream()
-                    .filter(item -> item != null && item.getProduct() != null
-                            && item.getProduct().getId() != null)
-                    .sorted(Comparator.comparing((CartItem item) -> item.getProduct().getId())
-                            .thenComparing(CartItem::getSelectedSize,
+            List<GuestCartLine> sorted = guest.values().stream()
+                    .filter(line -> line != null && line.productId() != null && line.quantity() > 0)
+                    .sorted(Comparator.comparing(GuestCartLine::productId)
+                            .thenComparing(GuestCartLine::selectedSize,
                                     Comparator.nullsFirst(String::compareToIgnoreCase)))
                     .toList();
-            for (CartItem oldItem : sorted) {
-                Product product = productRepository.findById(oldItem.getProduct().getId()).orElse(null);
+            for (GuestCartLine oldLine : sorted) {
+                Product product = productRepository.findById(oldLine.productId()).orElse(null);
                 if (product == null || !product.isActive()) continue;
-                String selectedSize = normalizeStoredSize(product, oldItem.getSelectedSize());
+                String selectedSize = normalizeStoredSize(product, oldLine.selectedSize());
                 if (selectedSize == null) continue;
                 ProductVariant variant = variantRepository.findByProductIdAndSize(product.getId(), selectedSize)
                         .orElse(null);
                 if (variant == null || !variant.isEnabled() || variant.getStock() <= 0) continue;
                 String inventoryKey = lineKey(product.getId(), variant.getSize());
                 int remaining = remainingStock.computeIfAbsent(inventoryKey, ignored -> variant.getStock());
-                int quantity = Math.min(Math.max(oldItem.getQuantity(), 0), remaining);
+                int quantity = Math.min(Math.max(oldLine.quantity(), 0), remaining);
                 if (quantity <= 0) continue;
                 remainingStock.put(inventoryKey, remaining - quantity);
                 CartItem refreshed = new CartItem(product, quantity, variant.getSize(), variant.getStock());
-                refreshedCart.put(inventoryKey, refreshed);
+                refreshedCart.put(inventoryKey,
+                        new GuestCartLine(product.getId(), product.getName(), variant.getSize(), quantity));
                 result.add(refreshed);
             }
-            guest.clear();
-            guest.putAll(refreshedCart);
+            saveGuestCart(session, refreshedCart);
             return result;
         }
     }
@@ -347,27 +357,26 @@ public class CartService {
             throw new IllegalStateException("Guest cart merge requires an active transaction");
         }
 
-        Map<String, CartItem> detachedGuestCart;
+        Map<String, GuestCartLine> detachedGuestCart;
         List<GuestCartLineSnapshot> guestItems;
         synchronized (session) {
-            Map<String, CartItem> guest = getGuestCart(session);
+            Map<String, GuestCartLine> guest = getGuestCart(session);
             if (guest.isEmpty()) return new CartMergeResult(List.of());
 
             // Atomically detach the cart being merged. Requests arriving after this
             // point write to a new map and therefore cannot be removed by this merge.
             detachedGuestCart = new LinkedHashMap<>(guest);
-            session.setAttribute(GUEST_CART_KEY, new LinkedHashMap<String, CartItem>());
+            saveGuestCart(session, new LinkedHashMap<>());
             guestItems = detachedGuestCart.entrySet().stream()
                     .filter(entry -> entry.getValue() != null
-                            && entry.getValue().getProduct() != null
-                            && entry.getValue().getProduct().getId() != null
-                            && entry.getValue().getQuantity() > 0)
+                            && entry.getValue().productId() != null
+                            && entry.getValue().quantity() > 0)
                     .map(entry -> new GuestCartLineSnapshot(
                             entry.getKey(),
-                            entry.getValue().getProduct().getId(),
-                            entry.getValue().getProduct().getName(),
-                            entry.getValue().getSelectedSize(),
-                            entry.getValue().getQuantity()))
+                            entry.getValue().productId(),
+                            entry.getValue().productName(),
+                            entry.getValue().selectedSize(),
+                            entry.getValue().quantity()))
                     .sorted(Comparator.comparing(GuestCartLineSnapshot::productId)
                             .thenComparing(GuestCartLineSnapshot::selectedSize,
                                     Comparator.nullsFirst(String::compareToIgnoreCase)))
@@ -449,31 +458,37 @@ public class CartService {
     }
 
     private void restoreDetachedGuestCartOnRollback(HttpSession session,
-                                                     Map<String, CartItem> detachedGuestCart) {
+                                                     Map<String, GuestCartLine> detachedGuestCart) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCompletion(int status) {
                 if (status == TransactionSynchronization.STATUS_COMMITTED) return;
                 try {
                     synchronized (session) {
-                        Map<String, CartItem> current = getGuestCart(session);
-                        detachedGuestCart.forEach((key, detachedItem) -> {
-                            CartItem existing = current.get(key);
-                            long restoredQuantity = detachedItem.getQuantity()
-                                    + (existing == null ? 0L : existing.getQuantity());
-                            current.put(key, new CartItem(
-                                    detachedItem.getProduct(),
-                                    (int) Math.min(restoredQuantity, Integer.MAX_VALUE),
-                                    detachedItem.getSelectedSize(),
-                                    Math.max(detachedItem.getAvailableStock(),
-                                            existing == null ? 0 : existing.getAvailableStock())));
+                        Map<String, GuestCartLine> current = getGuestCart(session);
+                        detachedGuestCart.forEach((key, detachedLine) -> {
+                            GuestCartLine existing = current.get(key);
+                            long restoredQuantity = detachedLine.quantity()
+                                    + (existing == null ? 0L : existing.quantity());
+                            current.put(key, new GuestCartLine(
+                                    detachedLine.productId(),
+                                    detachedLine.productName(),
+                                    detachedLine.selectedSize(),
+                                    (int) Math.min(restoredQuantity, Integer.MAX_VALUE)));
                         });
+                        saveGuestCart(session, current);
                     }
                 } catch (IllegalStateException ignored) {
                     // The HTTP session may already have expired while the transaction rolled back.
                 }
             }
         });
+    }
+
+    private record GuestCartLine(Long productId, String productName,
+                                 String selectedSize, int quantity) implements Serializable {
+        @Serial
+        private static final long serialVersionUID = 1L;
     }
 
     private record GuestCartLineSnapshot(String key, Long productId, String productName,

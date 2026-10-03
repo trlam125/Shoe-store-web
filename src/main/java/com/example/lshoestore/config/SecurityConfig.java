@@ -39,7 +39,7 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/")
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
-                        .deleteCookies("JSESSIONID")
+                        .deleteCookies("SESSION", "JSESSIONID")
                         .permitAll())
                 .sessionManagement(session -> session
                         .sessionFixation(fixation -> fixation.migrateSession()))
