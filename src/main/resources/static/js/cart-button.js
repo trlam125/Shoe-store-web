@@ -2,7 +2,7 @@
  * ANIMATED CART BUTTON (plan.md implementation)
  * Mini logistics sequence: Package enters -> Scanner scans -> Box closes lid -> Cart enters -> Package drops -> +1 -> Success
  */
-(function() {
+(function () {
     'use strict';
 
     const CART_STATES = {
@@ -85,7 +85,7 @@
             if (!el) return Promise.resolve();
             const anim = el.animate(keyframes, options);
             this.activeAnimations.push(anim);
-            return anim.finished.catch(() => {});
+            return anim.finished.catch(() => { });
         }
 
         sleep(ms) {
@@ -172,11 +172,26 @@
                 this.sceneEl.style.opacity = "1";
                 this.button.classList.add('is-running-conveyor');
 
+                // Calculate dynamic positions based on button and element dimensions
+                const btnWidth = this.button.clientWidth || 290;
+                const scannerCenter = this.scannerEl
+                    ? (this.scannerEl.offsetLeft + this.scannerEl.offsetWidth / 2)
+                    : btnWidth * 0.48;
+                const pkgWidth = this.packageEl ? this.packageEl.offsetWidth : 32;
+                const scanX = Math.round(scannerCenter - (pkgWidth / 2));
+
+                const cartLeft = this.cartEl ? this.cartEl.offsetLeft : (btnWidth - 52);
+                const toCartX = Math.round(cartLeft - (pkgWidth * 0.72));
+                const dropX1 = Math.round(toCartX + (pkgWidth * 0.28));
+                const dropX2 = Math.round(toCartX + (pkgWidth * 0.33));
+                const dropY1 = Math.round(this.button.clientHeight * 0.20);
+                const dropY2 = Math.round(this.button.clientHeight * 0.26);
+
                 // Phase 2: Package enters from left to center
                 this.state = CART_STATES.PACKAGE_ENTERING;
                 await this.animateEl(this.packageEl, [
-                    { transform: "translateX(-80px) scale(0.9)", opacity: 0 },
-                    { transform: "translateX(144px) scale(1)", opacity: 1 }
+                    { transform: "translateX(-60px) scale(0.9)", opacity: 0 },
+                    { transform: `translateX(${scanX}px) scale(1)`, opacity: 1 }
                 ], { duration: CART_TIMING.packageEnter, easing: "cubic-bezier(.22,.8,.3,1)", fill: "forwards" });
 
                 // Phase 3: Scanner activates and scans the package
@@ -192,9 +207,9 @@
 
                 const scanLaserAnim = this.scannerLaser ? this.animateEl(this.scannerLaser, [
                     { top: "0px", opacity: 0 },
-                    { top: "10px", opacity: 1 },
-                    { top: "42px", opacity: 1 },
-                    { top: "50px", opacity: 0 }
+                    { top: "6px", opacity: 1 },
+                    { top: "28px", opacity: 1 },
+                    { top: "34px", opacity: 0 }
                 ], { duration: CART_TIMING.scan, easing: "ease-in-out" }) : Promise.resolve();
 
                 // Wait for scan animation and API response
@@ -231,23 +246,23 @@
                 // Phase 4: Cart enters from right
                 this.state = CART_STATES.CART_ENTERING;
                 await this.animateEl(this.cartEl, [
-                    { opacity: 0, transform: "translateX(36px) scale(0.85)" },
+                    { opacity: 0, transform: "translateX(30px) scale(0.85)" },
                     { opacity: 1, transform: "translateX(0px) scale(1)" }
                 ], { duration: CART_TIMING.cartEnter, easing: "ease-out", fill: "forwards" });
 
                 // Phase 5: Package advances from scanner position to cart entrance
                 this.state = CART_STATES.MOVING_TO_CART;
                 await this.animateEl(this.packageEl, [
-                    { transform: "translateX(144px) translateY(0) scale(1)" },
-                    { transform: "translateX(242px) translateY(0) scale(1)" }
+                    { transform: `translateX(${scanX}px) translateY(0) scale(1)` },
+                    { transform: `translateX(${toCartX}px) translateY(0) scale(1)` }
                 ], { duration: CART_TIMING.packageTravel, easing: "cubic-bezier(.22,.8,.3,1)", fill: "forwards" });
 
                 // Phase 6: Package drops into cart basket + Cart Bounce + Badge +1
                 this.state = CART_STATES.CART_RECEIVING;
                 const dropAnim = this.animateEl(this.packageEl, [
-                    { transform: "translateX(242px) translateY(0) rotate(0deg) scale(1)", opacity: 1 },
-                    { transform: "translateX(254px) translateY(12px) rotate(14deg) scale(0.62)", opacity: 0.85 },
-                    { transform: "translateX(256px) translateY(15px) rotate(10deg) scale(0.55)", opacity: 0 }
+                    { transform: `translateX(${toCartX}px) translateY(0) rotate(0deg) scale(1)`, opacity: 1 },
+                    { transform: `translateX(${dropX1}px) translateY(${dropY1}px) rotate(14deg) scale(0.62)`, opacity: 0.85 },
+                    { transform: `translateX(${dropX2}px) translateY(${dropY2}px) rotate(10deg) scale(0.55)`, opacity: 0 }
                 ], { duration: CART_TIMING.packageDrop, easing: "cubic-bezier(.4,0,.8,.4)", fill: "forwards" });
 
                 await this.sleep(120);
@@ -347,7 +362,7 @@
             this.button.classList.remove('is-success');
 
             this.activeAnimations.forEach(a => {
-                try { a.cancel(); } catch(e) {}
+                try { a.cancel(); } catch (e) { }
             });
             this.activeAnimations = [];
 
@@ -359,11 +374,11 @@
             this.errorEl.style.transform = "translateY(4px)";
 
             if (this.packageEl) {
-                this.packageEl.style.transform = "translateX(-80px) scale(0.9)";
+                this.packageEl.style.transform = "translateX(-60px) scale(0.9)";
                 this.packageEl.style.opacity = "0";
             }
             if (this.cartEl) {
-                this.cartEl.style.transform = "translateX(36px) scale(0.85)";
+                this.cartEl.style.transform = "translateX(30px) scale(0.85)";
                 this.cartEl.style.opacity = "0";
             }
             if (this.cartBadge) {
