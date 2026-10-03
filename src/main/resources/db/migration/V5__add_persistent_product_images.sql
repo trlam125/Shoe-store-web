@@ -1,4 +1,4 @@
--- Vercel/container instances use ephemeral filesystems. Store administrator-uploaded
+-- Container deployments can use disposable filesystems. Store administrator-uploaded
 -- product images in PostgreSQL when PRODUCT_IMAGE_STORAGE=database so uploads survive
 -- cold starts, scaling, and redeployments. Local development may keep filesystem mode.
 CREATE TABLE IF NOT EXISTS product_image_asset (

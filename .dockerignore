@@ -30,9 +30,6 @@ cloudflared-windows-amd64.exe
 .cloudflare
 .ngrok
 
-# The Spring service does not need the Python service in its Docker build context.
-ai-service
-
 *.zip
 *.tar
 *.tar.gz

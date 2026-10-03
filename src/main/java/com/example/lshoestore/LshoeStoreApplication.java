@@ -10,15 +10,15 @@ public class LshoeStoreApplication {
 
     public static void main(String[] args) {
         configureManagedPostgres();
-        configureVercelPublicUrl();
+        configureNorthflankPublicUrl();
         SpringApplication.run(LshoeStoreApplication.class, args);
     }
 
     /**
-     * Local IntelliJ development keeps using the existing JDBC URL plus
-     * DB_USERNAME/DB_PASSWORD from .env. Cloud PostgreSQL providers usually expose
-     * a single postgresql://user:password@host/database URL instead. Convert that
-     * URL to Spring JDBC properties before Spring creates the DataSource.
+     * Local development can keep using a JDBC URL plus DB_USERNAME/DB_PASSWORD.
+     * Managed PostgreSQL providers, including Northflank, commonly expose a single
+     * postgresql://user:password@host/database URL. Convert that URL to Spring JDBC
+     * properties before Spring creates the DataSource.
      */
     private static void configureManagedPostgres() {
         String raw = System.getenv("DATABASE_URL");
@@ -69,24 +69,52 @@ public class LshoeStoreApplication {
     }
 
     /**
-     * Keep localhost behavior unchanged. On Vercel, derive the public site URL for
-     * verification/reset links when APP_PUBLIC_BASE_URL was not supplied manually.
+     * Northflank injects NF_HOSTS/NF_HOSTS_CUSTOM for public ports. Use that
+     * platform-controlled hostname for verification/reset links when the operator
+     * has not explicitly provided APP_PUBLIC_BASE_URL.
      */
-    private static void configureVercelPublicUrl() {
+    private static void configureNorthflankPublicUrl() {
         String configured = System.getenv("APP_PUBLIC_BASE_URL");
         if (configured != null && !configured.isBlank()) {
             return;
         }
 
-        String host = System.getenv("VERCEL_PROJECT_PRODUCTION_URL");
-        if (host == null || host.isBlank()) {
-            host = System.getenv("VERCEL_URL");
+        String hosts = firstNonBlank(
+                System.getenv("NF_HOSTS_CUSTOM"),
+                System.getenv("NF_HOSTS")
+        );
+        if (hosts == null) {
+            return;
         }
-        if (host != null && !host.isBlank()) {
-            String url = host.startsWith("http://") || host.startsWith("https://")
-                    ? host
-                    : "https://" + host;
-            System.setProperty("app.public-base-url", url);
+
+        for (String candidate : hosts.split(",")) {
+            String value = candidate.trim();
+            if (value.isBlank()) {
+                continue;
+            }
+            String url = value.startsWith("http://") || value.startsWith("https://")
+                    ? value
+                    : "https://" + value;
+            try {
+                URI uri = URI.create(url);
+                if (uri.getHost() != null && uri.getUserInfo() == null
+                        && uri.getQuery() == null && uri.getFragment() == null) {
+                    System.setProperty("app.public-base-url", url.replaceAll("/+$", ""));
+                    System.out.println("[startup] Northflank public URL configured from NF_HOSTS.");
+                    return;
+                }
+            } catch (IllegalArgumentException ignored) {
+                // Try the next Northflank hostname if one entry is malformed.
+            }
         }
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 }

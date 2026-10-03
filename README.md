@@ -1,205 +1,245 @@
 # LSHOE Store
 
-LSHOE Store là website bán giày sử dụng Spring Boot, Thymeleaf, PostgreSQL và một dịch vụ FastAPI cho các chức năng AI/ML.
+Spring Boot + Thymeleaf storefront with an internal FastAPI/PyTorch AI service.
 
-Project được cấu hình để chạy theo hai chế độ mà không cần đổi source code:
+The repository supports three run modes without maintaining separate code branches:
 
-- **Local/IntelliJ:** bấm Run `LshoeStoreApplication`; Spring Boot tự chuẩn bị `.venv` và khởi động FastAPI ở `127.0.0.1:8001`.
-- **Vercel:** `Dockerfile.vercel` đóng gói Spring Boot + FastAPI vào cùng một container. Spring là HTTP server public, FastAPI chỉ chạy nội bộ trên loopback.
+1. **Local IntelliJ**: Spring Boot runs on `8081` and automatically starts FastAPI on `127.0.0.1:8001`.
+2. **Local + ngrok**: ngrok exposes only Spring Boot; AI remains local/private.
+3. **Northflank**: one Combined Service/container runs both Spring Boot and FastAPI. Only Spring Boot port `8081` is public.
 
-## Công nghệ
+## Architecture
 
-- Java 21, Spring Boot 3.5
-- Spring Security, Spring Data JPA, Thymeleaf
-- PostgreSQL 16, Flyway
-- Python 3.10-3.13 cho local; container Vercel dùng Python do image cung cấp
-- FastAPI, pandas, scikit-learn, PyTorch/torchvision
-- HTML, CSS, JavaScript
+### Northflank
 
-## Chạy local bằng IntelliJ
+```text
+Internet
+   |
+   v
+Spring Boot :8081  (PUBLIC)
+   |
+   +---- http://127.0.0.1:8001 ----> FastAPI AI (LOOPBACK ONLY)
+   |
+   +----> PostgreSQL addon
+```
 
-### 1. Khởi động PostgreSQL
+FastAPI is deliberately bound to `127.0.0.1`. Browser requests never call port `8001` directly. The frontend calls Spring endpoints such as `/ai/image-search/analyze`, and Spring forwards the work internally to FastAPI.
 
-Nếu dùng Docker Desktop:
+### Local / ngrok
 
-```powershell
+```text
+Browser / ngrok
+      |
+      v
+Spring Boot :8081
+      |
+      +----> FastAPI :8001
+      |
+      +----> local PostgreSQL
+```
+
+## Local development
+
+### 1. PostgreSQL
+
+Start the included local database:
+
+```bash
 docker compose up -d postgres
 ```
 
-Database local mặc định:
+Default local connection:
 
 ```text
-jdbc:postgresql://localhost:5432/lshoe_store
-username: postgres
-password: postgres
+Database : lshoe_store
+User     : postgres
+Password : postgres
+Port     : 5432
 ```
 
-### 2. Tạo `.env`
+### 2. Local environment
 
-```powershell
-Copy-Item .env.example .env
+Copy `.env.example` to `.env`. Only values that are normally edited locally are kept there:
+
+```env
+DATABASE_URL=jdbc:postgresql://127.0.0.1:5432/lshoe_store
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+NVIDIA_API_KEY=
+MAIL_HOST=smtp.gmail.com
+MAIL_USERNAME=
+MAIL_PASSWORD=
 ```
 
-Điền các thông tin thực tế như database, email và API key vào `.env`. Không commit `.env` lên Git.
+Spring already defaults to the `dev` profile on local runs, port `8081`, FastAPI at `127.0.0.1:8001`, AI auto-start, and ngrok auto-start. Those defaults therefore do not need to be repeated in `.env`.
 
-### 3. Python local
+When the application is started from IntelliJ, Spring will prepare the root `.venv` if needed and start `ai-service` automatically.
 
-Project chấp nhận Python 3.10, 3.11, 3.12 hoặc 3.13. Không bắt buộc cài riêng Python 3.11 nếu máy đã có một phiên bản hỗ trợ.
+### 3. Run from IntelliJ
 
-Khi `.venv` chưa tồn tại, lần đầu Spring Boot chạy sẽ gọi `setup-venv.bat` trên Windows, cài dependency trong `requirements.txt`, sau đó khởi động FastAPI. Các lần chạy sau tiếp tục dùng `.venv` đó.
-
-Có thể chuẩn bị trước bằng:
-
-```powershell
-.\setup-venv.bat
-```
-
-### 4. Run trong IntelliJ
-
-Mở:
+Run:
 
 ```text
 src/main/java/com/example/lshoestore/LshoeStoreApplication.java
 ```
 
-sau đó bấm nút **Run** của IntelliJ.
-
-Mặc định:
+Website:
 
 ```text
-Website: http://localhost:8081
-FastAPI: http://127.0.0.1:8001
+http://localhost:8081
 ```
 
-Profile mặc định là `dev`. Ở local, ảnh sản phẩm do admin upload vẫn được lưu vào `uploads/products` để thao tác nhanh như trước.
-
-## Deploy nguyên repo lên Vercel
-
-Project dùng **một Vercel container**, không cần tách Spring Boot và FastAPI thành hai repository/project.
+AI health endpoints are local only:
 
 ```text
-Browser
-   |
-   v
-Spring Boot : $PORT        <- public
-   |
-   +---- http://127.0.0.1:8001 ----> FastAPI/PyTorch
-   |
-   +----> PostgreSQL cloud
+http://127.0.0.1:8001/live
+http://127.0.0.1:8001/ready
 ```
 
-`Dockerfile.vercel` được Vercel tự nhận diện. Container production:
+## Local + ngrok
 
-- build Spring Boot bằng Java 21;
-- cài Python và dependency AI;
-- dùng PyTorch CPU-only để giảm kích thước image;
-- tải sẵn ResNet18 weights trong lúc build;
-- chạy Spring Boot trên `$PORT`;
-- chạy FastAPI nội bộ ở `127.0.0.1:8001`;
-- tắt cơ chế Spring tự tạo `.venv` ở production.
+The existing ngrok workflow is preserved.
 
-### 1. Database cloud
+Configure your ngrok token once:
 
-Vercel container là stateless nên PostgreSQL không chạy từ `docker-compose.yml` trên production. Dùng một PostgreSQL managed như Neon/Supabase/Railway hoặc dịch vụ PostgreSQL khác.
-
-Project chấp nhận hai dạng `DATABASE_URL` khi chạy bằng `Dockerfile.vercel`:
-
-```text
-postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require
+```bash
+ngrok config add-authtoken YOUR_TOKEN
 ```
 
-hoặc:
+Then either keep:
 
-```text
-jdbc:postgresql://HOST/DATABASE?sslmode=require
+```env
+NGROK_TUNNEL_AUTOSTART=true
 ```
 
-Nếu URL dạng `postgresql://` có username/password bên trong, `vercel-entrypoint.sh` sẽ tự chuyển sang JDBC cho Spring và chia sẻ credentials với FastAPI.
+and run the Spring application from IntelliJ, or use `run-ngrok.bat` as before.
 
-Nếu dùng JDBC URL không chứa credentials, cấu hình thêm:
+ngrok exposes only Spring Boot `8081`. External users can still use every AI-backed feature because Spring calls FastAPI internally on `127.0.0.1:8001`.
+
+## Deploy to Northflank as ONE service
+
+The old two-service/Vercel deployment layout is not used. Deploy the repository root as one Northflank Combined Service.
+
+### 1. Push the repository to GitHub
+
+The root must contain:
 
 ```text
-DB_USERNAME=...
-DB_PASSWORD=...
+Dockerfile
+docker-entrypoint.sh
+pom.xml
+src/
+ai-service/
 ```
 
-### 2. Environment Variables tối thiểu trên Vercel
+Do not commit `.env`.
+
+### 2. Create a Northflank project
+
+Create one project, for example:
 
 ```text
-DATABASE_URL=postgresql://...
-NVIDIA_API_KEY=...
+lshoe-store
 ```
 
-Nếu chatbot không sử dụng NVIDIA thì `NVIDIA_API_KEY` có thể để trống, nhưng chức năng chatbot tương ứng sẽ không hoạt động.
+### 3. Create PostgreSQL
 
-Các biến email nếu dùng đăng ký/xác minh/reset mật khẩu:
+Inside the same Northflank project, create one PostgreSQL addon.
+
+Keep the database private. Create/inherit a secret that exposes the addon's PostgreSQL URI to the service as:
 
 ```text
+DATABASE_URL
+```
+
+The application accepts a normal managed PostgreSQL URI such as:
+
+```text
+postgresql://user:password@host:5432/database
+```
+
+Spring converts it to JDBC internally; FastAPI uses the same value directly.
+
+### 4. Create ONE Combined Service
+
+Create a service from the GitHub repository with:
+
+```text
+Build type     : Dockerfile
+Build context  : repository root
+Dockerfile     : /Dockerfile
+```
+
+You do **not** create a separate `lshoe-ai` service.
+
+### 5. Networking
+
+Create one public HTTP port:
+
+```text
+Port       : 8081
+Protocol   : HTTP
+Visibility : Public
+```
+
+Do not expose port `8001`. FastAPI binds to loopback inside the container and is intentionally inaccessible from the public network.
+
+Recommended Spring health check:
+
+```text
+GET /health
+```
+
+### 6. Runtime variables
+
+The Docker image already includes the production process settings. The only infrastructure variable normally required is:
+
+```env
+DATABASE_URL=<Northflank PostgreSQL URI>
+```
+
+Optional application secrets/settings:
+
+```env
+NVIDIA_API_KEY=
 MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=...
-MAIL_PASSWORD=...
-MAIL_SMTP_AUTH=true
-MAIL_STARTTLS=true
+MAIL_USERNAME=
+MAIL_PASSWORD=
+BOOTSTRAP_ADMIN_EMAIL=
+BOOTSTRAP_ADMIN_PASSWORD=
 ```
 
-Các biến tùy chọn:
+You normally do not need to set AI process variables on Northflank. The Docker image already keeps FastAPI on `127.0.0.1:8001` and Spring communicates with it internally.
+
+### 7. Public URL
+
+Northflank injects its public hostname using `NF_HOSTS`/`NF_HOSTS_CUSTOM`. Spring automatically uses that hostname for verification and password-reset links when `APP_PUBLIC_BASE_URL` is blank.
+
+For a custom domain, you can explicitly set:
+
+```env
+APP_PUBLIC_BASE_URL=https://your-domain.example
+```
+
+## Container behavior
+
+`docker-entrypoint.sh` starts:
 
 ```text
-BOOTSTRAP_ADMIN_EMAIL=...
-BOOTSTRAP_ADMIN_PASSWORD=...
-SEED_DEMO_DATA=false
-AI_INTERNAL_API_KEY=...
+FastAPI  -> 127.0.0.1:8001
+Spring   -> 0.0.0.0:8081
 ```
 
-`SPRING_PROFILES_ACTIVE=prod`, `AI_SERVICE_AUTOSTART=false` và `PRODUCT_IMAGE_STORAGE=database` đã có mặc định trong container, nên không bắt buộc nhập lại trên Vercel.
+Both processes belong to the same container lifecycle. If either Spring or FastAPI exits, the entrypoint terminates the other process so Northflank can restart the service cleanly.
 
-Nếu Vercel System Environment Variables được bật, app tự dùng `VERCEL_PROJECT_PRODUCTION_URL` làm public base URL cho link xác minh/reset. Có thể ghi đè bằng:
+## Important resource note
 
-```text
-APP_PUBLIC_BASE_URL=https://domain-cua-ban.com
-```
+Spring Boot and PyTorch now share the RAM of one container. The image uses CPU-only PyTorch and limits JVM heap proportionally, but image-search workloads are still the heaviest part of the application. If Northflank reports `OOMKilled`/exit code `137`, the issue is container memory pressure; increase memory or reduce the AI workload/model footprint.
 
-### 3. Upload ảnh trên Vercel
+## Security notes
 
-Local vẫn dùng filesystem. Production mặc định dùng PostgreSQL thông qua bảng `product_image_asset`, được tạo bởi Flyway migration `V5__add_persistent_product_images.sql`.
-
-Nhờ vậy ảnh admin upload không bị mất khi Vercel scale-to-zero hoặc redeploy container.
-
-Do giới hạn request body của Vercel, profile production mặc định giới hạn upload khoảng 4 MB. Local vẫn giữ giới hạn cao hơn theo `.env`.
-
-### 4. Deploy
-
-Push repository lên GitHub rồi Import repository đó vào Vercel. Giữ Root Directory là thư mục gốc repository. Vercel sẽ phát hiện `Dockerfile.vercel`.
-
-Sau khi thêm Environment Variables, deploy lại project. Flyway sẽ tự chạy migration khi Spring Boot khởi động.
-
-## Các file deployment quan trọng
-
-```text
-Dockerfile.vercel
-vercel-entrypoint.sh
-.dockerignore
-src/main/resources/application-prod.properties
-src/main/resources/db/migration/V5__add_persistent_product_images.sql
-```
-
-Các file local vẫn được giữ nguyên:
-
-```text
-docker-compose.yml
-setup-venv.bat
-setup-venv.sh
-ai-service/run.bat
-ai-service/run.sh
-.env
-```
-
-Vì vậy deploy Vercel không làm mất workflow bấm Run trực tiếp từ IntelliJ.
-
-## Lưu ý bảo mật
-
-- Không commit `.env`, mật khẩu, API key hoặc mail app password.
-- Production nên dùng password database mạnh và SSL.
-- `AI_INTERNAL_API_KEY` không bắt buộc với mô hình một container vì Spring gọi FastAPI qua loopback; có thể đặt thêm một secret nếu muốn defense-in-depth.
-- Sao lưu database trước khi triển khai lên database đang có dữ liệu thật.
+- Only port `8081` should be public.
+- Never publish port `8001`.
+- Do not commit `.env`, mail passwords, database credentials, or API keys.
+- Product uploads use PostgreSQL storage in production because container filesystems are disposable.
+- Registration uses the built-in server-side CAPTCHA and rate limiting.

@@ -59,6 +59,7 @@ public class RequestRateLimiter {
 
     private final JdbcTemplate jdbcTemplate;
     private final boolean trustProxyHeaders;
+    private final boolean northflankRuntime;
     private final List<CidrBlock> trustedProxies;
     private final AtomicLong maintenanceCounter = new AtomicLong();
     private final Map<String, Window> fallbackWindows = new ConcurrentHashMap<>();
@@ -69,6 +70,7 @@ public class RequestRateLimiter {
                               String trustedProxyCidrs) {
         this.jdbcTemplate = jdbcTemplate;
         this.trustProxyHeaders = trustProxyHeaders;
+        this.northflankRuntime = System.getenv("NF_PROJECT_ID") != null;
         this.trustedProxies = parseCidrs(trustedProxyCidrs);
     }
 
@@ -154,6 +156,17 @@ public class RequestRateLimiter {
     private String resolveClientIp(HttpServletRequest request) {
         String remoteAddress = validIp(request.getRemoteAddr());
         if (remoteAddress == null) remoteAddress = "unknown";
+
+        // Northflank injects X-Forwarded-For at its public load balancer. Use the
+        // right-most valid address so a client-supplied value on the left cannot
+        // override the address appended by the platform proxy.
+        if (northflankRuntime) {
+            List<String> northflankChain = parseForwardedFor(request.getHeader("X-Forwarded-For"));
+            if (!northflankChain.isEmpty()) {
+                return northflankChain.get(northflankChain.size() - 1);
+            }
+        }
+
         if (!trustProxyHeaders || !isTrustedProxy(remoteAddress)) return remoteAddress;
 
         List<String> forwardedChain = parseForwardedFor(request.getHeader("X-Forwarded-For"));
