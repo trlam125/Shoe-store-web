@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Đăng nhập &amp; Đăng ký - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=9}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=10}">
 </head>
 
 <body class="auth-demo-page">
@@ -70,12 +70,20 @@
                     </div>
 
                     <div class="slider-field slider-captcha-row">
-                        <label>Xác minh robot: <span class="captcha-math" th:text="${captchaQuestion}">2 + 3 =
-                                ?</span></label>
-                        <div class="slider-captcha-input-wrap">
-                            <input name="captchaAnswer" type="number" required autocomplete="off" inputmode="numeric"
-                                placeholder="Nhập số kết quả...">
+                        <label for="captchaAnswer">Mã xác minh</label>
+                        <div class="visual-captcha-wrap">
+                            <img class="visual-captcha-image" data-captcha-image
+                                th:src="@{/captcha/image}" th:attr="data-src=@{/captcha/image}"
+                                src="/captcha/image" width="220" height="72" alt="Ảnh mã xác minh">
+                            <button class="captcha-refresh-btn" type="button" data-captcha-refresh
+                                aria-label="Đổi mã xác minh" title="Đổi mã">
+                                <span aria-hidden="true">↻</span> Đổi mã
+                            </button>
                         </div>
+                        <input id="captchaAnswer" name="captchaAnswer" data-captcha-input type="text" required
+                            minlength="6" maxlength="6" autocomplete="off" autocapitalize="characters"
+                            spellcheck="false" placeholder="Nhập 6 ký tự trong ảnh">
+                        <span class="captcha-hint">Không phân biệt chữ hoa/thường · mã có hiệu lực 2 phút</span>
                         <p class="field-error" th:if="${captchaError}" th:text="${captchaError}"></p>
                     </div>
 
@@ -279,6 +287,7 @@
             updateUIState(isInitialRegister);
         })();
     </script>
+    <script th:src="@{/js/captcha.js?v=1}"></script>
 </body>
 
 </html>
