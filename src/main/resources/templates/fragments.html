@@ -95,7 +95,6 @@
             <div class="navlinks">
                 <a th:href="@{/}">Giới thiệu</a>
                 <a th:href="@{/products}">Sản phẩm</a>
-                <a th:href="@{/ai/image-search}">Tìm kiếm bằng hình ảnh</a>
                 <a class="cart-nav-link" th:href="@{/cart}" aria-label="Mở giỏ hàng">
                     <svg class="cart-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -210,12 +209,30 @@
                 <p>Không gian giày chính hãng dành cho mọi phong cách, từ thiết kế kinh điển đến xu hướng mới.</p>
             </div>
             <div><strong>Khám phá</strong><a th:href="@{/}">Giới thiệu</a><a th:href="@{/products}">Sản phẩm</a><a
-                    th:href="@{/ai/image-search}">Tìm kiếm bằng hình ảnh</a><a th:href="@{/cart}">Giỏ hàng</a><a
-                    th:href="@{/orders}">Đơn hàng</a></div>
+                    th:href="@{/cart}">Giỏ hàng</a><a th:href="@{/orders}">Đơn hàng</a></div>
             <div><strong>Hỗ trợ</strong><span>Đổi trả trong 30 ngày</span><span>Thanh toán khi nhận
                     hàng</span><span>Hotline: 0900 000 000</span></div>
         </div>
         <div class="footer-bottom">© LSHOE · Email: support@lshoe.vn · Hà Nội</div>
+
+        <!-- ========== AI IMAGE SEARCH FLOATING BUTTON ========== -->
+        <a id="image-search-float-btn" class="chat-snake-btn" th:href="@{/ai/image-search}"
+            title="Tìm kiếm giày bằng hình ảnh AI" aria-label="Tìm kiếm giày bằng hình ảnh AI">
+            <div class="chat-snake-outer">
+                <div class="chat-snake-inner">
+                    <span class="chat-snake-content">
+                        <svg class="chat-snake-icon image-search-icon" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                            aria-hidden="true">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                            </path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        <span class="chat-snake-label">Tìm bằng ảnh</span>
+                    </span>
+                </div>
+            </div>
+        </a>
 
         <!-- ========== CHAT BUBBLE (UIverse FColombati/spotty-snake-82) ========== -->
         <button id="chat-bubble-btn" class="chat-snake-btn" onclick="toggleChat()" type="button"
@@ -255,15 +272,13 @@
         <input id="chat-csrf" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 
         <style>
-            /* --- UIverse FColombati/spotty-snake-82: Realistic 3D Tactile Chatbot Button --- */
-            #chat-bubble-btn.chat-snake-btn {
+            /* --- UIverse FColombati/spotty-snake-82: Realistic 3D Tactile Floating Action Buttons --- */
+            .chat-snake-btn {
                 all: unset;
                 cursor: pointer;
                 -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
                 position: fixed;
-                bottom: 24px;
                 right: 24px;
-                z-index: 1000;
                 border-radius: 100em;
                 background-color: rgba(0, 0, 0, 0.75);
                 box-shadow:
@@ -273,10 +288,22 @@
                 font-size: 15px;
                 box-sizing: border-box;
                 user-select: none;
+                text-decoration: none;
+                display: inline-block;
                 transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
             }
 
-            #chat-bubble-btn.chat-snake-btn::after {
+            #chat-bubble-btn {
+                bottom: 24px;
+                z-index: 1000;
+            }
+
+            #image-search-float-btn {
+                bottom: 82px;
+                z-index: 999;
+            }
+
+            .chat-snake-btn::after {
                 content: "";
                 position: absolute;
                 z-index: 0;
@@ -295,7 +322,7 @@
                 pointer-events: none;
             }
 
-            #chat-bubble-btn.chat-snake-btn .chat-snake-outer {
+            .chat-snake-btn .chat-snake-outer {
                 position: relative;
                 z-index: 1;
                 border-radius: inherit;
@@ -307,14 +334,14 @@
                     0.15em 0.3em 0.1em -0.01em rgba(5, 5, 5, 0.25);
             }
 
-            #chat-bubble-btn.chat-snake-btn:hover .chat-snake-outer {
+            .chat-snake-btn:hover .chat-snake-outer {
                 box-shadow:
                     0 0 0 0 rgba(5, 5, 5, 1),
                     0 0 0 0 rgba(5, 5, 5, 0.5),
                     0 0 0 0 rgba(5, 5, 5, 0.25);
             }
 
-            #chat-bubble-btn.chat-snake-btn .chat-snake-inner {
+            .chat-snake-btn .chat-snake-inner {
                 --inset: 0.035em;
                 position: relative;
                 z-index: 1;
@@ -341,7 +368,7 @@
                     -0.075em -0.25em 0.25em 0.1em inset rgba(5, 5, 5, 0.25);
             }
 
-            #chat-bubble-btn.chat-snake-btn:hover .chat-snake-inner {
+            .chat-snake-btn:hover .chat-snake-inner {
                 clip-path: inset(clamp(1px, 0.0625em, 2px) clamp(1px, 0.0625em, 2px) clamp(1px, 0.0625em, 2px) clamp(1px, 0.0625em, 2px) round 100em);
                 box-shadow:
                     0.1em 0.15em 0.05em 0 inset rgba(5, 5, 5, 0.75),
@@ -353,11 +380,11 @@
                     -0.075em -0.12em 0.2em 0.1em inset rgba(5, 5, 5, 0.25);
             }
 
-            #chat-bubble-btn.chat-snake-btn:active .chat-snake-inner {
+            .chat-snake-btn:active .chat-snake-inner {
                 transform: scale(0.975);
             }
 
-            #chat-bubble-btn.chat-snake-btn .chat-snake-content {
+            .chat-snake-btn .chat-snake-content {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
@@ -368,11 +395,11 @@
                 will-change: transform;
             }
 
-            #chat-bubble-btn.chat-snake-btn:hover .chat-snake-content {
+            .chat-snake-btn:hover .chat-snake-content {
                 transform: scale(0.975);
             }
 
-            #chat-bubble-btn.chat-snake-btn .chat-snake-icon {
+            .chat-snake-btn .chat-snake-icon {
                 width: 20px;
                 height: 20px;
                 flex-shrink: 0;
@@ -380,11 +407,19 @@
                 transition: transform 250ms ease;
             }
 
-            #chat-bubble-btn.chat-snake-btn:hover .chat-snake-icon {
+            #chat-bubble-btn:hover .chat-snake-icon {
                 transform: rotate(-8deg) scale(1.06);
             }
 
-            #chat-bubble-btn.chat-snake-btn .chat-snake-label {
+            #image-search-float-btn:hover .chat-snake-icon {
+                transform: rotate(8deg) scale(1.08);
+            }
+
+            #image-search-float-btn .image-search-icon {
+                color: #4f46e5;
+            }
+
+            .chat-snake-btn .chat-snake-label {
                 position: relative;
                 z-index: 4;
                 font-family: inherit;
@@ -402,7 +437,7 @@
             }
 
             /* Dark mode support for spotty-snake-82 */
-            html.dark-theme #chat-bubble-btn.chat-snake-btn {
+            html.dark-theme .chat-snake-btn {
                 background-color: rgba(0, 0, 0, 0.85);
                 box-shadow:
                     -0.15em -0.15em 0.15em -0.075em rgba(0, 0, 0, 0.5),
@@ -410,7 +445,7 @@
                     0 8px 24px rgba(0, 0, 0, 0.4);
             }
 
-            html.dark-theme #chat-bubble-btn.chat-snake-btn .chat-snake-inner {
+            html.dark-theme .chat-snake-btn .chat-snake-inner {
                 background-image: linear-gradient(135deg,
                         #1e293b,
                         #0f172a);
@@ -424,7 +459,7 @@
                     -0.075em -0.25em 0.25em 0.1em inset rgba(0, 0, 0, 0.6);
             }
 
-            html.dark-theme #chat-bubble-btn.chat-snake-btn:hover .chat-snake-inner {
+            html.dark-theme .chat-snake-btn:hover .chat-snake-inner {
                 box-shadow:
                     0.1em 0.15em 0.05em 0 inset rgba(0, 0, 0, 0.9),
                     -0.025em -0.03em 0.05em 0.025em inset rgba(0, 0, 0, 0.7),
@@ -435,11 +470,15 @@
                     -0.075em -0.12em 0.2em 0.1em inset rgba(0, 0, 0, 0.6);
             }
 
-            html.dark-theme #chat-bubble-btn.chat-snake-btn .chat-snake-icon {
+            html.dark-theme #chat-bubble-btn .chat-snake-icon {
                 color: #38bdf8;
             }
 
-            html.dark-theme #chat-bubble-btn.chat-snake-btn .chat-snake-label {
+            html.dark-theme #image-search-float-btn .image-search-icon {
+                color: #a5b4fc;
+            }
+
+            html.dark-theme .chat-snake-btn .chat-snake-label {
                 background-image: linear-gradient(135deg,
                         #f8fafc,
                         #94a3b8);
@@ -469,14 +508,21 @@
             }
 
             @media (max-width: 600px) {
-                #chat-bubble-btn.chat-snake-btn {
-                    bottom: 18px;
+                .chat-snake-btn {
                     right: 18px;
                     font-size: 13.5px;
                 }
 
-                #chat-bubble-btn.chat-snake-btn .chat-snake-inner {
+                .chat-snake-btn .chat-snake-inner {
                     padding: 0.75em 1.15em;
+                }
+
+                #chat-bubble-btn {
+                    bottom: 18px;
+                }
+
+                #image-search-float-btn {
+                    bottom: 68px;
                 }
             }
 
@@ -491,7 +537,7 @@
                 box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
                 display: none;
                 flex-direction: column;
-                z-index: 1000;
+                z-index: 1002;
                 overflow: hidden;
                 font-family: inherit;
             }
