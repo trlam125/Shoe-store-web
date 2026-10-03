@@ -9,6 +9,7 @@ import com.example.lshoestore.repository.ProductRepository;
 import com.example.lshoestore.repository.UserRepository;
 import com.example.lshoestore.service.PasswordPolicy;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
+@ConditionalOnProperty(name = "app.data-seeder.enabled", havingValue = "true", matchIfMissing = true)
 public class DataSeeder {
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
     private static final Map<String, String> DEMO_SHOE_IMAGES_BY_BRAND = Map.of(

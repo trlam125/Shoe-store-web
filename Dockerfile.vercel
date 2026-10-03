@@ -13,10 +13,9 @@ ENV AI_SERVICE_AUTOSTART=false
 ENV AI_SERVICE_SETUP_VENV=false
 ENV PRODUCT_IMAGE_STORAGE=database
 ENV MANAGED_PROXY_RUNTIME=true
-ENV SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=4
-ENV SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
+ENV SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=2
+ENV SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0
 ENV JAVA_TOOL_OPTIONS="-Xms32m -Xmx384m -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=32m -Xss512k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
-ENV PORT=80
 COPY --from=build /build/target/*.jar /app/app.jar
 RUN groupadd -r lshoe && useradd -r -g lshoe -d /app -s /usr/sbin/nologin lshoe \
     && chown -R lshoe:lshoe /app
