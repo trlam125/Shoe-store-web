@@ -13,28 +13,27 @@ COPY src ./src
 RUN mvn -q -DskipTests package
 
 # ----------------------------------------------------------
-# Stage 2: one Northflank runtime for Spring Boot + FastAPI
+# Stage 2: one SnapDeploy container for Spring Boot + FastAPI
 # ----------------------------------------------------------
 FROM eclipse-temurin:21-jre-jammy
 
 ENV DEBIAN_FRONTEND=noninteractive \
     SPRING_PROFILES_ACTIVE=prod \
-    SERVER_PORT=8081 \
     AI_SERVICE_AUTOSTART=false \
     AI_SERVICE_SETUP_VENV=false \
     AI_SERVICE_URL=http://127.0.0.1:8001 \
     AI_HOST=127.0.0.1 \
     AI_PORT=8001 \
     AI_RELOAD=false \
-    AI_STORE_BASE_URL=http://127.0.0.1:8081 \
-    AI_TRUSTED_IMAGE_ORIGINS=http://127.0.0.1:8081 \
     PRODUCT_IMAGE_STORAGE=database \
+    MANAGED_PROXY_RUNTIME=true \
     TORCH_HOME=/opt/torch \
     OMP_NUM_THREADS=1 \
     MKL_NUM_THREADS=1 \
     OPENBLAS_NUM_THREADS=1 \
     NUMEXPR_NUM_THREADS=1 \
-    JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=55.0 -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError" \
+    MALLOC_ARENA_MAX=2 \
+    JAVA_TOOL_OPTIONS="-Xms32m -Xmx160m -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -Xss256k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
@@ -50,8 +49,8 @@ RUN apt-get update \
 
 WORKDIR /app
 
-# Install the AI runtime once during the image build. Keep CPU-only PyTorch to
-# reduce image/runtime requirements on Northflank's non-GPU compute.
+# Install the AI runtime once during the image build. SnapDeploy free builds for
+# ARM64; PyTorch 2.6 CPU publishes matching Linux aarch64 wheels on this index.
 COPY ai-service/requirements.txt /tmp/ai-requirements.txt
 RUN python3 -m venv /opt/ai-venv \
     && /opt/ai-venv/bin/python -m pip install --no-cache-dir --upgrade pip \
@@ -62,8 +61,8 @@ RUN python3 -m venv /opt/ai-venv \
         --index-url https://download.pytorch.org/whl/cpu \
     && rm -f /tmp/ai-requirements.txt /tmp/ai-requirements-core.txt
 
-# Cache ResNet18 weights at build time so the first image-search request does
-# not depend on a model download at runtime.
+# Cache ResNet18 weights in the image so image search never needs to download
+# model weights from the network after a cold start.
 RUN mkdir -p /opt/torch \
     && /opt/ai-venv/bin/python -c "from torchvision.models import ResNet18_Weights, resnet18; resnet18(weights=ResNet18_Weights.DEFAULT)"
 
@@ -78,8 +77,9 @@ RUN groupadd --system lshoe \
 
 USER lshoe
 
-# Only Spring Boot is public. FastAPI binds to 127.0.0.1:8001 inside the same
-# container and cannot be reached directly from the Internet.
+# SnapDeploy derives its managed PORT from the exposed application port, then
+# injects PORT at runtime. The entrypoint and Spring config both honor PORT.
+# FastAPI remains loopback-only on 127.0.0.1:8001.
 EXPOSE 8081/tcp
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

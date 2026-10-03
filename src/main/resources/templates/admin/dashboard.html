@@ -29,7 +29,7 @@
                 th:href="@{/admin/customers}">Quản lý tài khoản</a><a class="btn secondary"
                 th:href="@{/ai/image-search}">Tìm kiếm bằng hình ảnh</a></div>
 
-        <div th:if="${!aiAvailable}" class="ai-notice">Dịch vụ ML/DL chưa sẵn sàng. Kiểm tra <b>ai-service</b> (cổng 8001 ở local) hoặc log FastAPI trong container Northflank.</div>
+        <div th:if="${!aiAvailable}" class="ai-notice">Dịch vụ ML/DL chưa sẵn sàng. Kiểm tra <b>ai-service</b> (cổng 8001 ở local) hoặc log FastAPI trong container deploy.</div>
         <div th:if="${aiAvailable}" class="analytics-grid">
             <article class="analytics-card">
                 <div class="title-row">

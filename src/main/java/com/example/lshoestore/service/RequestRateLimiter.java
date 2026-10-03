@@ -59,7 +59,7 @@ public class RequestRateLimiter {
 
     private final JdbcTemplate jdbcTemplate;
     private final boolean trustProxyHeaders;
-    private final boolean northflankRuntime;
+    private final boolean managedProxyRuntime;
     private final List<CidrBlock> trustedProxies;
     private final AtomicLong maintenanceCounter = new AtomicLong();
     private final Map<String, Window> fallbackWindows = new ConcurrentHashMap<>();
@@ -70,7 +70,7 @@ public class RequestRateLimiter {
                               String trustedProxyCidrs) {
         this.jdbcTemplate = jdbcTemplate;
         this.trustProxyHeaders = trustProxyHeaders;
-        this.northflankRuntime = System.getenv("NF_PROJECT_ID") != null;
+        this.managedProxyRuntime = "true".equalsIgnoreCase(System.getenv("MANAGED_PROXY_RUNTIME"));
         this.trustedProxies = parseCidrs(trustedProxyCidrs);
     }
 
@@ -157,13 +157,13 @@ public class RequestRateLimiter {
         String remoteAddress = validIp(request.getRemoteAddr());
         if (remoteAddress == null) remoteAddress = "unknown";
 
-        // Northflank injects X-Forwarded-For at its public load balancer. Use the
-        // right-most valid address so a client-supplied value on the left cannot
-        // override the address appended by the platform proxy.
-        if (northflankRuntime) {
-            List<String> northflankChain = parseForwardedFor(request.getHeader("X-Forwarded-For"));
-            if (!northflankChain.isEmpty()) {
-                return northflankChain.get(northflankChain.size() - 1);
+        // Managed container platforms terminate HTTPS at a reverse proxy and append
+        // the actual client address to X-Forwarded-For. Use the right-most valid
+        // address so a client-supplied value on the left cannot override it.
+        if (managedProxyRuntime) {
+            List<String> forwardedByPlatform = parseForwardedFor(request.getHeader("X-Forwarded-For"));
+            if (!forwardedByPlatform.isEmpty()) {
+                return forwardedByPlatform.get(forwardedByPlatform.size() - 1);
             }
         }
 

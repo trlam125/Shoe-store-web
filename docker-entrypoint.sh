@@ -4,6 +4,12 @@ set -uo pipefail
 AI_PID=""
 JAVA_PID=""
 STOPPING=0
+WEB_PORT="${PORT:-${SERVER_PORT:-8081}}"
+
+# Keep all internal callbacks aligned with SnapDeploy's managed web port.
+export SERVER_PORT="$WEB_PORT"
+export AI_STORE_BASE_URL="${AI_STORE_BASE_URL:-http://127.0.0.1:${WEB_PORT}}"
+export AI_TRUSTED_IMAGE_ORIGINS="${AI_TRUSTED_IMAGE_ORIGINS:-${AI_STORE_BASE_URL}}"
 
 shutdown() {
     if [[ "$STOPPING" -eq 1 ]]; then
@@ -37,11 +43,10 @@ cd /app
 java -jar /app/app.jar &
 JAVA_PID=$!
 
-echo "[startup] Spring Boot started on port ${SERVER_PORT:-8081} (pid=$JAVA_PID)"
+echo "[startup] Spring Boot started on 0.0.0.0:${WEB_PORT} (pid=$JAVA_PID)"
 
-# A single-service deployment should be healthy only while both processes are
-# alive. If either process exits, terminate the other and let Northflank restart
-# the container according to its restart policy.
+# The deployment is healthy only while both processes are alive. If either one
+# exits, stop the other and let the container platform restart the whole unit.
 wait -n "$AI_PID" "$JAVA_PID"
 EXIT_CODE=$?
 

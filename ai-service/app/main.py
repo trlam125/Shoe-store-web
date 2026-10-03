@@ -13,17 +13,12 @@ import numpy as np
 import pandas as pd
 import psycopg
 import requests
-import torch
 from dotenv import dotenv_values
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from PIL import Image
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-from sklearn.preprocessing import StandardScaler
-from torchvision.models import ResNet18_Weights, resnet18
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = BASE_DIR.parent
@@ -103,8 +98,8 @@ def _default_store_base_url() -> str:
     if explicit:
         return explicit.rstrip("/")
 
-    # Local development and the one-service Northflank container keep both
-    # processes on the same host, so loopback is the safe default.
+    # Local development and one-container deployments keep both processes on
+    # the same host, so loopback is the safe default.
     return "http://127.0.0.1:8081"
 
 
@@ -262,6 +257,11 @@ def _unique_cluster_names(buyers: pd.DataFrame) -> dict[int, str]:
 
 
 def build_customer_segments(df: pd.DataFrame) -> dict[str, Any]:
+    # Import scikit-learn only when customer segmentation is requested.
+    from sklearn.cluster import KMeans
+    from sklearn.metrics import silhouette_score
+    from sklearn.preprocessing import StandardScaler
+
     if df.empty:
         return {
             "algorithm": "RFM",
@@ -708,6 +708,11 @@ SHOE_KEYWORDS = (
 
 @lru_cache(maxsize=1)
 def vision_bundle():
+    # PyTorch is intentionally imported lazily. On small container plans this
+    # keeps the storefront/analytics service bootable until image search is used.
+    import torch
+    from torchvision.models import ResNet18_Weights, resnet18
+
     weights = ResNet18_Weights.DEFAULT
     classifier = resnet18(weights=weights)
     classifier.eval()
@@ -719,11 +724,11 @@ def vision_bundle():
         for index, label in enumerate(categories)
         if any(keyword in label.lower() for keyword in SHOE_KEYWORDS)
     ]
-    return classifier, feature_extractor, weights.transforms(), categories, shoe_indices
+    return torch, classifier, feature_extractor, weights.transforms(), categories, shoe_indices
 
 
 def analyze_image(image: Image.Image) -> tuple[np.ndarray, float, list[dict[str, Any]]]:
-    classifier, feature_extractor, preprocess, categories, shoe_indices = vision_bundle()
+    torch, classifier, feature_extractor, preprocess, categories, shoe_indices = vision_bundle()
     tensor = preprocess(image.convert("RGB")).unsqueeze(0)
     with torch.inference_mode():
         logits = classifier(tensor)
