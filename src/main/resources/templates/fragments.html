@@ -93,13 +93,9 @@
                 </button>
             </form>
             <div class="navlinks">
-                <a class="btn-moth" th:href="@{/}"><span class="text">Giới thiệu</span><span aria-hidden="true"
-                        class="marquee" style="--spacing: 7em; --end: 7em;">Giới thiệu</span></a>
-                <a class="btn-moth" th:href="@{/products}"><span class="text">Sản phẩm</span><span aria-hidden="true"
-                        class="marquee" style="--spacing: 6.8em; --end: 6.8em;">Sản phẩm</span></a>
-                <a class="btn-moth" th:href="@{/ai/image-search}"><span class="text">Tìm kiếm bằng hình ảnh</span><span
-                        aria-hidden="true" class="marquee" style="--spacing: 16.5em; --end: 16.5em;">Tìm kiếm bằng hình
-                        ảnh</span></a>
+                <a th:href="@{/}">Giới thiệu</a>
+                <a th:href="@{/products}">Sản phẩm</a>
+                <a th:href="@{/ai/image-search}">Tìm kiếm bằng hình ảnh</a>
                 <a class="cart-nav-link" th:href="@{/cart}" aria-label="Mở giỏ hàng">
                     <svg class="cart-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -116,12 +112,8 @@
                 <a sec:authorize="isAnonymous()" class="btn-moth" th:href="@{/login}"><span class="text">Đăng
                         nhập</span><span aria-hidden="true" class="marquee" style="--spacing: 7.5em; --end: 7.5em;">Đăng
                         nhập</span></a>
-                <a sec:authorize="isAuthenticated()" class="btn-moth" th:href="@{/orders}"><span class="text">Đơn
-                        hàng</span><span aria-hidden="true" class="marquee" style="--spacing: 6.8em; --end: 6.8em;">Đơn
-                        hàng</span></a>
-                <a sec:authorize="hasRole('ADMIN')" class="btn-moth" th:href="@{/admin}"><span
-                        class="text">Admin</span><span aria-hidden="true" class="marquee"
-                        style="--spacing: 5.5em; --end: 5.5em;">Admin</span></a>
+                <a sec:authorize="isAuthenticated()" th:href="@{/orders}">Đơn hàng</a>
+                <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin}">Admin</a>
                 <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="inline">
                     <button class="btn-moth" type="submit"><span class="text">Đăng xuất</span><span aria-hidden="true"
                             class="marquee" style="--spacing: 7.2em; --end: 7.2em;">Đăng xuất</span></button>
@@ -225,44 +217,22 @@
         </div>
         <div class="footer-bottom">© LSHOE · Email: support@lshoe.vn · Hà Nội</div>
 
-        <!-- ========== CHAT BUBBLE (UIverse MikeeMikee/new-lion-50) ========== -->
-        <button id="chat-bubble-btn" class="chat-lion-btn" onclick="toggleChat()" type="button"
+        <!-- ========== CHAT BUBBLE (UIverse FColombati/spotty-snake-82) ========== -->
+        <button id="chat-bubble-btn" class="chat-snake-btn" onclick="toggleChat()" type="button"
             title="Chat với trợ lý AI LSHOE" aria-label="Mở chat với trợ lý AI LSHOE">
-            <p class="chat-lion-btn__text" aria-hidden="true">
-                <span style="--index: 0;">L</span>
-                <span style="--index: 1;">S</span>
-                <span style="--index: 2;">H</span>
-                <span style="--index: 3;">O</span>
-                <span style="--index: 4;">E</span>
-                <span style="--index: 5;">&nbsp;</span>
-                <span style="--index: 6;">•</span>
-                <span style="--index: 7;">&nbsp;</span>
-                <span style="--index: 8;">•</span>
-                <span style="--index: 9;">S</span>
-                <span style="--index: 10;">T</span>
-                <span style="--index: 11;">O</span>
-                <span style="--index: 12;">R</span>
-                <span style="--index: 13;">E</span>
-                <span style="--index: 14;">&nbsp;</span>
-                <span style="--index: 15;">•</span>
-                <span style="--index: 16;">&nbsp;</span>
-                <span style="--index: 17;">•</span>
-            </p>
-            <div class="chat-lion-btn__circle" aria-hidden="true">
-                <svg class="chat-lion-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    <circle cx="9" cy="10" r="1" fill="currentColor"></circle>
-                    <circle cx="12" cy="10" r="1" fill="currentColor"></circle>
-                    <circle cx="15" cy="10" r="1" fill="currentColor"></circle>
-                </svg>
-                <svg class="chat-lion-btn__icon chat-lion-btn__icon--copy" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    <circle cx="9" cy="10" r="1" fill="currentColor"></circle>
-                    <circle cx="12" cy="10" r="1" fill="currentColor"></circle>
-                    <circle cx="15" cy="10" r="1" fill="currentColor"></circle>
-                </svg>
+            <div class="chat-snake-outer">
+                <div class="chat-snake-inner">
+                    <span class="chat-snake-content">
+                        <svg class="chat-snake-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            <circle cx="9" cy="10" r="1" fill="currentColor"></circle>
+                            <circle cx="12" cy="10" r="1" fill="currentColor"></circle>
+                            <circle cx="15" cy="10" r="1" fill="currentColor"></circle>
+                        </svg>
+                        <span class="chat-snake-label">Chat AI</span>
+                    </span>
+                </div>
             </div>
             <span id="chat-unread" style="display:none">1</span>
         </button>
@@ -285,116 +255,200 @@
         <input id="chat-csrf" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
 
         <style>
-            #chat-bubble-btn {
+            /* --- UIverse FColombati/spotty-snake-82: Realistic 3D Tactile Chatbot Button --- */
+            #chat-bubble-btn.chat-snake-btn {
+                all: unset;
+                cursor: pointer;
+                -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
                 position: fixed;
                 bottom: 24px;
                 right: 24px;
-                width: 74px;
-                height: 74px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, #4f46e5, #06b6d4);
-                color: #fff;
-                border: none;
-                cursor: pointer;
                 z-index: 1000;
-                display: grid;
-                place-content: center;
-                overflow: hidden;
-                box-shadow: 0 8px 24px rgba(79, 70, 229, 0.4), 0 2px 6px rgba(0, 0, 0, 0.12);
-                transition: background 300ms, transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 300ms;
-                font-weight: 700;
-                padding: 0;
+                border-radius: 100em;
+                background-color: rgba(0, 0, 0, 0.75);
+                box-shadow:
+                    -0.15em -0.15em 0.15em -0.075em rgba(5, 5, 5, 0.25),
+                    0.0375em 0.0375em 0.0675em 0 rgba(5, 5, 5, 0.1),
+                    0 8px 24px rgba(15, 23, 42, 0.18);
+                font-size: 15px;
+                box-sizing: border-box;
                 user-select: none;
-                -webkit-tap-highlight-color: transparent;
+                transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
             }
 
-            #chat-bubble-btn:hover {
-                background: linear-gradient(135deg, #0f172a, #1e1b4b);
-                transform: scale(1.08);
-                box-shadow: 0 12px 30px rgba(56, 189, 248, 0.5), 0 4px 12px rgba(0, 0, 0, 0.2);
-            }
-
-            #chat-bubble-btn:active {
-                transform: scale(0.95);
-            }
-
-            .chat-lion-btn__text {
+            #chat-bubble-btn.chat-snake-btn::after {
+                content: "";
                 position: absolute;
-                inset: 0;
-                margin: 0;
-                animation: chat-text-rotation 8s linear infinite;
+                z-index: 0;
+                width: calc(100% + 0.3em);
+                height: calc(100% + 0.3em);
+                top: -0.15em;
+                left: -0.15em;
+                border-radius: inherit;
+                background: linear-gradient(-135deg,
+                        rgba(5, 5, 5, 0.5),
+                        transparent 20%,
+                        transparent 100%);
+                filter: blur(0.0125em);
+                opacity: 0.25;
+                mix-blend-mode: multiply;
                 pointer-events: none;
             }
 
-            .chat-lion-btn__text>span {
-                position: absolute;
-                transform: rotate(calc(20deg * var(--index)));
-                inset: 4px;
-                font-size: 8.5px;
-                font-weight: 800;
-                letter-spacing: 0.5px;
-                color: rgba(255, 255, 255, 0.95);
-                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-                text-transform: uppercase;
-                line-height: 1;
-                text-align: center;
+            #chat-bubble-btn.chat-snake-btn .chat-snake-outer {
+                position: relative;
+                z-index: 1;
+                border-radius: inherit;
+                transition: box-shadow 300ms ease;
+                will-change: box-shadow;
+                box-shadow:
+                    0 0.05em 0.05em -0.01em rgba(5, 5, 5, 1),
+                    0 0.01em 0.01em -0.01em rgba(5, 5, 5, 0.5),
+                    0.15em 0.3em 0.1em -0.01em rgba(5, 5, 5, 0.25);
             }
 
-            .chat-lion-btn__circle {
+            #chat-bubble-btn.chat-snake-btn:hover .chat-snake-outer {
+                box-shadow:
+                    0 0 0 0 rgba(5, 5, 5, 1),
+                    0 0 0 0 rgba(5, 5, 5, 0.5),
+                    0 0 0 0 rgba(5, 5, 5, 0.25);
+            }
+
+            #chat-bubble-btn.chat-snake-btn .chat-snake-inner {
+                --inset: 0.035em;
                 position: relative;
-                width: 36px;
-                height: 36px;
-                overflow: hidden;
-                background: #ffffff;
-                color: #4f46e5;
-                border-radius: 50%;
-                display: flex;
+                z-index: 1;
+                border-radius: inherit;
+                padding: 0.85em 1.45em;
+                background-image: linear-gradient(135deg,
+                        rgba(235, 238, 243, 1),
+                        rgba(195, 202, 212, 1));
+                transition:
+                    box-shadow 300ms ease,
+                    clip-path 250ms ease,
+                    background-image 250ms ease,
+                    transform 250ms ease;
+                will-change: box-shadow, clip-path, background-image, transform;
+                overflow: clip;
+                clip-path: inset(0 0 0 0 round 100em);
+                box-shadow:
+                    0 0 0 0 inset rgba(5, 5, 5, 0.1),
+                    -0.05em -0.05em 0.05em 0 inset rgba(5, 5, 5, 0.25),
+                    0 0 0 0 inset rgba(5, 5, 5, 0.1),
+                    0 0 0.05em 0.2em inset rgba(255, 255, 255, 0.45),
+                    0.025em 0.05em 0.1em 0 inset rgba(255, 255, 255, 1),
+                    0.12em 0.12em 0.12em inset rgba(255, 255, 255, 0.35),
+                    -0.075em -0.25em 0.25em 0.1em inset rgba(5, 5, 5, 0.25);
+            }
+
+            #chat-bubble-btn.chat-snake-btn:hover .chat-snake-inner {
+                clip-path: inset(clamp(1px, 0.0625em, 2px) clamp(1px, 0.0625em, 2px) clamp(1px, 0.0625em, 2px) clamp(1px, 0.0625em, 2px) round 100em);
+                box-shadow:
+                    0.1em 0.15em 0.05em 0 inset rgba(5, 5, 5, 0.75),
+                    -0.025em -0.03em 0.05em 0.025em inset rgba(5, 5, 5, 0.5),
+                    0.25em 0.25em 0.2em 0 inset rgba(5, 5, 5, 0.5),
+                    0 0 0.05em 0.5em inset rgba(255, 255, 255, 0.2),
+                    0 0 0 0 inset rgba(255, 255, 255, 1),
+                    0.12em 0.12em 0.12em inset rgba(255, 255, 255, 0.3),
+                    -0.075em -0.12em 0.2em 0.1em inset rgba(5, 5, 5, 0.25);
+            }
+
+            #chat-bubble-btn.chat-snake-btn:active .chat-snake-inner {
+                transform: scale(0.975);
+            }
+
+            #chat-bubble-btn.chat-snake-btn .chat-snake-content {
+                display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(79, 70, 229, 0.15);
-                z-index: 2;
-                transition: background 300ms, color 300ms, box-shadow 300ms;
+                gap: 8px;
+                position: relative;
+                z-index: 4;
+                transition: transform 250ms ease;
+                will-change: transform;
             }
 
-            #chat-bubble-btn:hover .chat-lion-btn__circle {
-                background: #111827;
-                box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(56, 189, 248, 0.3);
+            #chat-bubble-btn.chat-snake-btn:hover .chat-snake-content {
+                transform: scale(0.975);
             }
 
-            .chat-lion-btn__icon {
-                width: 18px;
-                height: 18px;
-                color: #4f46e5;
-                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s;
+            #chat-bubble-btn.chat-snake-btn .chat-snake-icon {
+                width: 20px;
+                height: 20px;
                 flex-shrink: 0;
+                color: #0f172a;
+                transition: transform 250ms ease;
             }
 
-            .chat-lion-btn__icon--copy {
-                position: absolute;
-                transform: translate(-160%, 160%);
+            #chat-bubble-btn.chat-snake-btn:hover .chat-snake-icon {
+                transform: rotate(-8deg) scale(1.06);
+            }
+
+            #chat-bubble-btn.chat-snake-btn .chat-snake-label {
+                position: relative;
+                z-index: 4;
+                font-family: inherit;
+                letter-spacing: -0.02em;
+                font-weight: 750;
+                font-size: 14.5px;
+                color: rgba(0, 0, 0, 0);
+                background-image: linear-gradient(135deg,
+                        rgba(15, 23, 42, 1),
+                        rgba(51, 65, 85, 1));
+                -webkit-background-clip: text;
+                background-clip: text;
+                display: block;
+                text-shadow: rgba(0, 0, 0, 0.08) 0 0 0.1em;
+            }
+
+            /* Dark mode support for spotty-snake-82 */
+            html.dark-theme #chat-bubble-btn.chat-snake-btn {
+                background-color: rgba(0, 0, 0, 0.85);
+                box-shadow:
+                    -0.15em -0.15em 0.15em -0.075em rgba(0, 0, 0, 0.5),
+                    0.0375em 0.0375em 0.0675em 0 rgba(0, 0, 0, 0.3),
+                    0 8px 24px rgba(0, 0, 0, 0.4);
+            }
+
+            html.dark-theme #chat-bubble-btn.chat-snake-btn .chat-snake-inner {
+                background-image: linear-gradient(135deg,
+                        #1e293b,
+                        #0f172a);
+                box-shadow:
+                    0 0 0 0 inset rgba(0, 0, 0, 0.3),
+                    -0.05em -0.05em 0.05em 0 inset rgba(0, 0, 0, 0.6),
+                    0 0 0 0 inset rgba(0, 0, 0, 0.2),
+                    0 0 0.05em 0.2em inset rgba(255, 255, 255, 0.1),
+                    0.025em 0.05em 0.1em 0 inset rgba(255, 255, 255, 0.25),
+                    0.12em 0.12em 0.12em inset rgba(255, 255, 255, 0.08),
+                    -0.075em -0.25em 0.25em 0.1em inset rgba(0, 0, 0, 0.6);
+            }
+
+            html.dark-theme #chat-bubble-btn.chat-snake-btn:hover .chat-snake-inner {
+                box-shadow:
+                    0.1em 0.15em 0.05em 0 inset rgba(0, 0, 0, 0.9),
+                    -0.025em -0.03em 0.05em 0.025em inset rgba(0, 0, 0, 0.7),
+                    0.25em 0.25em 0.2em 0 inset rgba(0, 0, 0, 0.7),
+                    0 0 0.05em 0.5em inset rgba(255, 255, 255, 0.08),
+                    0 0 0 0 inset rgba(255, 255, 255, 0.2),
+                    0.12em 0.12em 0.12em inset rgba(255, 255, 255, 0.1),
+                    -0.075em -0.12em 0.2em 0.1em inset rgba(0, 0, 0, 0.6);
+            }
+
+            html.dark-theme #chat-bubble-btn.chat-snake-btn .chat-snake-icon {
                 color: #38bdf8;
             }
 
-            #chat-bubble-btn:hover .chat-lion-btn__icon:first-child {
-                transform: translate(160%, -160%);
-            }
-
-            #chat-bubble-btn:hover .chat-lion-btn__icon--copy {
-                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.08s, color 0.3s;
-                transform: translate(0, 0);
-                color: #38bdf8;
-            }
-
-            @keyframes chat-text-rotation {
-                to {
-                    transform: rotate(360deg);
-                }
+            html.dark-theme #chat-bubble-btn.chat-snake-btn .chat-snake-label {
+                background-image: linear-gradient(135deg,
+                        #f8fafc,
+                        #94a3b8);
             }
 
             #chat-unread {
                 position: absolute;
-                top: 0;
-                right: 0;
+                top: -6px;
+                right: -4px;
                 background: #ef4444;
                 color: white;
                 font-size: 11px;
@@ -410,49 +464,28 @@
                 box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
             }
 
-            /* Dark mode support */
-            html.dark-theme .chat-lion-btn__circle {
-                background: #0f172a;
-                color: #38bdf8;
-                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.15);
-            }
-
-            html.dark-theme .chat-lion-btn__icon {
-                color: #38bdf8;
-            }
-
-            html.dark-theme #chat-bubble-btn:hover .chat-lion-btn__circle {
-                background: #1e293b;
+            html.dark-theme #chat-unread {
+                border-color: #0f172a;
             }
 
             @media (max-width: 600px) {
-                #chat-bubble-btn {
-                    width: 62px;
-                    height: 62px;
+                #chat-bubble-btn.chat-snake-btn {
+                    bottom: 18px;
+                    right: 18px;
+                    font-size: 13.5px;
                 }
 
-                .chat-lion-btn__text>span {
-                    inset: 3px;
-                    font-size: 7px;
-                }
-
-                .chat-lion-btn__circle {
-                    width: 30px;
-                    height: 30px;
-                }
-
-                .chat-lion-btn__icon {
-                    width: 15px;
-                    height: 15px;
+                #chat-bubble-btn.chat-snake-btn .chat-snake-inner {
+                    padding: 0.75em 1.15em;
                 }
             }
 
             #chat-window {
                 position: fixed;
-                bottom: 108px;
+                bottom: 84px;
                 right: 24px;
                 width: min(420px, calc(100vw - 32px));
-                height: min(560px, calc(100vh - 130px));
+                height: min(560px, calc(100vh - 110px));
                 background: #fff;
                 border-radius: 16px;
                 box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
@@ -795,46 +828,7 @@
                     document.documentElement.classList.remove('dark-theme');
                 }
 
-                // Initialize UIverse happy-moth-17 button animation
-                initHappyMoth();
             });
-
-            // ========== HAPPY MOTH 17 BUTTON ANIMATION ENHANCER ==========
-            function initHappyMoth() {
-                var candidates = document.querySelectorAll(
-                    '.btn, .table-button, .slider-action-btn, .image-ai-form button, .empty-state a.btn, .pagination a:not(.active)'
-                );
-
-                var excluded = [
-                    'cart-button', 'pay-btn-termite', 'btn-update-mole', 'bin-button',
-                    'chat-lion-btn', 'cart-nav-link', 'btn-moth', 'searchButton',
-                    'captcha-refresh-btn', 'mobile-switch-tab', 'overlay-ghost-btn'
-                ];
-
-                candidates.forEach(function (el) {
-                    if (el.classList.contains('btn-moth') || el.querySelector('.marquee')) return;
-                    if (el.id === 'chat-bubble-btn' || el.id === 'chat-close-btn') return;
-
-                    var isExcluded = excluded.some(function (cls) {
-                        return el.classList.contains(cls);
-                    });
-                    if (isExcluded) return;
-
-                    var textOnly = el.textContent ? el.textContent.trim() : '';
-                    if (!textOnly) return;
-
-                    var len = textOnly.length;
-                    var spacing = Math.max(5.2, (len * 0.76) + 2.2).toFixed(1) + 'em';
-
-                    var inner = el.innerHTML;
-                    el.classList.add('btn-moth');
-                    el.innerHTML = '<span class="text">' + inner + '</span><span aria-hidden="true" class="marquee" style="--spacing: ' + spacing + '; --end: ' + spacing + ';">' + textOnly + '</span>';
-                });
-            }
-
-            if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                initHappyMoth();
-            }
         </script>
         <!-- ========== END CHAT BUBBLE ========== -->
     </footer>

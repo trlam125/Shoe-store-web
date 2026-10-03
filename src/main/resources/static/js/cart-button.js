@@ -172,20 +172,32 @@
                 this.sceneEl.style.opacity = "1";
                 this.button.classList.add('is-running-conveyor');
 
-                // Calculate dynamic positions based on button and element dimensions
-                const btnWidth = this.button.clientWidth || 290;
-                const scannerCenter = this.scannerEl
-                    ? (this.scannerEl.offsetLeft + this.scannerEl.offsetWidth / 2)
-                    : btnWidth * 0.48;
-                const pkgWidth = this.packageEl ? this.packageEl.offsetWidth : 32;
-                const scanX = Math.round(scannerCenter - (pkgWidth / 2));
+                // Calculate dynamic positions with precision geometry
+                const sceneRect = this.sceneEl ? this.sceneEl.getBoundingClientRect() : this.button.getBoundingClientRect();
+                const btnWidth = sceneRect.width || this.button.clientWidth || 290;
+                const pkgWidth = (this.packageEl && this.packageEl.offsetWidth) ? this.packageEl.offsetWidth : 32;
 
-                const cartLeft = this.cartEl ? this.cartEl.offsetLeft : (btnWidth - 52);
-                const toCartX = Math.round(cartLeft - (pkgWidth * 0.72));
-                const dropX1 = Math.round(toCartX + (pkgWidth * 0.28));
-                const dropX2 = Math.round(toCartX + (pkgWidth * 0.33));
-                const dropY1 = Math.round(this.button.clientHeight * 0.20);
-                const dropY2 = Math.round(this.button.clientHeight * 0.26);
+                // 1. Precise Scanner Center:
+                // Use true visual bounding box to eliminate any transform: translateX(-50%) offset discrepancy
+                const scannerRect = this.scannerEl ? this.scannerEl.getBoundingClientRect() : null;
+                const scannerCenterX = (scannerRect && scannerRect.width > 0 && sceneRect.left !== undefined)
+                    ? ((scannerRect.left + scannerRect.width / 2) - sceneRect.left)
+                    : (btnWidth * 0.46);
+                const scanX = Math.round(scannerCenterX - (pkgWidth / 2));
+
+                // 2. Precise Shopping Cart Mouth Opening Center:
+                // .shopping-cart is styled with right: 14px and width: 38px
+                const cartWidth = 38;
+                const cartLeft = btnWidth - 14 - cartWidth;
+                // In cart SVG viewBox (54x50), basket top opening spans X=12 to X=44 with its mouth center at X=28 (28/54 ≈ 51.8%)
+                const cartMouthCenter = cartLeft + Math.round((28 / 54) * cartWidth);
+
+                // Approach position: package glides on conveyor to the mouth lip before tipping in
+                const approachX = Math.round(cartMouthCenter - pkgWidth * 0.82);
+
+                // Drop trajectory: package aligns dead-center over and drops directly into the basket mouth
+                const dropX1 = Math.round(cartMouthCenter - (pkgWidth * 0.74) / 2);
+                const dropX2 = Math.round(cartMouthCenter - (pkgWidth * 0.50) / 2);
 
                 // Phase 2: Package enters from left to center
                 this.state = CART_STATES.PACKAGE_ENTERING;
@@ -254,29 +266,30 @@
                 this.state = CART_STATES.MOVING_TO_CART;
                 await this.animateEl(this.packageEl, [
                     { transform: `translateX(${scanX}px) translateY(0) scale(1)` },
-                    { transform: `translateX(${toCartX}px) translateY(0) scale(1)` }
+                    { transform: `translateX(${approachX}px) translateY(0) scale(1)` }
                 ], { duration: CART_TIMING.packageTravel, easing: "cubic-bezier(.22,.8,.3,1)", fill: "forwards" });
 
-                // Phase 6: Package drops into cart basket + Cart Bounce + Badge +1
+                // Phase 6: Package drops directly into the mouth of the cart basket + Cart Bounce + Badge +1
                 this.state = CART_STATES.CART_RECEIVING;
                 const dropAnim = this.animateEl(this.packageEl, [
-                    { transform: `translateX(${toCartX}px) translateY(0) rotate(0deg) scale(1)`, opacity: 1 },
-                    { transform: `translateX(${dropX1}px) translateY(${dropY1}px) rotate(14deg) scale(0.62)`, opacity: 0.85 },
-                    { transform: `translateX(${dropX2}px) translateY(${dropY2}px) rotate(10deg) scale(0.55)`, opacity: 0 }
-                ], { duration: CART_TIMING.packageDrop, easing: "cubic-bezier(.4,0,.8,.4)", fill: "forwards" });
+                    { transform: `translateX(${approachX}px) translateY(0) rotate(0deg) scale(1)`, opacity: 1 },
+                    { transform: `translateX(${dropX1}px) translateY(5px) rotate(14deg) scale(0.74)`, opacity: 0.95 },
+                    { transform: `translateX(${dropX2}px) translateY(12px) rotate(10deg) scale(0.58)`, opacity: 0.65 },
+                    { transform: `translateX(${dropX2}px) translateY(18px) rotate(6deg) scale(0.48)`, opacity: 0 }
+                ], { duration: CART_TIMING.packageDrop, easing: "cubic-bezier(.34,0,.7,1)", fill: "forwards" });
 
-                await this.sleep(120);
+                await this.sleep(130);
                 const bounceAnim = this.animateEl(this.cartEl, [
-                    { transform: "translateY(0px) scaleY(1)" },
-                    { transform: "translateY(3px) scaleY(0.92)" },
-                    { transform: "translateY(-2px) scaleY(1.05)" },
-                    { transform: "translateY(0px) scaleY(1)" }
-                ], { duration: CART_TIMING.cartBounce, easing: "ease-out" });
+                    { transform: "translateY(0px) scale(1)" },
+                    { transform: "translateY(4px) scaleY(0.88) scaleX(1.05)" },
+                    { transform: "translateY(-3px) scaleY(1.06) scaleX(0.97)" },
+                    { transform: "translateY(0px) scale(1)" }
+                ], { duration: CART_TIMING.cartBounce, easing: "cubic-bezier(.25,1.4,.5,1)" });
 
-                await this.sleep(80);
+                await this.sleep(70);
                 const badgeAnim = this.animateEl(this.cartBadge, [
                     { opacity: 0, transform: "scale(0) translateY(8px)" },
-                    { opacity: 1, transform: "scale(1.25) translateY(-2px)" },
+                    { opacity: 1, transform: "scale(1.3) translateY(-4px)" },
                     { opacity: 1, transform: "scale(1) translateY(0)" }
                 ], { duration: CART_TIMING.badgePop, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" });
 
