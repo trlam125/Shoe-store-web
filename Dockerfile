@@ -8,14 +8,14 @@ RUN mvn -q -DskipTests package
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
-ENV SPRING_PROFILES_ACTIVE=prod \
-    AI_SERVICE_AUTOSTART=false \
-    AI_SERVICE_SETUP_VENV=false \
-    PRODUCT_IMAGE_STORAGE=database \
-    MANAGED_PROXY_RUNTIME=true \
-    SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=4 \
-    SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1 \
-    JAVA_TOOL_OPTIONS="-Xms32m -Xmx280m -XX:MaxMetaspaceSize=112m -XX:ReservedCodeCacheSize=32m -Xss384k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+ENV SPRING_PROFILES_ACTIVE=prod
+ENV AI_SERVICE_AUTOSTART=false
+ENV AI_SERVICE_SETUP_VENV=false
+ENV PRODUCT_IMAGE_STORAGE=database
+ENV MANAGED_PROXY_RUNTIME=true
+ENV SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=4
+ENV SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
+ENV JAVA_TOOL_OPTIONS="-Xms32m -Xmx280m -XX:MaxMetaspaceSize=112m -XX:ReservedCodeCacheSize=32m -Xss384k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
 COPY --from=build /build/target/*.jar app.jar
 RUN groupadd -r lshoe && useradd -r -g lshoe -d /app -s /usr/sbin/nologin lshoe \
     && chown -R lshoe:lshoe /app
