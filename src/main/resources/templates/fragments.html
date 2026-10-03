@@ -83,7 +83,7 @@
                 </div>
             </a>
             <form th:action="@{/products}" class="search searchBox" method="get">
-                <input class="searchInput" name="q" placeholder="Tìm kiếm giày sneaker..." th:value="${q}">
+                <input class="searchInput" name="q" placeholder="Tìm kiếm sản phẩm giày..." th:value="${q}">
                 <button class="searchButton" type="submit" aria-label="Tìm kiếm">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 29 29" fill="none">
                         <path
@@ -133,12 +133,19 @@
                                 <rect fill="#fff" rx="58" height="114" width="114" y="14" x="164"
                                     class="toggle-circle right"></rect>
                             </g>
-                            <filter id="goo">
+                            <filter id="goo" x="-20%" y="-20%" width="140%" height="140%">
                                 <feGaussianBlur stdDeviation="10" result="blur" in="SourceGraphic"></feGaussianBlur>
                                 <feColorMatrix result="goo" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7"
                                     mode="matrix" in="blur"></feColorMatrix>
                             </filter>
                         </svg>
+                        <script>
+                            try {
+                                if (document.documentElement.classList.contains('dark-theme') || localStorage.getItem('lshoe-theme') === 'dark') {
+                                    document.getElementById('theme-toggle').checked = true;
+                                }
+                            } catch (e) { }
+                        </script>
                     </div>
                 </div>
             </div>
@@ -194,7 +201,7 @@
                         </div>
                     </div>
                 </a>
-                <p>Không gian sneaker dành cho mọi phong cách, từ thiết kế kinh điển đến xu hướng mới.</p>
+                <p>Không gian giày chính hãng dành cho mọi phong cách, từ thiết kế kinh điển đến xu hướng mới.</p>
             </div>
             <div><strong>Khám phá</strong><a th:href="@{/intro}">Giới thiệu</a><a th:href="@{/products}">Sản phẩm</a><a
                     th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a th:href="@{/cart}">Giỏ hàng</a><a
@@ -775,8 +782,10 @@
             })();
 
             // ========== THEME TOGGLE SCRIPT (UIverse friendly-otter-40) ==========
+            var themeTransitionTimer = null;
             function toggleSiteTheme(isDark) {
                 document.documentElement.classList.add('theme-transitioning');
+                if (themeTransitionTimer) clearTimeout(themeTransitionTimer);
                 if (isDark) {
                     document.documentElement.classList.add('dark-theme');
                     localStorage.setItem('lshoe-theme', 'dark');
@@ -784,8 +793,9 @@
                     document.documentElement.classList.remove('dark-theme');
                     localStorage.setItem('lshoe-theme', 'light');
                 }
-                window.setTimeout(function () {
+                themeTransitionTimer = setTimeout(function () {
                     document.documentElement.classList.remove('theme-transitioning');
+                    themeTransitionTimer = null;
                 }, 350);
             }
 

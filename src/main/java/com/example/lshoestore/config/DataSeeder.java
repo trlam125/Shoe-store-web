@@ -69,14 +69,14 @@ public class DataSeeder {
             }
 
             String[][] categoryData = {
-                    {"Giày Nike", "Sneaker Nike nam nữ, dễ phối đồ và phù hợp sử dụng hằng ngày"},
+                    {"Giày Nike", "Giày Nike nam nữ, dễ phối đồ và phù hợp sử dụng hằng ngày"},
                     {"Giày Adidas", "Giày Adidas phong cách thể thao, tối giản và năng động"},
                     {"Giày New Balance", "Giày đi học, đi chơi, đi bộ nhiều vẫn êm chân"},
                     {"Giày Puma", "Giày thể thao trẻ trung, giá tốt và dễ mang"},
                     {"Giày MLB", "Giày đế cao phong cách Hàn Quốc, nổi bật khi phối đồ"},
                     {"Giày Converse", "Giày vải cổ thấp, cổ cao và phong cách streetwear"},
                     {"Giày Vans", "Giày skate basic, bền và hợp nhiều phong cách"},
-                    {"Giày Asics", "Giày chạy bộ và sneaker retro êm chân"}
+                    {"Giày Asics", "Giày chạy bộ và giày retro êm chân"}
             };
 
             // Danh mục là dữ liệu nền bắt buộc vì giao diện hiện chưa có trang tạo danh mục.

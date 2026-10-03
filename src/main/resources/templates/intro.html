@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Giới thiệu LSHOE - Hệ thống Sneaker Chính Hãng & Công Nghệ AI Hàng Đầu</title>
+    <title>Giới thiệu LSHOE - Hệ thống Giày Chính Hãng & Công Nghệ AI Hàng Đầu</title>
     <meta name="description"
-        content="Khám phá LSHOE - Không gian sneaker chính hãng cao cấp từ Nike, Adidas, New Balance, MLB... kết hợp cùng công nghệ Trí tuệ Nhân tạo AI tìm kiếm bằng hình ảnh tiên tiến nhất. Đăng nhập ngay!">
+        content="Khám phá LSHOE - Không gian giày chính hãng cao cấp từ Nike, Adidas, New Balance, MLB... kết hợp cùng công nghệ Trí tuệ Nhân tạo AI tìm kiếm bằng hình ảnh tiên tiến nhất. Đăng nhập ngay!">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -69,16 +69,16 @@
                     <div class="spotty-swan-wrap">
                         <div class="spotty-swan-card large">
                             <span class="spotty-swan-title">LSHOE</span>
-                            <span class="spotty-swan-sub">AUTHENTIC SNEAKER SPACE</span>
+                            <span class="spotty-swan-sub">AUTHENTIC SHOES SPACE</span>
                             <div class="spotty-swan-texture"></div>
                         </div>
                     </div>
                 </div>
 
-                <p class="intro-pill-badge">✨ Thế Giới Sneaker Chính Hãng & Công Nghệ AI</p>
+                <p class="intro-pill-badge">✨ Thế Giới Giày Chính Hãng & Công Nghệ AI</p>
                 <h1 class="intro-hero-title">Nâng Tầm Bước Chân, Định Hình Bản Lĩnh</h1>
                 <p class="intro-hero-desc">
-                    LSHOE là hệ thống phân phối giày sneaker chính hãng hàng đầu, quy tụ các thương hiệu đỉnh cao toàn
+                    LSHOE là hệ thống phân phối giày chính hãng hàng đầu, quy tụ các thương hiệu đỉnh cao toàn
                     cầu như <b>Nike, Adidas, Jordan, New Balance, MLB</b>... Kết hợp công nghệ <b>Tìm kiếm bằng ảnh
                         AI</b> tiên tiến giúp bạn tìm thấy đôi giày mơ ước trong vài giây.
                 </p>
@@ -120,8 +120,8 @@
 
             <div class="intro-hero-right">
                 <div class="intro-hero-visual-card">
-                    <img th:src="@{/images/intro-hero.jpg}" alt="LSHOE Limited Edition Sneaker"
-                        class="intro-hero-sneaker-img" loading="eager">
+                    <img th:src="@{/images/intro-hero.jpg}" alt="LSHOE Limited Edition Shoes"
+                        class="intro-hero-shoe-img" loading="eager">
                     <div class="intro-floating-tag tag-top-left">
                         <span class="tag-icon">⚡</span>
                         <div>
@@ -215,11 +215,11 @@
         </div>
     </section>
 
-    <!-- ================= FEATURED SNEAKERS PREVIEW ================= -->
+    <!-- ================= FEATURED SHOES PREVIEW ================= -->
     <section class="intro-section intro-section-dark">
         <div class="intro-section-header">
             <p class="intro-section-eyebrow">Bộ Sưu Tập Nóng Hổi</p>
-            <h2>Sneaker Mới Nhất Vừa Cập Bến Tại LSHOE</h2>
+            <h2>Sản Phẩm Mới Nhất Vừa Cập Bến Tại LSHOE</h2>
             <p class="intro-section-sub">Những mẫu thiết kế kinh điển và các phiên bản giới hạn đang được săn đón nhiều
                 nhất.</p>
         </div>
@@ -229,7 +229,7 @@
                 <div class="intro-prod-img-wrap">
                     <img th:src="${p.imageUrl}" th:alt="${p.name}" loading="lazy">
                     <span class="intro-prod-badge" th:if="${p.category != null}"
-                        th:text="${p.category.name}">Sneaker</span>
+                        th:text="${p.category.name}">Giày</span>
                 </div>
                 <div class="intro-prod-body">
                     <h4 th:text="${p.name}">Tên sản phẩm</h4>
@@ -243,7 +243,7 @@
         </div>
 
         <div class="intro-explore-all">
-            <a class="btn intro-btn-glow" th:href="@{/products}">Xem toàn bộ hơn 100+ mẫu sneaker →</a>
+            <a class="btn intro-btn-glow" th:href="@{/products}">Xem toàn bộ hơn 100+ mẫu giày →</a>
         </div>
     </section>
 
@@ -269,7 +269,7 @@
                     <li class="cross-item"><span>✕</span> Không tích lũy điểm thưởng L-Coin</li>
                     <li class="cross-item"><span>✕</span> Giỏ hàng có thể bị mất khi tắt trình duyệt</li>
                     <li class="cross-item"><span>✕</span> Không theo dõi được trạng thái đơn hàng real-time</li>
-                    <li class="cross-item"><span>✕</span> Bỏ lỡ thông báo các đợt phát hành sneaker giới hạn</li>
+                    <li class="cross-item"><span>✕</span> Bỏ lỡ thông báo các đợt phát hành giày giới hạn</li>
                 </ul>
                 <a class="btn secondary full-width" th:href="@{/products}">Tiếp tục xem giày</a>
             </div>
@@ -304,9 +304,9 @@
     <!-- ================= CUSTOMER REVIEWS ================= -->
     <section class="intro-section intro-section-dark">
         <div class="intro-section-header">
-            <p class="intro-section-eyebrow">Cộng đồng sneakerhead</p>
+            <p class="intro-section-eyebrow">Cộng đồng yêu giày</p>
             <h2>Khách Hàng Nói Gì Về LSHOE?</h2>
-            <p class="intro-section-sub">Hơn 12.000 bạn trẻ, tín đồ sneaker và người yêu thời trang đã tin chọn LSHOE.
+            <p class="intro-section-sub">Hơn 12.000 bạn trẻ, tín đồ thời trang và người yêu giày đã tin chọn LSHOE.
             </p>
         </div>
 
@@ -341,14 +341,14 @@
 
             <div class="intro-review-card">
                 <div class="review-stars">★★★★★</div>
-                <p class="review-text">“Là người chơi sneaker hơn 5 năm nay, mình rất khắt khe về nguồn gốc hàng. LSHOE
+                <p class="review-text">“Là người đam mê giày hơn 5 năm nay, mình rất khắt khe về nguồn gốc hàng. LSHOE
                     cam kết bồi thường 200% nếu fake làm mình rất yên tâm. Đã mua 3 đôi tại đây và chưa bao giờ thất
                     vọng.”</p>
                 <div class="review-author">
                     <div class="review-avatar">HD</div>
                     <div>
                         <b>Hoàng Dũng</b>
-                        <small>Đà Nẵng · Sneaker Collector</small>
+                        <small>Đà Nẵng · Shoe Collector</small>
                     </div>
                 </div>
             </div>
@@ -400,7 +400,7 @@
 
                 <h2>Sẵn Sàng Nâng Tầm Phong Cách Của Bạn?</h2>
                 <p>Đăng ký thành viên ngay hôm nay để nhận voucher 100.000đ cho đơn hàng đầu tiên và trải nghiệm dịch vụ
-                    sneaker chính hãng đỉnh cao.</p>
+                    giày chính hãng đỉnh cao.</p>
                 <div class="cta-btn-group">
                     <a sec:authorize="isAnonymous()" class="btn intro-btn-glow" th:href="@{/register}">Đăng Ký Tài Khoản
                         Mới</a>
