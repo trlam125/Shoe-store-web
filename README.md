@@ -65,7 +65,9 @@ postgresql://USER:PASSWORD@HOST/DB?sslmode=require
 
 The Java bootstrap converts this automatically to a JDBC URL. FastAPI uses the same PostgreSQL URI directly.
 
-If you already imported the local `lshoe_store` dump into Neon, use that database. Otherwise Flyway will create/validate the schema when Spring Boot starts.
+This project now uses a **single squashed Flyway migration**: `V1__baseline_and_integrity.sql`. It is intended for a newly created or fully reset database.
+
+If your Neon database was imported from an older local database that already contains Flyway history for V1-V5, do **not** point this build at that schema unchanged; Flyway will reject the old checksums/history. Create a fresh Neon database/schema (or reset the existing schema) so the new V1 can run once. If you need to preserve old rows, export/import **data only** after the new V1 has created the final schema.
 
 ## 3. Deploy one container to SnapDeploy
 
