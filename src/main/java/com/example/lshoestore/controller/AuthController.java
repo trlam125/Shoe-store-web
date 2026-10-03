@@ -59,6 +59,12 @@ public class AuthController {
 
     @GetMapping("/login")
     public String login(Model model, Authentication auth, HttpSession session) {
+        if (auth != null
+                && auth.isAuthenticated()
+                && !"anonymousUser".equals(auth.getPrincipal())) {
+            return "redirect:/";
+        }
+
         addCartCount(model, auth, session);
         return "auth/login";
     }

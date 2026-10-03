@@ -95,24 +95,17 @@
             <div class="navlinks"><a th:href="@{/intro}">Giới thiệu</a><a th:href="@{/products}">Sản phẩm</a><a
                     th:href="@{/ai/image-search}">Tìm bằng ảnh</a><a class="cart-nav-link" th:href="@{/cart}"
                     aria-label="Mở giỏ hàng">
+                    <svg class="cart-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <circle cx="9" cy="20" r="1.75"></circle>
+                        <circle cx="18" cy="20" r="1.75"></circle>
+                        <path d="M1 1h3.5l2.6 12.3a2 2 0 0 0 2 1.7h9.8a2 2 0 0 0 2-1.6L23 6H5.2"></path>
+                    </svg>
                     <span class="cart-nav-btn-text">
                         <span class="cart-nav-label">Giỏ hàng</span>
                         <span class="cart-count-badge" th:text="${cartCount != null ? cartCount : 0}">0</span>
                     </span>
-                    <svg class="cart-nav-icon" fill="#fff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-                        aria-hidden="true">
-                        <g id="cart">
-                            <circle r="1.91" cy="20.59" cx="10.07"></circle>
-                            <circle r="1.91" cy="20.59" cx="18.66"></circle>
-                            <path
-                                d="M.52,1.5H3.18a2.87,2.87,0,0,1,2.74,2L9.11,13.91H8.64A2.39,2.39,0,0,0,6.25,16.3h0a2.39,2.39,0,0,0,2.39,2.38h10"
-                                fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"
-                                stroke-linejoin="round"></path>
-                            <polyline points="7.21 5.32 22.48 5.32 22.48 7.23 20.57 13.91 9.11 13.91" fill="none"
-                                stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            </polyline>
-                        </g>
-                    </svg>
                 </a><a sec:authorize="isAnonymous()" th:href="@{/login}">Đăng nhập</a><a
                     sec:authorize="isAuthenticated()" th:href="@{/orders}">Đơn hàng</a><a
                     sec:authorize="hasRole('ADMIN')" th:href="@{/admin}">Admin</a>
@@ -783,6 +776,7 @@
 
             // ========== THEME TOGGLE SCRIPT (UIverse friendly-otter-40) ==========
             function toggleSiteTheme(isDark) {
+                document.documentElement.classList.add('theme-transitioning');
                 if (isDark) {
                     document.documentElement.classList.add('dark-theme');
                     localStorage.setItem('lshoe-theme', 'dark');
@@ -790,6 +784,9 @@
                     document.documentElement.classList.remove('dark-theme');
                     localStorage.setItem('lshoe-theme', 'light');
                 }
+                window.setTimeout(function () {
+                    document.documentElement.classList.remove('theme-transitioning');
+                }, 350);
             }
 
             document.addEventListener('DOMContentLoaded', function () {
@@ -800,6 +797,8 @@
                 }
                 if (isDark) {
                     document.documentElement.classList.add('dark-theme');
+                } else {
+                    document.documentElement.classList.remove('dark-theme');
                 }
             });
         </script>
