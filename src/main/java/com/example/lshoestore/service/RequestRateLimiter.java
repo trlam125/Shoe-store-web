@@ -70,7 +70,8 @@ public class RequestRateLimiter {
                               String trustedProxyCidrs) {
         this.jdbcTemplate = jdbcTemplate;
         this.trustProxyHeaders = trustProxyHeaders;
-        this.managedProxyRuntime = "true".equalsIgnoreCase(System.getenv("MANAGED_PROXY_RUNTIME"));
+        this.managedProxyRuntime = "true".equalsIgnoreCase(System.getenv("MANAGED_PROXY_RUNTIME"))
+                || "1".equals(System.getenv("VERCEL"));
         this.trustedProxies = parseCidrs(trustedProxyCidrs);
     }
 

@@ -221,3 +221,6 @@ $RECYCLE.BIN/
 /ngrok.exe
 /.ngrok/
 /ngrok.yml
+
+# Vercel CLI local project metadata
+/.vercel/

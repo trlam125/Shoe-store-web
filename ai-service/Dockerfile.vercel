@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# FastAPI / PyTorch AI project for Vercel Container Functions.
 FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -9,6 +9,7 @@ ENV OPENBLAS_NUM_THREADS=1
 ENV NUMEXPR_NUM_THREADS=1
 ENV MALLOC_ARENA_MAX=2
 ENV AI_RELOAD=false
+ENV PORT=80
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
@@ -18,9 +19,11 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r /tmp/core.txt \
     && pip install --no-cache-dir torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cpu \
     && rm -f /tmp/requirements.txt /tmp/core.txt
-RUN mkdir -p /opt/torch && python -c "from torchvision.models import ResNet18_Weights,resnet18;resnet18(weights=ResNet18_Weights.DEFAULT)"
+RUN mkdir -p /opt/torch \
+    && python -c "from torchvision.models import ResNet18_Weights,resnet18;resnet18(weights=ResNet18_Weights.DEFAULT)"
 COPY app ./app
-RUN useradd -r -d /app -s /usr/sbin/nologin lshoe && chown -R lshoe:lshoe /app /opt/torch
+RUN useradd -r -d /app -s /usr/sbin/nologin lshoe \
+    && chown -R lshoe:lshoe /app /opt/torch
 USER lshoe
-EXPOSE 8001
-CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8001} --workers 1"]
+EXPOSE 80
+CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-80} --workers 1"]

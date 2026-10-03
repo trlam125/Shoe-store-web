@@ -11,6 +11,7 @@ import java.util.Locale;
 public class PublicBaseUrlResolver {
     private final String configuredBaseUrl;
     private final String configuredTunnelUrl;
+    private final String vercelProductionUrl;
     private final boolean development;
     private final CloudflarePublicUrlProvider cloudflarePublicUrlProvider;
 
@@ -20,6 +21,7 @@ public class PublicBaseUrlResolver {
                                  CloudflarePublicUrlProvider cloudflarePublicUrlProvider) {
         this.configuredBaseUrl = normalizeConfigured(configuredBaseUrl);
         this.configuredTunnelUrl = normalizeConfigured(configuredTunnelUrl);
+        this.vercelProductionUrl = normalizeVercelProductionUrl();
         this.development = "development".equalsIgnoreCase(environment);
         this.cloudflarePublicUrlProvider = cloudflarePublicUrlProvider;
     }
@@ -30,6 +32,7 @@ public class PublicBaseUrlResolver {
         // incoming request unless every proxy in front of the app is configured
         // perfectly, which makes them unsuitable for security-sensitive links.
         if (!configuredBaseUrl.isBlank()) return configuredBaseUrl;
+        if (!vercelProductionUrl.isBlank()) return vercelProductionUrl;
 
         if (!development) return null;
 
@@ -58,6 +61,12 @@ public class PublicBaseUrlResolver {
                 || "127.0.0.1".equals(host)
                 || "0:0:0:0:0:0:0:1".equals(host)
                 || "::1".equals(host);
+    }
+
+    private String normalizeVercelProductionUrl() {
+        String host = System.getenv("VERCEL_PROJECT_PRODUCTION_URL");
+        if (host == null || host.isBlank()) return "";
+        return normalizeConfigured("https://" + host.trim());
     }
 
     private String normalizeConfigured(String value) {
