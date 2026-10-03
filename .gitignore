@@ -10,6 +10,7 @@
 .env.*
 !.env.example
 !.env.template
+!/.env.local.example
 !**/.env.example
 !**/.env.template
 

@@ -98,8 +98,8 @@ def _default_store_base_url() -> str:
     if explicit:
         return explicit.rstrip("/")
 
-    # Local development and one-container deployments keep both processes on
-    # the same host, so loopback is the safe default.
+    # Local development keeps both processes on one machine. Split production
+    # must set AI_STORE_BASE_URL to the public WEB container URL.
     return "http://127.0.0.1:8081"
 
 
