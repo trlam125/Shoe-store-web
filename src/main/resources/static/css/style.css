@@ -3975,7 +3975,7 @@ html.dark-theme .toggle-container {
     transition: fill 0.4s ease;
 }
 
-.toggle-input:checked + .toggle .toggle-background {
+.toggle-input:checked+.toggle .toggle-background {
     fill: var(--active-color);
 }
 
@@ -3986,7 +3986,7 @@ html.dark-theme .toggle-container {
     will-change: transform;
 }
 
-.toggle-input:checked + .toggle .toggle-circle-center {
+.toggle-input:checked+.toggle .toggle-circle-center {
     transform: translateX(150px);
 }
 
@@ -4002,7 +4002,7 @@ html.dark-theme .toggle-container {
     transform: scale(1);
 }
 
-.toggle-input:checked + .toggle .toggle-circle.left {
+.toggle-input:checked+.toggle .toggle-circle.left {
     transform: scale(0);
 }
 
@@ -4010,7 +4010,7 @@ html.dark-theme .toggle-container {
     transform: scale(0);
 }
 
-.toggle-input:checked + .toggle .toggle-circle.right {
+.toggle-input:checked+.toggle .toggle-circle.right {
     transform: scale(1);
 }
 
@@ -4022,7 +4022,7 @@ html.dark-theme .toggle-container {
     fill: var(--inactive-color);
 }
 
-.toggle-input:checked + .toggle .toggle-icon.on {
+.toggle-input:checked+.toggle .toggle-icon.on {
     fill: #ffffff;
 }
 
@@ -4030,7 +4030,7 @@ html.dark-theme .toggle-container {
     fill: #94a3b8;
 }
 
-.toggle-input:checked + .toggle .toggle-icon.off {
+.toggle-input:checked+.toggle .toggle-icon.off {
     fill: var(--active-color);
 }
 
