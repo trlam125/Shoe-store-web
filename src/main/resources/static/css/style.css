@@ -1358,7 +1358,12 @@ td button {
     align-items: center;
     justify-content: flex-end;
     gap: 20px;
-    padding: 18px 0;
+    padding: 16px 24px;
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+    margin-top: 18px;
     flex-wrap: wrap;
 }
 
@@ -1639,7 +1644,8 @@ td button {
     }
 
     .cart-summary {
-        justify-content: flex-start;
+        justify-content: space-between;
+        padding: 14px 18px;
     }
 }
 
@@ -1786,17 +1792,23 @@ td button {
 }
 
 .cart-summary>div {
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
     gap: 3px;
 }
 
 .cart-summary span {
     color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .cart-summary strong {
     color: #d92d20;
-    font-size: 28px;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
 }
 
 .checkout-layout {
@@ -4603,7 +4615,7 @@ html.dark-theme .toggle-container {
     transform: scale(0.92);
 }
 
-/* --- UIverse vinodjangid07/tall-termite-79 Checkout Button --- */
+/* --- UIverse vinodjangid07/tall-termite-79 Checkout Button (Fallback) --- */
 .pay-btn-termite {
     display: inline-flex;
     align-items: center;
@@ -4668,6 +4680,412 @@ html.dark-theme .toggle-container {
 .pay-btn-termite:active {
     transform: translate(2px, 2px);
     transition-duration: .15s;
+}
+
+/* ==========================================================================
+   1. UIverse Df12345677/black-rat-82: Reversed Cart Button for Checkout
+      (Default: Wide with 'Thanh toán' -> Hover: Compact Circle with Icon)
+   ========================================================================== */
+.cart-checkout-btn {
+    position: relative;
+    height: 46px;
+    width: 170px;
+    min-width: 46px;
+    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f172a;
+    border: 1.5px solid rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    border-radius: 50px;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22);
+    box-sizing: border-box;
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: width 0.38s cubic-bezier(0.34, 1.25, 0.64, 1),
+        padding 0.38s cubic-bezier(0.34, 1.25, 0.64, 1),
+        background 0.32s ease,
+        border-color 0.32s ease,
+        box-shadow 0.32s ease,
+        transform 0.2s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.cart-checkout-btn .cart-checkout-btn-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateX(0);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.26s ease;
+    white-space: nowrap;
+    font-size: 14.5px;
+    font-weight: 750;
+    color: #ffffff;
+    pointer-events: none;
+}
+
+.cart-checkout-btn .cart-checkout-btn-icon {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 20px;
+    height: 20px;
+    color: #ffffff;
+    transform: translate(-150px, -50%);
+    transition: transform 0.38s cubic-bezier(0.34, 1.25, 0.64, 1),
+        opacity 0.26s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Hover State: collapses smoothly into circle with centered payment card icon */
+.cart-checkout-btn:hover {
+    width: 46px;
+    padding: 0;
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    border-color: rgba(167, 139, 250, 0.75);
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.45);
+}
+
+.cart-checkout-btn:hover .cart-checkout-btn-text {
+    transform: translateY(35px);
+    opacity: 0;
+}
+
+.cart-checkout-btn:hover .cart-checkout-btn-icon {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+}
+
+.cart-checkout-btn:active {
+    transform: translateY(0) scale(0.95);
+}
+
+/* Dark theme for cart-checkout-btn */
+html.dark-theme .cart-checkout-btn {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+html.dark-theme .cart-checkout-btn:hover {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-color: #a78bfa;
+    box-shadow: 0 8px 26px rgba(139, 92, 246, 0.55);
+}
+
+/* ==========================================================================
+   2. UIverse chase2k25/great-duck-50: Animated Checkout Order Confirmation Button
+   ========================================================================== */
+.checkout-duck-btn {
+    background-color: #fff7e6;
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+    max-width: 320px;
+    height: 70px;
+    position: relative;
+    border-radius: 12px;
+    border: 1.5px solid rgba(255, 140, 0, 0.35);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 14px rgba(255, 140, 0, 0.15);
+    cursor: pointer;
+    overflow: hidden;
+    padding: 0;
+    margin-top: 16px;
+    outline: none;
+    font-family: inherit;
+    text-align: left;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.checkout-duck-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    max-width: 150px;
+    border-color: #ff8c00;
+    box-shadow: 0 8px 24px rgba(255, 77, 77, 0.35);
+}
+
+.checkout-duck-btn:active {
+    transform: scale(0.97);
+}
+
+.checkout-duck-btn .duck-left-side {
+    background: linear-gradient(135deg, #ff8c00, #ff4d4d);
+    width: 85px;
+    height: 100%;
+    border-radius: 10px 0 0 10px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.35s ease;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.checkout-duck-btn:hover .duck-left-side {
+    width: 100%;
+    border-radius: 10px;
+}
+
+.checkout-duck-btn .duck-right-side {
+    width: calc(100% - 85px);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: background-color 0.3s ease, opacity 0.25s ease;
+    background-color: transparent;
+    padding: 0 14px 0 10px;
+    box-sizing: border-box;
+}
+
+.checkout-duck-btn:hover .duck-right-side {
+    background-color: #ffecd1;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.checkout-duck-btn .duck-new {
+    font-size: 14.5px;
+    font-weight: 750;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1e293b;
+    letter-spacing: 0.1px;
+    transition: color 0.3s ease;
+}
+
+.checkout-duck-btn .duck-arrow {
+    width: 13px;
+    height: 13px;
+    fill: #ff8c00;
+    flex-shrink: 0;
+    margin-left: 8px;
+    transition: transform 0.3s ease, fill 0.3s ease;
+}
+
+.checkout-duck-btn:hover .duck-arrow {
+    transform: translateX(3px);
+}
+
+/* Card inside left-side */
+.checkout-duck-btn .duck-card {
+    width: 48px;
+    height: 30px;
+    background-color: #ffb366;
+    border-radius: 4px;
+    position: absolute;
+    display: flex;
+    z-index: 10;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 4px 4px 6px -2px rgba(255, 77, 77, 0.45);
+}
+
+.checkout-duck-btn .duck-card-line {
+    width: 42px;
+    height: 8px;
+    background-color: #ffcc99;
+    border-radius: 1px;
+    margin-top: 4px;
+}
+
+.checkout-duck-btn .duck-buttons {
+    width: 5px;
+    height: 5px;
+    background-color: #cc4b00;
+    box-shadow:
+        0 -6px 0 0 #992d00,
+        0 6px 0 0 #ff6a1a;
+    border-radius: 50%;
+    margin-top: 3px;
+    transform: rotate(90deg);
+    margin: 6px 0 0 -18px;
+}
+
+.checkout-duck-btn:hover .duck-card {
+    animation: duck-slide-top 0.9s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
+}
+
+.checkout-duck-btn:hover .duck-post {
+    animation: duck-slide-post 0.7s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes duck-slide-top {
+    0% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-42px) rotate(90deg);
+    }
+
+    60% {
+        transform: translateY(-42px) rotate(90deg);
+    }
+
+    100% {
+        transform: translateY(-4px) rotate(90deg);
+    }
+}
+
+.checkout-duck-btn .duck-post {
+    width: 42px;
+    height: 48px;
+    background-color: #f5f5f5;
+    position: absolute;
+    z-index: 11;
+    bottom: 6px;
+    top: 70px;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.checkout-duck-btn .duck-post-line {
+    width: 32px;
+    height: 5px;
+    background-color: #666;
+    position: absolute;
+    border-radius: 0 0 2px 2px;
+    right: 5px;
+    top: 5px;
+}
+
+.checkout-duck-btn .duck-post-line:before {
+    content: "";
+    position: absolute;
+    width: 32px;
+    height: 5px;
+    background-color: #888;
+    top: -5px;
+    left: 0;
+}
+
+.checkout-duck-btn .duck-screen {
+    width: 32px;
+    height: 15px;
+    background-color: #ffffff;
+    position: absolute;
+    top: 14px;
+    right: 5px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.checkout-duck-btn .duck-numbers {
+    width: 7px;
+    height: 7px;
+    background-color: #999;
+    box-shadow:
+        0 -11px 0 0 #999,
+        0 11px 0 0 #999;
+    border-radius: 1px;
+    position: absolute;
+    transform: rotate(90deg);
+    left: 17px;
+    top: 33px;
+}
+
+.checkout-duck-btn .duck-numbers-line2 {
+    width: 7px;
+    height: 7px;
+    background-color: #bbb;
+    box-shadow:
+        0 -11px 0 0 #bbb,
+        0 11px 0 0 #bbb;
+    border-radius: 1px;
+    position: absolute;
+    transform: rotate(90deg);
+    left: 17px;
+    top: 43px;
+}
+
+@keyframes duck-slide-post {
+    50% {
+        transform: translateY(0);
+    }
+
+    100% {
+        transform: translateY(-42px);
+    }
+}
+
+.checkout-duck-btn .duck-icon {
+    position: absolute;
+    font-size: 11px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    width: 100%;
+    left: 0;
+    top: 0;
+    line-height: 15px;
+    color: #10b981;
+    text-align: center;
+}
+
+.checkout-duck-btn:hover .duck-icon {
+    animation: duck-fade-in-fwd 0.3s 0.7s backwards;
+}
+
+@keyframes duck-fade-in-fwd {
+    0% {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Dark mode for checkout-duck-btn */
+html.dark-theme .checkout-duck-btn {
+    background-color: #0f172a;
+    border-color: rgba(255, 140, 0, 0.4);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+html.dark-theme .checkout-duck-btn .duck-new {
+    color: #f8fafc;
+}
+
+html.dark-theme .checkout-duck-btn .duck-arrow {
+    fill: #fb923c;
+}
+
+html.dark-theme .checkout-duck-btn:hover {
+    border-color: #f97316;
+    box-shadow: 0 8px 26px rgba(249, 115, 22, 0.3);
+}
+
+html.dark-theme .checkout-duck-btn:hover .duck-right-side {
+    background-color: #1e293b;
+}
+
+@media (max-width: 480px) {
+    .checkout-duck-btn {
+        height: 64px;
+        max-width: 100%;
+    }
+
+    .checkout-duck-btn .duck-new {
+        font-size: 13.5px;
+    }
 }
 
 /* ==========================================================================
@@ -4837,7 +5255,6 @@ html.dark-theme .lshoe-logo-btn__icon {
 html.dark-theme .card,
 html.dark-theme .form-box,
 html.dark-theme .table-wrap,
-html.dark-theme .cart-summary,
 html.dark-theme .order-summary-card,
 html.dark-theme .detail,
 html.dark-theme .catalog-filter,
@@ -4951,26 +5368,104 @@ html.dark-theme .page-link.disabled {
     color: #64748b;
 }
 
-/* Tables in Dark Mode */
+/* Tables & Cart Page in Dark Mode */
+html.dark-theme table {
+    background: #111827;
+}
+
 html.dark-theme table th {
     background: #1e293b;
-    color: #94a3b8;
-    border-bottom-color: #334155;
+    color: #cbd5e1;
+    border-bottom: 1px solid #334155;
+    font-size: 13.5px;
+    font-weight: 700;
 }
 
 html.dark-theme table td {
-    border-bottom-color: #1e293b;
-    color: #e2e8f0;
+    background: #111827;
+    border-bottom: 1px solid #1f2937;
+    color: #cbd5e1;
+}
+
+html.dark-theme table tbody tr:hover td {
+    background: #162032;
+}
+
+html.dark-theme .cart-product b {
+    color: #f8fafc;
+}
+
+html.dark-theme .cart-product span {
+    color: #94a3b8;
 }
 
 html.dark-theme .cart-product img {
     background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+html.dark-theme .size-pill {
+    background: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f1f5f9;
+}
+
+html.dark-theme .quantity-form input[type="number"],
 html.dark-theme .quantity-form input {
     background: #1e293b;
-    border-color: #334155;
+    border: 1px solid #334155;
     color: #f8fafc;
+}
+
+html.dark-theme .quantity-form input[type="number"]:focus,
+html.dark-theme .quantity-form input:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+}
+
+html.dark-theme .btn-update-mole-inner {
+    background: #0f172a;
+    color: #ffffff;
+}
+
+html.dark-theme .bin-button {
+    background-color: rgba(239, 68, 68, 0.22);
+    border-color: rgba(239, 68, 68, 0.45);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+html.dark-theme .bin-button:hover {
+    background-color: #dc2626;
+    border-color: #ef4444;
+    box-shadow: 0 6px 18px rgba(239, 68, 68, 0.45);
+}
+
+html.dark-theme .cart-summary {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+html.dark-theme .cart-summary span {
+    color: #94a3b8;
+}
+
+html.dark-theme .cart-summary strong {
+    color: #f87171;
+}
+
+html.dark-theme .empty-state {
+    background: #111827;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+html.dark-theme .empty-state h3 {
+    color: #f8fafc;
+}
+
+html.dark-theme .empty-state p {
+    color: #94a3b8;
 }
 
 html.dark-theme .table-button {

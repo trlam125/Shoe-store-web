@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Thanh toán - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=1}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=6}">
 </head>
 
 <body>
@@ -30,13 +30,30 @@
 
                 <div class="checkout-note">Thanh toán khi nhận hàng (COD). Hệ thống chỉ trừ tồn kho khi đơn được tạo
                     thành công.</div>
-                <button class="pay-btn-termite" style="width: 100%; margin-top: 16px;" type="submit">
-                    <span>Xác nhận đặt hàng & Thanh toán</span>
-                    <svg class="svgIcon" viewBox="0 0 576 512" fill="white">
-                        <path
-                            d="M512 80c8.8 0 16 7.2 16 16v32H48V96c0-8.8 7.2-16 16-16H512zm16 144V416c0 8.8-7.2 16-16 16H64c-8.8 0-16-7.2-16-16V224H528zM64 32C28.7 32 0 60.7 0 96V416c0 35.3 28.7 64 64 64H512c35.3 0 64-28.7 64-64V96c0-35.3-28.7-64-64-64H64zm56 304c-13.3 0-24 10.7-24 24s10.7 24 24 24h48c13.3 0 24-10.7 24-24s-10.7-24-24-24H120zm128 0c-13.3 0-24 10.7-24 24s10.7 24 24 24H360c13.3 0 24-10.7 24-24s-10.7-24-24-24H248z">
-                        </path>
-                    </svg>
+                <button class="checkout-duck-btn" type="submit" aria-label="Xác nhận đặt hàng & Thanh toán">
+                    <span class="duck-left-side">
+                        <span class="duck-card">
+                            <span class="duck-card-line"></span>
+                            <span class="duck-buttons"></span>
+                        </span>
+                        <span class="duck-post">
+                            <span class="duck-post-line"></span>
+                            <span class="duck-screen">
+                                <span class="duck-icon">✓</span>
+                            </span>
+                            <span class="duck-numbers"></span>
+                            <span class="duck-numbers-line2"></span>
+                        </span>
+                    </span>
+                    <span class="duck-right-side">
+                        <span class="duck-new">Xác nhận đặt hàng &amp; Thanh toán</span>
+                        <svg class="duck-arrow" xmlns="http://www.w3.org/2000/svg" width="512" height="512"
+                            viewBox="0 0 451.846 451.847">
+                            <path
+                                d="M345.441 248.292L151.154 442.573c-12.359 12.365-32.397 12.365-44.75 0-12.354-12.354-12.354-32.391 0-44.744L278.318 225.92 106.409 54.017c-12.354-12.359-12.354-32.394 0-44.748 12.354-12.359 32.391-12.359 44.75 0l194.287 194.284c6.177 6.18 9.262 14.271 9.262 22.366 0 8.099-3.091 16.196-9.267 22.373z"
+                                fill="currentColor"></path>
+                        </svg>
+                    </span>
                 </button>
             </form>
         </section>
