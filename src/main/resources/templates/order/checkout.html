@@ -14,7 +14,7 @@
         <section class="form-box checkout-form-box">
             <p class="eyebrow">Thanh toán an toàn</p>
             <h1>Thông tin giao hàng</h1>
-            <form th:action="@{/checkout}" method="post" th:object="${checkoutForm}">
+            <form class="checkout-form" th:action="@{/checkout}" method="post" th:object="${checkoutForm}">
                 <input type="hidden" th:field="*{checkoutToken}">
                 <label>Họ tên người nhận</label>
                 <input th:field="*{receiverName}" required maxlength="100" autocomplete="name">
@@ -72,6 +72,34 @@
         </aside>
     </main>
     <div th:replace="~{fragments :: footer}"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('.checkout-form');
+            const btn = document.querySelector('.checkout-duck-btn');
+            if (!form || !btn) return;
+
+            let isSubmitting = false;
+
+            form.addEventListener('submit', function (e) {
+                if (isSubmitting) return;
+
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    e.preventDefault();
+                    return;
+                }
+
+                e.preventDefault();
+                isSubmitting = true;
+                btn.classList.add('is-submitting');
+                btn.setAttribute('aria-busy', 'true');
+
+                setTimeout(function () {
+                    form.submit();
+                }, 950);
+            });
+        });
+    </script>
 </body>
 
 </html>

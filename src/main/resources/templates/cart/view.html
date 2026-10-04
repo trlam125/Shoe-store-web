@@ -99,14 +99,16 @@
         <div class="cart-summary" th:if="${!#lists.isEmpty(items)}">
             <div><span>Tổng thanh toán</span><strong
                     th:text="${#numbers.formatDecimal(total,0,'COMMA',0,'POINT')} + 'đ'"></strong></div>
-            <a class="cart-checkout-btn" th:href="@{/checkout}" aria-label="Thanh toán">
-                <span class="cart-checkout-btn-text">Thanh toán</span>
-                <svg class="cart-checkout-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                    stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-                    <line x1="2" y1="10" x2="22" y2="10"></line>
-                    <circle cx="17" cy="15" r="1.5"></circle>
-                </svg>
+            <a class="cart-checkout-wrap" th:href="@{/checkout}" aria-label="Thanh toán">
+                <span class="cart-checkout-btn">
+                    <span class="cart-checkout-btn-text">Thanh toán</span>
+                    <svg class="cart-checkout-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                        <line x1="2" y1="10" x2="22" y2="10"></line>
+                        <circle cx="17" cy="15" r="1.5"></circle>
+                    </svg>
+                </span>
             </a>
         </div>
     </section>

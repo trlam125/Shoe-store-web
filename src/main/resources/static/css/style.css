@@ -4582,124 +4582,415 @@ html.dark-theme .cta-content p {
    UIVERSE COMPONENTS & DARK THEME ADDITIONS
    ========================================================================== */
 
-/* --- UIverse njesenberger/friendly-otter-40 Theme Toggle --- */
+/* --- Light/Dark Theme Toggle (plan.md implementation) --- */
 .theme-toggle-wrap {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-left: 6px;
+    margin-left: 8px;
     vertical-align: middle;
-    cursor: pointer;
     flex-shrink: 0;
+}
+
+:root {
+    /* Page background colors */
+    --page-light: #f3f3f3;
+    --page-dark: #121824;
+
+    /* Light Theme Track */
+    --track-light-start: #b8ecff;
+    --track-light-end: #29c1f3;
+
+    /* Light Theme Sun */
+    --sun-core: #fff9d9;
+    --sun-warm: #ffe78d;
+    --sun-glow: rgba(255, 237, 149, 0.65);
+
+    /* Dark Theme Track */
+    --track-dark-start: #21499b;
+    --track-dark-mid: #0d2a73;
+    --track-dark-end: #071956;
+
+    /* Dark Theme Moon & Stars */
+    --moon-core: #ffffff;
+    --moon-edge: #d8dde7;
+    --moon-glow: rgba(255, 255, 255, 0.55);
+    --crater: rgba(175, 182, 196, 0.32);
+    --star: rgba(255, 255, 255, 0.95);
+
+    /* Geometry Variables */
+    --toggle-w: 66px;
+    --toggle-h: 32px;
+    --toggle-pad: 3px;
+    --thumb-size: 26px;
+    --thumb-travel: calc(var(--toggle-w) - (var(--toggle-pad) * 2) - var(--thumb-size));
+
+    /* Timing & Easing */
+    --ease-toggle: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-color: cubic-bezier(0.4, 0, 0.2, 1);
+    --track-duration: 300ms;
+    --thumb-duration: 420ms;
+}
+
+/* Base button wrapper */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    vertical-align: middle;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    border-radius: 999px;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.theme-toggle-wrap:hover {
-    transform: scale(1.08);
+.theme-toggle:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 3px;
 }
 
-.theme-toggle-wrap:active {
-    transform: scale(0.95);
-}
-
-.toggle-container {
-    --active-color: #6366f1;
-    --inactive-color: #cbd5e1;
+/* Track container */
+.toggle-track {
     position: relative;
-    aspect-ratio: 292 / 142;
-    height: 28px;
-    display: inline-flex;
-    align-items: center;
+    width: var(--toggle-w);
+    height: var(--toggle-h);
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--track-light-start) 0%, var(--track-light-end) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+        inset 0 2px 4px rgba(255, 255, 255, 0.75),
+        inset 0 -2px 4px rgba(0, 100, 150, 0.15),
+        0 3px 8px rgba(0, 0, 0, 0.16);
+    overflow: hidden;
+    isolation: isolate;
+    cursor: pointer;
+    transition:
+        background var(--track-duration) var(--ease-color) 0ms,
+        border-color var(--track-duration) var(--ease-color) 0ms,
+        box-shadow var(--track-duration) var(--ease-color) 0ms,
+        transform 0.18s ease;
 }
 
-html.dark-theme .toggle-container {
-    --inactive-color: #334155;
-    --active-color: #6366f1;
+/* Hover & Active Feedback */
+.theme-toggle:hover .toggle-track {
+    filter: brightness(1.03);
+    box-shadow:
+        inset 0 2px 4px rgba(255, 255, 255, 0.85),
+        inset 0 -2px 4px rgba(0, 100, 150, 0.2),
+        0 5px 12px rgba(0, 0, 0, 0.22);
 }
 
-.toggle-input {
-    appearance: none;
-    -webkit-appearance: none;
-    margin: 0;
+.theme-toggle:active .toggle-track {
+    transform: scale(0.96);
+    transition: transform 90ms ease;
+}
+
+/* Dark Mode Track */
+[data-theme="dark"] .toggle-track,
+html.dark-theme .toggle-track {
+    background: linear-gradient(135deg, var(--track-dark-start) 0%, var(--track-dark-mid) 50%, var(--track-dark-end) 100%);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow:
+        inset 0 2px 4px rgba(255, 255, 255, 0.25),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.45),
+        0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .theme-toggle:hover .toggle-track,
+html.dark-theme .theme-toggle:hover .toggle-track {
+    box-shadow:
+        inset 0 2px 4px rgba(255, 255, 255, 0.32),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.5),
+        0 5px 14px rgba(0, 0, 0, 0.42);
+}
+
+/* Track Gloss Layer */
+.track-gloss {
     position: absolute;
-    z-index: 10;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-    opacity: 0;
-}
-
-.toggle {
-    width: 100%;
-    height: 100%;
-    overflow: visible;
+    right: 0;
+    height: 48%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0) 100%);
+    border-radius: 999px 999px 0 0;
     pointer-events: none;
+    z-index: 2;
+    opacity: 0.75;
+    transition: opacity var(--track-duration) var(--ease-color);
 }
 
-.toggle-background {
-    fill: var(--inactive-color);
-    transition: fill 0.4s ease;
+[data-theme="dark"] .track-gloss,
+html.dark-theme .track-gloss {
+    opacity: 0.35;
 }
 
-.toggle-input:checked+.toggle .toggle-background {
-    fill: var(--active-color);
+/* Stars Container */
+.stars {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
 }
 
-.toggle-circle-center {
-    transform-box: fill-box;
-    transform-origin: center center;
-    transition: transform 0.6s cubic-bezier(0.34, 1.25, 0.64, 1);
-    will-change: transform;
+/* Individual Stars */
+.star {
+    position: absolute;
+    display: block;
+    background: var(--star);
+    border-radius: 50%;
+    box-shadow: 0 0 3px rgba(255, 255, 255, 0.9);
+    opacity: 0;
+    transform: scale(0.3);
+    transition:
+        opacity 160ms ease 0ms,
+        transform 160ms ease 0ms;
 }
 
-.toggle-input:checked+.toggle .toggle-circle-center {
-    transform: translateX(150px);
+.star-1 {
+    left: 16%;
+    top: 28%;
+    width: 2.2px;
+    height: 2.2px;
 }
 
-.toggle-circle {
-    transform-box: fill-box;
-    transform-origin: center center;
-    transition: transform 0.45s cubic-bezier(0.34, 1.25, 0.64, 1);
-    backface-visibility: hidden;
-    will-change: transform;
+.star-2 {
+    left: 24%;
+    top: 68%;
+    width: 1.5px;
+    height: 1.5px;
 }
 
-.toggle-circle.left {
+.star-3 {
+    left: 34%;
+    top: 38%;
+    width: 2.0px;
+    height: 2.0px;
+}
+
+.star-4 {
+    left: 44%;
+    top: 22%;
+    width: 1.4px;
+    height: 1.4px;
+}
+
+.star-5 {
+    left: 48%;
+    top: 70%;
+    width: 1.7px;
+    height: 1.7px;
+}
+
+.star-6 {
+    left: 58%;
+    top: 34%;
+    width: 1.4px;
+    height: 1.4px;
+}
+
+.star-7 {
+    left: 28%;
+    top: 18%;
+    width: 1.2px;
+    height: 1.2px;
+}
+
+.star-8 {
+    left: 38%;
+    top: 78%;
+    width: 1.2px;
+    height: 1.2px;
+}
+
+/* Stars Fade-in with Stagger in Dark Mode */
+[data-theme="dark"] .star,
+html.dark-theme .star {
+    opacity: 0.9;
     transform: scale(1);
+    transition:
+        opacity 240ms ease 100ms,
+        transform 240ms var(--ease-toggle) 100ms;
 }
 
-.toggle-input:checked+.toggle .toggle-circle.left {
-    transform: scale(0);
+[data-theme="dark"] .star-1,
+html.dark-theme .star-1 {
+    transition-delay: 90ms;
 }
 
-.toggle-circle.right {
-    transform: scale(0);
+[data-theme="dark"] .star-2,
+html.dark-theme .star-2 {
+    transition-delay: 130ms;
 }
 
-.toggle-input:checked+.toggle .toggle-circle.right {
+[data-theme="dark"] .star-3,
+html.dark-theme .star-3 {
+    transition-delay: 150ms;
+}
+
+[data-theme="dark"] .star-4,
+html.dark-theme .star-4 {
+    transition-delay: 110ms;
+}
+
+[data-theme="dark"] .star-5,
+html.dark-theme .star-5 {
+    transition-delay: 140ms;
+}
+
+[data-theme="dark"] .star-6,
+html.dark-theme .star-6 {
+    transition-delay: 120ms;
+}
+
+[data-theme="dark"] .star-7,
+html.dark-theme .star-7 {
+    transition-delay: 100ms;
+}
+
+[data-theme="dark"] .star-8,
+html.dark-theme .star-8 {
+    transition-delay: 160ms;
+}
+
+/* Subtle Ambient Star Twinkle (Phase 15 of plan.md) */
+@keyframes starTwinkle {
+
+    0%,
+    100% {
+        opacity: 0.95;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.35;
+        transform: scale(0.7);
+    }
+}
+
+[data-theme="dark"] .star-1,
+html.dark-theme .star-1 {
+    animation: starTwinkle 2.5s ease-in-out infinite 0.7s;
+}
+
+[data-theme="dark"] .star-3,
+html.dark-theme .star-3 {
+    animation: starTwinkle 3.2s ease-in-out infinite 1.2s;
+}
+
+[data-theme="dark"] .star-5,
+html.dark-theme .star-5 {
+    animation: starTwinkle 2.8s ease-in-out infinite 1.9s;
+}
+
+/* Thumb (Sun <-> Moon morph) */
+.toggle-thumb {
+    position: absolute;
+    top: 50%;
+    left: var(--toggle-pad);
+    width: var(--thumb-size);
+    height: var(--thumb-size);
+    border-radius: 50%;
+    transform: translate3d(0, -50%, 0);
+    background: radial-gradient(circle at 35% 35%, #ffffff 0%, var(--sun-core) 45%, var(--sun-warm) 100%);
+    box-shadow:
+        0 0 7px rgba(255, 246, 190, 0.95),
+        0 0 15px rgba(255, 229, 116, 0.5),
+        inset 0 1px 2px rgba(255, 255, 255, 0.9);
+    z-index: 3;
+    pointer-events: none;
+    will-change: transform;
+    transition:
+        transform var(--thumb-duration) var(--ease-toggle) 110ms,
+        background 300ms var(--ease-color) 80ms,
+        box-shadow 300ms var(--ease-color) 80ms;
+}
+
+/* Dark Mode Thumb (Moon) */
+[data-theme="dark"] .toggle-thumb,
+html.dark-theme .toggle-thumb {
+    transform: translate3d(var(--thumb-travel), -50%, 0);
+    background: radial-gradient(circle at 35% 30%, var(--moon-core) 0%, #f3f4f7 60%, var(--moon-edge) 100%);
+    box-shadow:
+        0 0 8px rgba(255, 255, 255, 0.8),
+        0 0 16px rgba(190, 210, 255, 0.4),
+        inset 0 1px 1px rgba(255, 255, 255, 0.9);
+    transition:
+        transform var(--thumb-duration) var(--ease-toggle) 60ms,
+        background 320ms var(--ease-color) 40ms,
+        box-shadow 320ms var(--ease-color) 40ms;
+}
+
+/* Moon Craters */
+.crater {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--crater);
+    box-shadow: inset 1px 1px 1.5px rgba(130, 140, 155, 0.35);
+    opacity: 0;
+    transform: scale(0.3);
+    pointer-events: none;
+    transition:
+        opacity 160ms ease 0ms,
+        transform 160ms ease 0ms;
+}
+
+.crater-1 {
+    width: 27%;
+    height: 27%;
+    top: 25%;
+    left: 55%;
+}
+
+.crater-2 {
+    width: 19%;
+    height: 19%;
+    top: 57%;
+    left: 27%;
+}
+
+.crater-3 {
+    width: 15%;
+    height: 15%;
+    top: 63%;
+    left: 62%;
+}
+
+/* Dark Mode Craters Appear */
+[data-theme="dark"] .crater,
+html.dark-theme .crater {
+    opacity: 1;
     transform: scale(1);
+    transition:
+        opacity 220ms ease 160ms,
+        transform 220ms var(--ease-toggle) 160ms;
 }
 
-.toggle-icon {
-    transition: fill 0.4s ease;
+/* Anti-FOUC (Disable animation on initial load) */
+html.no-theme-transition,
+html.no-theme-transition *,
+html.no-theme-transition *::before,
+html.no-theme-transition *::after {
+    transition: none !important;
 }
 
-.toggle-icon.on {
-    fill: var(--inactive-color);
-}
+/* prefers-reduced-motion fallback */
+@media (prefers-reduced-motion: reduce) {
 
-.toggle-input:checked+.toggle .toggle-icon.on {
-    fill: #ffffff;
-}
-
-.toggle-icon.off {
-    fill: #94a3b8;
-}
-
-.toggle-input:checked+.toggle .toggle-icon.off {
-    fill: var(--active-color);
+    .toggle-track,
+    .toggle-thumb,
+    .star,
+    .crater,
+    .track-gloss {
+        transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
+        animation: none !important;
+    }
 }
 
 /* --- UIverse themrsami/dry-mole-95 Update Button --- */
@@ -4871,6 +5162,20 @@ html.dark-theme .toggle-container {
    1. UIverse Df12345677/black-rat-82: Reversed Cart Button for Checkout
       (Default: Wide with 'Thanh toán' -> Hover: Compact Circle with Icon)
    ========================================================================== */
+.cart-checkout-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 170px;
+    height: 46px;
+    text-decoration: none;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
 .cart-checkout-btn {
     position: relative;
     height: 46px;
@@ -4928,7 +5233,8 @@ html.dark-theme .toggle-container {
     pointer-events: none;
 }
 
-/* Hover State: collapses smoothly into circle with centered payment card icon */
+/* Hover State: triggers via parent fixed-width wrap (or button directly), completely preventing flicker */
+.cart-checkout-wrap:hover .cart-checkout-btn,
 .cart-checkout-btn:hover {
     width: 46px;
     padding: 0;
@@ -4938,16 +5244,19 @@ html.dark-theme .toggle-container {
     box-shadow: 0 8px 24px rgba(124, 58, 237, 0.45);
 }
 
+.cart-checkout-wrap:hover .cart-checkout-btn-text,
 .cart-checkout-btn:hover .cart-checkout-btn-text {
     transform: translateY(35px);
     opacity: 0;
 }
 
+.cart-checkout-wrap:hover .cart-checkout-btn-icon,
 .cart-checkout-btn:hover .cart-checkout-btn-icon {
     transform: translate(-50%, -50%);
     opacity: 1;
 }
 
+.cart-checkout-wrap:active .cart-checkout-btn,
 .cart-checkout-btn:active {
     transform: translateY(0) scale(0.95);
 }
@@ -4959,6 +5268,7 @@ html.dark-theme .cart-checkout-btn {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
+html.dark-theme .cart-checkout-wrap:hover .cart-checkout-btn,
 html.dark-theme .cart-checkout-btn:hover {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     border-color: #a78bfa;
@@ -4967,23 +5277,27 @@ html.dark-theme .cart-checkout-btn:hover {
 
 /* ==========================================================================
    2. UIverse chase2k25/great-duck-50: Animated Checkout Order Confirmation Button
+      (Refined: Elegant 54px CTA, Smooth Hover Glow, Card-to-POS Click Animation)
    ========================================================================== */
 .checkout-duck-btn {
-    background-color: #fff7e6;
+    background: linear-gradient(135deg, #ea580c 0%, #f97316 55%, #fb923c 100%);
     display: inline-flex;
     align-items: center;
     width: 100%;
-    max-width: 320px;
-    height: 70px;
+    max-width: 360px;
+    height: 54px;
     position: relative;
-    border-radius: 12px;
-    border: 1.5px solid rgba(255, 140, 0, 0.35);
-    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 14px rgba(255, 140, 0, 0.15);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    transition: max-width 0.4s cubic-bezier(0.34, 1.25, 0.64, 1),
+        transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.25s ease,
+        background 0.3s ease;
+    box-shadow: 0 4px 18px rgba(234, 88, 12, 0.3);
     cursor: pointer;
     overflow: hidden;
     padding: 0;
-    margin-top: 16px;
+    margin-top: 18px;
     outline: none;
     font-family: inherit;
     text-align: left;
@@ -4992,284 +5306,298 @@ html.dark-theme .cart-checkout-btn:hover {
     -webkit-tap-highlight-color: transparent;
 }
 
-.checkout-duck-btn:hover {
-    transform: translateY(-2px) scale(1.02);
-    max-width: 150px;
-    border-color: #ff8c00;
-    box-shadow: 0 8px 24px rgba(255, 77, 77, 0.35);
+/* Subtle, stable hover (NO animation trigger, NO flickering, NO early submit) */
+.checkout-duck-btn:hover:not(.is-submitting) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(234, 88, 12, 0.45);
 }
 
-.checkout-duck-btn:active {
-    transform: scale(0.97);
+.checkout-duck-btn:hover:not(.is-submitting) .duck-arrow {
+    transform: translateX(4px);
 }
 
+.checkout-duck-btn:hover:not(.is-submitting) .duck-card {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.checkout-duck-btn:active:not(.is-submitting) {
+    transform: translateY(0) scale(0.985);
+}
+
+/* Left Dock (holds card and POS terminal) */
 .checkout-duck-btn .duck-left-side {
-    background: linear-gradient(135deg, #ff8c00, #ff4d4d);
-    width: 85px;
+    background: rgba(0, 0, 0, 0.16);
+    width: 68px;
     height: 100%;
-    border-radius: 10px 0 0 10px;
+    border-radius: 14px 0 0 14px;
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.35s ease;
+    transition: width 0.4s cubic-bezier(0.34, 1.25, 0.64, 1),
+        border-radius 0.35s ease,
+        background-color 0.3s ease;
     flex-shrink: 0;
     overflow: hidden;
+    border-right: 1px solid rgba(255, 255, 255, 0.18);
+    box-sizing: border-box;
 }
 
-.checkout-duck-btn:hover .duck-left-side {
-    width: 100%;
-    border-radius: 10px;
-}
-
+/* Right Side (text label & arrow) */
 .checkout-duck-btn .duck-right-side {
-    width: calc(100% - 85px);
+    flex: 1;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
     overflow: hidden;
     white-space: nowrap;
-    transition: background-color 0.3s ease, opacity 0.25s ease;
-    background-color: transparent;
-    padding: 0 14px 0 10px;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    padding: 0 16px 0 14px;
     box-sizing: border-box;
 }
 
-.checkout-duck-btn:hover .duck-right-side {
-    background-color: #ffecd1;
-    opacity: 0;
-    pointer-events: none;
-}
-
 .checkout-duck-btn .duck-new {
-    font-size: 14.5px;
+    font-size: 15px;
     font-weight: 750;
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #1e293b;
-    letter-spacing: 0.1px;
-    transition: color 0.3s ease;
+    color: #ffffff;
+    letter-spacing: 0.15px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 .checkout-duck-btn .duck-arrow {
-    width: 13px;
-    height: 13px;
-    fill: #ff8c00;
+    width: 14px;
+    height: 14px;
+    fill: #ffffff;
     flex-shrink: 0;
     margin-left: 8px;
-    transition: transform 0.3s ease, fill 0.3s ease;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
 }
 
-.checkout-duck-btn:hover .duck-arrow {
-    transform: translateX(3px);
-}
-
-/* Card inside left-side */
+/* Mini Payment Card */
 .checkout-duck-btn .duck-card {
-    width: 48px;
-    height: 30px;
-    background-color: #ffb366;
+    width: 40px;
+    height: 26px;
+    background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #d97706 100%);
     border-radius: 4px;
     position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     display: flex;
     z-index: 10;
     flex-direction: column;
     align-items: center;
-    box-shadow: 4px 4px 6px -2px rgba(255, 77, 77, 0.45);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+    border: 0.5px solid rgba(255, 255, 255, 0.5);
+    box-sizing: border-box;
 }
 
 .checkout-duck-btn .duck-card-line {
-    width: 42px;
-    height: 8px;
-    background-color: #ffcc99;
+    width: 32px;
+    height: 5px;
+    background-color: rgba(120, 53, 15, 0.55);
     border-radius: 1px;
     margin-top: 4px;
 }
 
 .checkout-duck-btn .duck-buttons {
-    width: 5px;
-    height: 5px;
-    background-color: #cc4b00;
-    box-shadow:
-        0 -6px 0 0 #992d00,
-        0 6px 0 0 #ff6a1a;
+    width: 4px;
+    height: 4px;
+    background-color: #92400e;
+    box-shadow: 7px 0 0 0 rgba(255, 255, 255, 0.7);
     border-radius: 50%;
-    margin-top: 3px;
-    transform: rotate(90deg);
-    margin: 6px 0 0 -18px;
+    margin-top: 4px;
+    margin-left: 5px;
+    align-self: flex-start;
 }
 
-.checkout-duck-btn:hover .duck-card {
-    animation: duck-slide-top 0.9s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
-}
-
-.checkout-duck-btn:hover .duck-post {
-    animation: duck-slide-post 0.7s cubic-bezier(0.23, 1, 0.32, 1) both;
-}
-
-@keyframes duck-slide-top {
-    0% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(-42px) rotate(90deg);
-    }
-
-    60% {
-        transform: translateY(-42px) rotate(90deg);
-    }
-
-    100% {
-        transform: translateY(-4px) rotate(90deg);
-    }
-}
-
+/* Mini POS Terminal (hidden below until submit) */
 .checkout-duck-btn .duck-post {
-    width: 42px;
-    height: 48px;
-    background-color: #f5f5f5;
+    width: 38px;
+    height: 46px;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.14);
     position: absolute;
     z-index: 11;
-    bottom: 6px;
-    top: 70px;
-    border-radius: 4px;
+    top: 54px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 6px;
     overflow: hidden;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    box-sizing: border-box;
 }
 
 .checkout-duck-btn .duck-post-line {
-    width: 32px;
-    height: 5px;
-    background-color: #666;
+    width: 28px;
+    height: 3px;
+    background-color: #334155;
     position: absolute;
     border-radius: 0 0 2px 2px;
-    right: 5px;
-    top: 5px;
+    left: 4px;
+    top: 3px;
 }
 
 .checkout-duck-btn .duck-post-line:before {
     content: "";
     position: absolute;
-    width: 32px;
-    height: 5px;
-    background-color: #888;
-    top: -5px;
+    width: 28px;
+    height: 2px;
+    background-color: #475569;
+    top: -2px;
     left: 0;
 }
 
 .checkout-duck-btn .duck-screen {
-    width: 32px;
-    height: 15px;
-    background-color: #ffffff;
+    width: 28px;
+    height: 14px;
+    background-color: #1e293b;
     position: absolute;
-    top: 14px;
-    right: 5px;
+    top: 9px;
+    left: 4px;
     border-radius: 2px;
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.checkout-duck-btn .duck-numbers {
-    width: 7px;
-    height: 7px;
-    background-color: #999;
-    box-shadow:
-        0 -11px 0 0 #999,
-        0 11px 0 0 #999;
-    border-radius: 1px;
-    position: absolute;
-    transform: rotate(90deg);
-    left: 17px;
-    top: 33px;
-}
-
-.checkout-duck-btn .duck-numbers-line2 {
-    width: 7px;
-    height: 7px;
-    background-color: #bbb;
-    box-shadow:
-        0 -11px 0 0 #bbb,
-        0 11px 0 0 #bbb;
-    border-radius: 1px;
-    position: absolute;
-    transform: rotate(90deg);
-    left: 17px;
-    top: 43px;
-}
-
-@keyframes duck-slide-post {
-    50% {
-        transform: translateY(0);
-    }
-
-    100% {
-        transform: translateY(-42px);
-    }
-}
-
 .checkout-duck-btn .duck-icon {
-    position: absolute;
     font-size: 11px;
     font-family: 'Outfit', sans-serif;
     font-weight: 800;
-    width: 100%;
-    left: 0;
-    top: 0;
-    line-height: 15px;
+    line-height: 14px;
     color: #10b981;
     text-align: center;
+    opacity: 0;
 }
 
-.checkout-duck-btn:hover .duck-icon {
-    animation: duck-fade-in-fwd 0.3s 0.7s backwards;
+.checkout-duck-btn .duck-numbers {
+    width: 4px;
+    height: 4px;
+    background-color: #64748b;
+    box-shadow: 8px 0 0 0 #64748b, 16px 0 0 0 #64748b;
+    border-radius: 1px;
+    position: absolute;
+    left: 7px;
+    top: 27px;
+}
+
+.checkout-duck-btn .duck-numbers-line2 {
+    width: 4px;
+    height: 4px;
+    background-color: #475569;
+    box-shadow: 8px 0 0 0 #475569, 16px 0 0 0 #475569;
+    border-radius: 1px;
+    position: absolute;
+    left: 7px;
+    top: 35px;
+}
+
+/* ==========================================================================
+   SUBMISSION STATE (Triggered ONLY on Click / Form Submit)
+   ========================================================================== */
+.checkout-duck-btn.is-submitting {
+    max-width: 130px;
+    margin-left: auto;
+    margin-right: auto;
+    pointer-events: none;
+    box-shadow: 0 8px 28px rgba(234, 88, 12, 0.45);
+}
+
+.checkout-duck-btn.is-submitting .duck-left-side {
+    width: 100%;
+    border-radius: 14px;
+    border-right: none;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.checkout-duck-btn.is-submitting .duck-right-side {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.9);
+}
+
+.checkout-duck-btn.is-submitting .duck-card {
+    animation: duck-slide-top 0.88s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+.checkout-duck-btn.is-submitting .duck-post {
+    animation: duck-slide-post 0.72s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.checkout-duck-btn.is-submitting .duck-icon {
+    animation: duck-fade-in-fwd 0.28s 0.62s forwards;
+}
+
+@keyframes duck-slide-top {
+    0% {
+        transform: translate(-50%, -50%);
+    }
+
+    45% {
+        transform: translate(-50%, -46px) rotate(90deg);
+    }
+
+    55% {
+        transform: translate(-50%, -46px) rotate(90deg);
+    }
+
+    100% {
+        transform: translate(-50%, -8px) rotate(90deg);
+    }
+}
+
+@keyframes duck-slide-post {
+
+    0%,
+    35% {
+        transform: translateX(-50%) translateY(0);
+    }
+
+    100% {
+        transform: translateX(-50%) translateY(-48px);
+    }
 }
 
 @keyframes duck-fade-in-fwd {
     0% {
         opacity: 0;
-        transform: translateY(-3px);
+        transform: scale(0.5);
     }
 
     100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: scale(1);
     }
 }
 
 /* Dark mode for checkout-duck-btn */
 html.dark-theme .checkout-duck-btn {
-    background-color: #0f172a;
-    border-color: rgba(255, 140, 0, 0.4);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(135deg, #c2410c 0%, #ea580c 55%, #f97316 100%);
+    border-color: rgba(251, 146, 60, 0.32);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 16px rgba(234, 88, 12, 0.2);
 }
 
-html.dark-theme .checkout-duck-btn .duck-new {
-    color: #f8fafc;
+html.dark-theme .checkout-duck-btn:hover:not(.is-submitting) {
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.65), 0 0 24px rgba(234, 88, 12, 0.4);
 }
 
-html.dark-theme .checkout-duck-btn .duck-arrow {
-    fill: #fb923c;
-}
-
-html.dark-theme .checkout-duck-btn:hover {
-    border-color: #f97316;
-    box-shadow: 0 8px 26px rgba(249, 115, 22, 0.3);
-}
-
-html.dark-theme .checkout-duck-btn:hover .duck-right-side {
-    background-color: #1e293b;
+html.dark-theme .checkout-duck-btn.is-submitting {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 28px rgba(249, 115, 22, 0.45);
 }
 
 @media (max-width: 480px) {
     .checkout-duck-btn {
-        height: 64px;
+        height: 52px;
         max-width: 100%;
     }
 
     .checkout-duck-btn .duck-new {
-        font-size: 13.5px;
+        font-size: 14px;
     }
 }
 

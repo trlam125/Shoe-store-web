@@ -112,10 +112,10 @@
 /* Conveyor Track */
 .conveyor {
     position: absolute;
-    left: 18px;
-    right: 66px;
-    bottom: 9px;
-    height: 4px;
+    left: 14px;
+    right: 58px;
+    bottom: 8px;
+    height: 3px;
     overflow: hidden;
     border-radius: 2px;
     background: rgba(255, 255, 255, 0.05);
@@ -147,25 +147,25 @@
 /* Overhead Scanner */
 .scanner {
     position: absolute;
-    top: 5px;
-    left: 46%;
+    top: 3px;
+    left: 43%;
     transform: translateX(-50%);
     width: 36px;
-    height: 11px;
+    height: 8px;
     background: #192534;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 6px;
+    padding: 0 5px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     z-index: 40;
 }
 
 .scanner-led {
-    width: 4px;
-    height: 4px;
+    width: 3px;
+    height: 3px;
     border-radius: 50%;
     background: #475569;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
@@ -173,34 +173,34 @@
 
 .scanner-led-left.active {
     background: #f59e0b;
-    box-shadow: 0 0 8px #f59e0b;
+    box-shadow: 0 0 6px #f59e0b;
 }
 
 .scanner-led-right.active-green {
     background: #10b981;
-    box-shadow: 0 0 8px #10b981;
+    box-shadow: 0 0 6px #10b981;
 }
 
 .scanner-led-right.active-red {
     background: #ef4444;
-    box-shadow: 0 0 8px #ef4444;
+    box-shadow: 0 0 6px #ef4444;
 }
 
 .scanner-light {
     position: absolute;
     left: 50%;
-    top: 11px;
+    top: 8px;
     width: 34px;
-    height: 34px;
+    height: 32px;
     transform: translateX(-50%);
     opacity: 0;
     pointer-events: none;
     background: linear-gradient(180deg,
-            rgba(246, 173, 60, 0.65) 0%,
-            rgba(246, 173, 60, 0.22) 55%,
+            rgba(246, 173, 60, 0.7) 0%,
+            rgba(246, 173, 60, 0.2) 55%,
             rgba(246, 173, 60, 0) 100%);
     clip-path: polygon(25% 0%, 75% 0%, 100% 100%, 0% 100%);
-    filter: blur(1.5px);
+    filter: blur(1px);
     z-index: 38;
 }
 
@@ -208,9 +208,9 @@
     position: absolute;
     left: 5%;
     width: 90%;
-    height: 2px;
+    height: 1.5px;
     background: #ffbe53;
-    box-shadow: 0 0 6px #ffbe53, 0 0 12px #f6ad3c;
+    box-shadow: 0 0 5px #ffbe53, 0 0 10px #f6ad3c;
     opacity: 0;
     top: 0;
     z-index: 39;
@@ -220,12 +220,12 @@
 .package {
     position: absolute;
     left: 0;
-    bottom: 13px;
-    width: 32px;
-    height: 29px;
-    transform: translateX(-60px) scale(0.9);
+    bottom: 11px;
+    width: 25px;
+    height: 23px;
+    transform: translateX(-50px) scale(0.9);
     opacity: 0;
-    z-index: 30;
+    z-index: 22;
     will-change: transform, opacity;
 }
 
@@ -246,10 +246,10 @@
 /* Shopping Cart */
 .shopping-cart {
     position: absolute;
-    right: 14px;
-    bottom: 7px;
-    width: 38px;
-    height: 36px;
+    right: 12px;
+    bottom: 6px;
+    width: 40px;
+    height: 38px;
     opacity: 0;
     transform: translateX(30px) scale(0.85);
     z-index: 25;
@@ -265,10 +265,10 @@
 /* Badge +1 */
 .cart-badge {
     position: absolute;
-    right: 10px;
-    top: 5px;
-    min-width: 20px;
-    height: 20px;
+    right: 8px;
+    top: 4px;
+    min-width: 19px;
+    height: 19px;
     padding: 0 5px;
     border-radius: 999px;
     background: linear-gradient(135deg, #ff9f43, #ff5252);
