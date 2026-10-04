@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Tìm kiếm bằng hình ảnh - LSHOE</title>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=1}">
+    <link rel="stylesheet" th:href="@{/css/style.css?v=2}">
 </head>
 
 <body>
@@ -16,60 +16,214 @@
             <p>Tải ảnh rõ toàn bộ đôi giày. Hệ thống kiểm tra ảnh có phải giày, loại ảnh sản phẩm bị trùng và chỉ hiển
                 thị kết quả vượt ngưỡng tương đồng.</p>
             <form id="image-form" class="image-ai-form">
-                <label class="file-drop" for="shoe-image">
-                    <span>📷</span>
-                    <b>Chọn ảnh đôi giày</b>
-                    <small>Dung lượng tối đa 10MB</small>
+                <label class="file-drop" for="shoe-image" id="file-drop-zone">
+                    <span class="file-drop-icon">📷</span>
+                    <b class="file-drop-title">Chọn hoặc kéo thả ảnh đôi giày vào đây</b>
+                    <small class="file-drop-sub">Hỗ trợ JPG, PNG, WebP · Tối đa 10MB</small>
                 </label>
                 <input id="shoe-image" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp"
                     required>
-                <button class="btn" type="submit">Phân tích ảnh</button>
+
+                <div id="image-preview-wrap" class="image-preview-wrap" style="display: none;">
+                    <img id="image-preview" src="" alt="Xem trước ảnh giày">
+                    <div class="preview-actions">
+                        <span id="preview-file-name" class="preview-file-name"></span>
+                        <button type="button" id="remove-image-btn" class="remove-image-btn" title="Chọn ảnh khác">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                            <span>Đổi ảnh khác</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="btn ai-submit-btn" id="ai-submit-btn" type="submit">
+                    <span id="btn-text">Phân tích ảnh</span>
+                    <span id="btn-spinner" class="btn-spinner" style="display: none;"></span>
+                </button>
             </form>
-            <p id="selected-file" class="selected-file"></p>
+            <p id="selected-file" class="selected-file" style="display: none;"></p>
             <p id="ai-status" class="ai-status"></p>
         </div>
         <div id="ai-results" class="grid"></div>
     </section>
     <div th:replace="~{fragments :: footer}"></div>
+
     <script th:inline="javascript">
-        const form = document.getElementById('image-form');
-        const input = document.getElementById('shoe-image');
-        const selectedFile = document.getElementById('selected-file');
-        const statusText = document.getElementById('ai-status');
-        const results = document.getElementById('ai-results');
-        input.addEventListener('change', () => selectedFile.textContent = input.files[0] ? `Đã chọn: ${input.files[0].name}` : '');
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const file = input.files[0];
-            if (!file) return;
-            statusText.classList.remove('error');
-            statusText.textContent = 'Đang trích xuất đặc trưng ảnh và so sánh sản phẩm...';
-            results.innerHTML = '';
-            const data = new FormData();
-            data.append('file', file);
-            try {
-                const csrf = document.getElementById('chat-csrf');
-                const response = await fetch('/ai/image-search/analyze?limit=6', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf.value }, body: data });
-                const payload = await response.json();
-                if (response.status === 401) { window.location.href = '/login?expired'; return; }
-                if (!response.ok) throw new Error(payload.detail || payload.error || 'Dịch vụ AI không thể xử lý ảnh.');
-                const confidence = ((payload.queryShoeConfidence || 0) * 100).toFixed(1);
-                const warningText = (payload.warnings || []).join(' ');
-                const baseMessage = payload.message || `Mô hình: ${payload.model}. Độ tin cậy ảnh giày ${confidence}%. Tìm thấy ${payload.matches.length} kết quả.`;
-                statusText.textContent = `${baseMessage}${warningText ? ' ' + warningText : ''}`;
-                if (!payload.matches.length) return;
-                payload.matches.forEach(item => {
-                    const card = document.createElement('a'); card.className = 'card'; card.href = `/products/${item.productId}`;
-                    const wrap = document.createElement('div'); wrap.className = 'card-image-wrap';
-                    const image = document.createElement('img'); image.src = item.imageUrl; image.alt = item.name; image.loading = 'lazy'; wrap.appendChild(image);
-                    const body = document.createElement('div'); body.className = 'card-body';
-                    const brand = document.createElement('p'); brand.className = 'brand'; brand.textContent = item.brand;
-                    const name = document.createElement('h3'); name.textContent = item.name;
-                    const similarity = document.createElement('span'); similarity.className = 'stock-pill'; similarity.textContent = `Tương đồng ${(item.similarity * 100).toFixed(1)}%`;
-                    body.append(brand, name, similarity); card.append(wrap, body); results.appendChild(card);
-                });
-            } catch (error) { statusText.textContent = error.message; statusText.classList.add('error'); }
-        });
+        (function () {
+            const form = document.getElementById('image-form');
+            const input = document.getElementById('shoe-image');
+            const dropZone = document.getElementById('file-drop-zone');
+            const previewWrap = document.getElementById('image-preview-wrap');
+            const previewImg = document.getElementById('image-preview');
+            const previewName = document.getElementById('preview-file-name');
+            const removeBtn = document.getElementById('remove-image-btn');
+            const statusText = document.getElementById('ai-status');
+            const results = document.getElementById('ai-results');
+            const submitBtn = document.getElementById('ai-submit-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnSpinner = document.getElementById('btn-spinner');
+
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / 1048576).toFixed(1) + ' MB';
+            }
+
+            function showFilePreview(file) {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImg.src = e.target.result;
+                    previewName.textContent = file.name + ' (' + formatFileSize(file.size) + ')';
+                    dropZone.style.display = 'none';
+                    previewWrap.style.display = 'flex';
+                };
+                reader.readAsDataURL(file);
+            }
+
+            function resetFile() {
+                input.value = '';
+                previewImg.src = '';
+                previewName.textContent = '';
+                previewWrap.style.display = 'none';
+                dropZone.style.display = 'flex';
+                statusText.textContent = '';
+                statusText.className = 'ai-status';
+                results.innerHTML = '';
+            }
+
+            input.addEventListener('change', () => {
+                if (input.files && input.files[0]) {
+                    showFilePreview(input.files[0]);
+                }
+            });
+
+            removeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                resetFile();
+            });
+
+            // Drag and drop support
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.add('drag-over');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('drag-over');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                if (dt && dt.files && dt.files[0]) {
+                    input.files = dt.files;
+                    showFilePreview(dt.files[0]);
+                }
+            }, false);
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const file = input.files[0];
+                if (!file) return;
+
+                statusText.className = 'ai-status';
+                statusText.textContent = 'Đang trích xuất đặc trưng ảnh và so sánh sản phẩm...';
+                results.innerHTML = '';
+
+                submitBtn.disabled = true;
+                btnText.textContent = 'Đang phân tích...';
+                btnSpinner.style.display = 'inline-block';
+
+                const data = new FormData();
+                data.append('file', file);
+
+                try {
+                    const csrf = document.getElementById('chat-csrf');
+                    const headers = csrf ? { 'X-CSRF-TOKEN': csrf.value } : {};
+                    const response = await fetch('/ai/image-search/analyze?limit=6', {
+                        method: 'POST',
+                        headers: headers,
+                        body: data
+                    });
+                    const payload = await response.json();
+
+                    if (response.status === 401) {
+                        window.location.href = '/login?expired';
+                        return;
+                    }
+                    if (!response.ok) {
+                        throw new Error(payload.detail || payload.error || 'Dịch vụ AI không thể xử lý ảnh.');
+                    }
+
+                    const confidence = ((payload.queryShoeConfidence || 0) * 100).toFixed(1);
+                    const warningText = (payload.warnings || []).join(' ');
+                    const baseMessage = payload.message || `Mô hình: ${payload.model}. Độ tin cậy ảnh giày: ${confidence}%. Tìm thấy ${payload.matches.length} kết quả.`;
+                    statusText.textContent = `${baseMessage}${warningText ? ' ' + warningText : ''}`;
+
+                    if (!payload.matches || !payload.matches.length) {
+                        const empty = document.createElement('div');
+                        empty.className = 'ai-empty-results';
+                        empty.innerHTML = `
+                            <p style="font-size: 34px; margin-bottom: 8px;">👟</p>
+                            <h3 style="margin-bottom: 6px; color: var(--ink);">Không tìm thấy sản phẩm phù hợp</h3>
+                            <p>Hãy thử chụp ảnh rõ toàn bộ đôi giày từ góc ngang hoặc góc nghiêng 45° với ánh sáng tốt hơn.</p>
+                        `;
+                        results.appendChild(empty);
+                        return;
+                    }
+
+                    payload.matches.forEach(item => {
+                        const card = document.createElement('a');
+                        card.className = 'card';
+                        card.href = `/products/${item.productId}`;
+
+                        const wrap = document.createElement('div');
+                        wrap.className = 'card-image-wrap';
+
+                        const image = document.createElement('img');
+                        image.src = item.imageUrl;
+                        image.alt = item.name;
+                        image.loading = 'lazy';
+                        wrap.appendChild(image);
+
+                        const body = document.createElement('div');
+                        body.className = 'card-body';
+
+                        const brand = document.createElement('p');
+                        brand.className = 'brand';
+                        brand.textContent = item.brand;
+
+                        const name = document.createElement('h3');
+                        name.textContent = item.name;
+
+                        const similarity = document.createElement('span');
+                        similarity.className = 'stock-pill';
+                        similarity.textContent = `✓ Tương đồng ${(item.similarity * 100).toFixed(1)}%`;
+
+                        body.append(brand, name, similarity);
+                        card.append(wrap, body);
+                        results.appendChild(card);
+                    });
+                } catch (error) {
+                    statusText.textContent = error.message;
+                    statusText.className = 'ai-status error';
+                } finally {
+                    submitBtn.disabled = false;
+                    btnText.textContent = 'Phân tích ảnh';
+                    btnSpinner.style.display = 'none';
+                }
+            });
+        })();
     </script>
 </body>
 
