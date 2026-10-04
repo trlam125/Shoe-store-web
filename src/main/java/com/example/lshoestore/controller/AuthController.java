@@ -90,10 +90,6 @@ public class AuthController {
         return "redirect:/login?mode=register";
     }
 
-    @GetMapping("/auth-demo")
-    public String authDemo() {
-        return "redirect:/login";
-    }
 
     @PostMapping("/register")
     public String doRegister(@Valid @ModelAttribute("form") RegistrationForm form,

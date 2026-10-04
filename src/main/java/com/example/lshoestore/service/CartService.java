@@ -20,7 +20,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -339,17 +338,6 @@ public class CartService {
         return value > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }
 
-    @Transactional
-    public BigDecimal total(Authentication auth, HttpSession session) {
-        return getItems(auth, session).stream()
-                .map(item -> item.getProduct().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    @Transactional
-    public boolean isEmpty(Authentication auth, HttpSession session) {
-        return getItems(auth, session).isEmpty();
-    }
 
     @Transactional
     public CartMergeResult mergeGuestCart(Authentication auth, HttpSession session) {

@@ -74,14 +74,6 @@
         syncDOM(currentTheme, true);
     }
 
-    /**
-     * Set explicit theme
-     */
-    function setTheme(theme) {
-        if (theme !== 'dark' && theme !== 'light') return;
-        currentTheme = theme;
-        syncDOM(currentTheme, true);
-    }
 
     // Initialize anti-FOUC on script execution
     syncDOM(currentTheme, false);
@@ -121,19 +113,4 @@
         }
     });
 
-    // Global exports & legacy compatibility
-    window.ThemeToggle = {
-        getTheme: () => currentTheme,
-        setTheme: setTheme,
-        toggle: toggleTheme
-    };
-
-    // Backward-compatible global function used in inline onchange/onclick
-    window.toggleSiteTheme = function (isDark) {
-        if (typeof isDark === 'boolean') {
-            setTheme(isDark ? 'dark' : 'light');
-        } else {
-            toggleTheme();
-        }
-    };
 })();

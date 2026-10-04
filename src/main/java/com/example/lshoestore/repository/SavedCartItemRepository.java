@@ -12,21 +12,11 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface SavedCartItemRepository extends JpaRepository<SavedCartItem, Long> {
     @EntityGraph(attributePaths = "product")
     List<SavedCartItem> findByUserOrderByProduct_IdAscSelectedSizeAsc(User user);
 
-    Optional<SavedCartItem> findByUserAndProductIdAndSelectedSize(User user, Long productId, String selectedSize);
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM SavedCartItem s WHERE s.user = :user "
-            + "AND s.product.id = :productId AND s.selectedSize = :selectedSize")
-    Optional<SavedCartItem> findByUserAndProductIdAndSelectedSizeWithLock(
-            @Param("user") User user,
-            @Param("productId") Long productId,
-            @Param("selectedSize") String selectedSize);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM SavedCartItem s WHERE s.user = :user AND s.product.id = :productId "
@@ -59,7 +49,4 @@ public interface SavedCartItemRepository extends JpaRepository<SavedCartItem, Lo
     @Transactional
     void deleteByUser(User user);
 
-    @Modifying
-    @Transactional
-    void deleteByProductId(Long productId);
 }

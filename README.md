@@ -6,32 +6,52 @@ Spring Boot + Thymeleaf storefront with a separate FastAPI/PyTorch AI service an
 
 ### Local / IntelliJ
 
-Spring Boot runs at `http://localhost:8081`. The dev profile can prepare/start the local
-FastAPI service at `http://127.0.0.1:8001`. ngrok/Cloudflare tunnel helpers remain local-only.
-Copy `.env.local.example` to `.env` for local settings.
+Spring Boot runs at `http://localhost:8081`. The dev profile can prepare and start the local
+FastAPI service at `http://127.0.0.1:8001`. Copy `.env.example` to `.env`, then fill in the
+database and optional integration settings. Ngrok/Cloudflare helpers are local-only.
 
 ### Vercel production
 
-The same Git repository is connected to **two Vercel projects**:
+The same repository can be connected to two Vercel projects:
 
 - **WEB project** — Root Directory `/`, built from `Dockerfile.vercel`.
 - **AI project** — Root Directory `ai-service`, built from `ai-service/Dockerfile.vercel`.
 
-Both projects can track the same `main` branch. Each Git push creates deployments for both
-connected Vercel projects, so no mirror branch or GitHub Action is required.
+Persistent data lives in PostgreSQL. Product images uploaded by administrators are stored in
+PostgreSQL in production because Vercel container instances are stateless.
 
-Persistent data lives in Neon PostgreSQL. Product images uploaded by administrators are stored
-in PostgreSQL in production because Vercel container instances are stateless.
+Required WEB environment variables:
 
-See [`DEPLOY-VERCEL.md`](DEPLOY-VERCEL.md) for deployment and environment-variable setup.
+```text
+DATABASE_URL=postgresql://...
+AI_SERVICE_URL=https://<your-ai-project>.vercel.app
+AI_INTERNAL_API_KEY=<long-random-secret>
+```
+
+Required AI environment variables:
+
+```text
+DATABASE_URL=postgresql://...
+AI_INTERNAL_API_KEY=<same-secret-as-web>
+AI_STORE_BASE_URL=https://<your-web-project>.vercel.app
+```
+
+`AI_INTERNAL_API_KEY` is a secret you create yourself. The value must match exactly in the WEB
+and AI projects. Redeploy both projects after changing environment variables.
+
+Health endpoints for the AI service:
+
+- `/live` checks whether the FastAPI process is running.
+- `/ready` checks whether the service can reach PostgreSQL.
+- `/health` is retained as a compatibility alias of `/ready`.
 
 ## Database migrations
 
-Flyway is enabled and the current reset schema is represented by the single migration:
+Flyway uses:
 
 ```text
 src/main/resources/db/migration/V1__baseline_and_integrity.sql
 ```
 
-Do not edit V1 after a shared/production database has been created from it. Future schema changes
-must be added as V2, V3, and so on.
+Do not edit V1 after a shared/production database has been created from it. Future schema
+changes should be added as V2, V3, and so on.

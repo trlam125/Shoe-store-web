@@ -13,13 +13,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PendingRegistrationRepository extends JpaRepository<PendingRegistration, Long> {
-    Optional<PendingRegistration> findByRegistrationToken(String registrationToken);
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT p FROM PendingRegistration p WHERE p.registrationToken = :registrationToken")
-    Optional<PendingRegistration> findByRegistrationTokenWithLock(
-            @Param("registrationToken") String registrationToken);
-
     List<PendingRegistration> findAllByEmailIgnoreCase(String email);
 
     Optional<PendingRegistration> findFirstByEmailIgnoreCaseOrderByIdDesc(String email);

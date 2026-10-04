@@ -16,7 +16,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findTop12ByActiveTrueOrderByIdDesc();
     List<Product> findByActiveTrueOrderByIdDesc();
     List<Product> findByActiveTrueAndStockGreaterThanOrderByIdDesc(int stock);
-    List<Product> findByActiveTrueAndNameContainingIgnoreCaseOrderByIdDesc(String keyword);
     List<Product> findByActiveTrueAndCategory_IdOrderByIdDesc(Long categoryId);
 
     Page<Product> findByActiveTrueOrderByIdDesc(Pageable pageable);

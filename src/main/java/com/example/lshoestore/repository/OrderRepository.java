@@ -23,7 +23,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countByUserAndStatus(User user, OrderStatus status);
     boolean existsByCheckoutToken(String checkoutToken);
     boolean existsByCheckoutTokenAndUser(String checkoutToken, User user);
-    Optional<Order> findByCheckoutToken(String checkoutToken);
 
     @Query("SELECT SUM(o.total) FROM Order o WHERE o.user = :user AND o.status = :status")
     BigDecimal sumTotalByUserAndStatus(@Param("user") User user, @Param("status") OrderStatus status);
