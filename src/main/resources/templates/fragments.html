@@ -142,13 +142,13 @@
                     <span class="cart-count-badge" th:text="${cartCount != null ? cartCount : 0}">0</span>
                 </a>
                 <a sec:authorize="isAnonymous()" class="btn-moth" th:href="@{/login}"><span class="text">Đăng
-                        nhập</span><span aria-hidden="true" class="marquee" style="--spacing: 7.5em; --end: 7.5em;">Đăng
+                        nhập</span><span aria-hidden="true" class="marquee" style="--spacing: 6.8em; --end: 6.8em;">Đăng
                         nhập</span></a>
                 <a sec:authorize="isAuthenticated()" th:href="@{/orders}">Đơn hàng</a>
                 <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin}">Admin</a>
                 <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="inline">
                     <button class="btn-moth" type="submit"><span class="text">Đăng xuất</span><span aria-hidden="true"
-                            class="marquee" style="--spacing: 7.2em; --end: 7.2em;">Đăng xuất</span></button>
+                            class="marquee" style="--spacing: 6.8em; --end: 6.8em;">Đăng xuất</span></button>
                 </form>
                 <!-- Light/Dark Theme Toggle (plan.md implementation) -->
                 <div class="theme-toggle-wrap">
@@ -479,10 +479,11 @@
             .chat-snake-btn .chat-snake-label {
                 position: relative;
                 z-index: 4;
-                font-family: inherit;
-                letter-spacing: -0.02em;
-                font-weight: 750;
-                font-size: 14.5px;
+                font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+                letter-spacing: 0.015em;
+                font-weight: 650;
+                font-size: 14px;
+                line-height: 1.25;
                 color: rgba(0, 0, 0, 0);
                 background-image: linear-gradient(135deg,
                         rgba(15, 23, 42, 1),
@@ -507,7 +508,7 @@
 
             .chat-snake-btn:hover .chat-snake-label,
             .chat-snake-btn:focus-visible .chat-snake-label {
-                max-width: 140px;
+                max-width: 150px;
                 opacity: 1;
                 margin-left: 8px;
                 transform: translateX(0);

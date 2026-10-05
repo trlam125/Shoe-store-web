@@ -36,7 +36,7 @@
     outline: none;
     padding: 0;
     color: var(--cart-text);
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     margin: 10px 0;
 }
 
@@ -84,8 +84,9 @@
 .cart-default {
     gap: 9px;
     font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
+    font-weight: 650;
+    letter-spacing: 0.015em;
+    line-height: 1.25;
     opacity: 1;
     transition: opacity 0.25s ease, transform 0.25s ease;
 }
@@ -289,7 +290,8 @@
     opacity: 0;
     gap: 8px;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 650;
+    line-height: 1.25;
     color: var(--cart-success);
     transform: translateY(4px);
     transition: opacity 0.25s ease, transform 0.25s ease;
@@ -318,7 +320,8 @@
     opacity: 0;
     gap: 8px;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 650;
+    line-height: 1.25;
     color: var(--cart-error);
     transform: translateY(4px);
     transition: opacity 0.2s ease, transform 0.2s ease;

@@ -165,10 +165,8 @@
                         throw new Error(payload.detail || payload.error || 'Dịch vụ AI không thể xử lý ảnh.');
                     }
 
-                    const confidence = ((payload.queryShoeConfidence || 0) * 100).toFixed(1);
-                    const warningText = (payload.warnings || []).join(' ');
-                    const baseMessage = payload.message || `Mô hình: ${payload.model}. Độ tin cậy ảnh giày: ${confidence}%. Tìm thấy ${payload.matches.length} kết quả.`;
-                    statusText.textContent = `${baseMessage}${warningText ? ' ' + warningText : ''}`;
+                    const baseMessage = payload.message || `Tìm thấy ${payload.matches.length} kết quả.`;
+                    statusText.textContent = baseMessage;
 
                     if (!payload.matches || !payload.matches.length) {
                         const empty = document.createElement('div');
